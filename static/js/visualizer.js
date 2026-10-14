@@ -97,12 +97,7 @@ class AudioWaveformVisualizer {
         const x = i * (barWidth + 2);
         const y = (height - barHeight) / 2;
 
-        const gradient = this.ctx.createLinearGradient(0, y, 0, y + barHeight);
-        gradient.addColorStop(0, '#818cf8');
-        gradient.addColorStop(0.5, '#6366f1');
-        gradient.addColorStop(1, '#a855f7');
-
-        this.ctx.fillStyle = gradient;
+        this.ctx.fillStyle = '#D97757';
         this.ctx.beginPath();
         this.ctx.roundRect(x, y, barWidth, barHeight, 2);
         this.ctx.fill();
@@ -128,11 +123,7 @@ class AudioWaveformVisualizer {
       const x = i * (barWidth + 2);
       const y = (height - barHeight) / 2;
 
-      const gradient = this.ctx.createLinearGradient(0, y, 0, y + barHeight);
-      gradient.addColorStop(0, '#6366f1');
-      gradient.addColorStop(1, '#06b6d4');
-
-      this.ctx.fillStyle = gradient;
+      this.ctx.fillStyle = isPlaying ? '#D97757' : '#D5D2C7';
       this.ctx.beginPath();
       this.ctx.roundRect(x, y, barWidth, barHeight, 2);
       this.ctx.fill();
@@ -154,7 +145,7 @@ class AudioWaveformVisualizer {
       const x = i * (barWidth + 2);
       const y = (height - barHeight) / 2;
 
-      this.ctx.fillStyle = 'rgba(99, 102, 241, 0.18)';
+      this.ctx.fillStyle = '#E2DFD6';
       this.ctx.beginPath();
       this.ctx.roundRect(x, y, barWidth, barHeight, 2);
       this.ctx.fill();
