@@ -104,11 +104,14 @@ def transcribe_media(
     vtt_content = format_webvtt(segments_list)
     full_transcript = " ".join(full_text_parts)
 
+    duration_val = round(info.duration, 2) if (info.duration is not None) else 0.0
+    lang_prob = round(info.language_probability, 3) if (getattr(info, "language_probability", None) is not None) else 1.0
+
     return {
         "success": True,
-        "language": info.language,
-        "language_probability": round(info.language_probability, 3),
-        "duration": round(info.duration, 2),
+        "language": getattr(info, "language", "en"),
+        "language_probability": lang_prob,
+        "duration": duration_val,
         "processing_time": processing_time,
         "segments_count": len(segments_list),
         "segments": segments_list,

@@ -125,9 +125,10 @@ class SubtitleStudio {
   }
 
   switchTab(mode) {
+    this.mode = mode;
     this.tabUploadBtn.classList.toggle('active', mode === 'upload');
     this.tabPathBtn.classList.toggle('active', mode === 'path');
-    this.tabDemoBtn.classList.remove('active');
+    this.tabDemoBtn.classList.toggle('active', mode === 'demo');
 
     this.uploadInputSection.style.display = mode === 'upload' ? 'block' : 'none';
     this.pathInputSection.style.display = mode === 'path' ? 'block' : 'none';
@@ -136,6 +137,7 @@ class SubtitleStudio {
   handleFileSelected(file) {
     this.currentFile = file;
     this.currentFilePath = null;
+    this.switchTab('upload');
 
     if (this.mediaBlobUrl) {
       URL.revokeObjectURL(this.mediaBlobUrl);
@@ -149,13 +151,11 @@ class SubtitleStudio {
     this.metaFilename.textContent = file.name;
     this.workspaceContainer.style.display = 'grid';
 
-    showToast(`Loaded ${file.name}`, 'success');
+    showToast(`Loaded ${file.name}. Click "Generate Subtitles" to transcribe!`, 'success');
   }
 
   async loadDemoSample() {
-    this.tabUploadBtn.classList.remove('active');
-    this.tabPathBtn.classList.remove('active');
-    this.tabDemoBtn.classList.add('active');
+    this.switchTab('demo');
 
     // Create a demo sample with built-in synthesized voice or demo cues
     this.currentFile = null;
@@ -200,29 +200,35 @@ class SubtitleStudio {
   }
 
   async runTranscription() {
-    const isUpload = this.tabUploadBtn.classList.contains('active');
-    const isPath = this.tabPathBtn.classList.contains('active');
+    // Determine whether we have an uploaded file or a local directory path
+    const hasSelectedFile = Boolean(this.currentFile);
+    const hasPathInput = Boolean(this.localPathInput && this.localPathInput.value.trim());
 
-    if (isUpload && !this.currentFile) {
+    if (!hasSelectedFile && !hasPathInput) {
+      if (this.mode === 'demo') {
+        showToast("Demo cues are already loaded! To transcribe your own video, browse or drop a file above.", "success");
+        return;
+      }
       showToast("Please choose or drop a video/audio file first.", "error");
       return;
     }
 
-    if (isPath && !this.localPathInput.value.trim()) {
-      showToast("Please enter an absolute file path on your Mac.", "error");
-      return;
-    }
-
-    // Show progress
+    // Show progress card with live timer
     this.startBtn.disabled = true;
     this.progressCard.classList.add('active');
     this.progressTitle.textContent = "Transcribing with Whisper AI...";
-    this.progressSubtext.textContent = "Analyzing audio waveforms and detecting speech timecodes. This may take a few moments...";
+    this.progressSubtext.textContent = "Analyzing audio waveforms with local Whisper AI. (First run may take a moment to initialize model weights)...";
+
+    let elapsedSeconds = 0;
+    const progressTimer = setInterval(() => {
+      elapsedSeconds++;
+      this.progressTitle.textContent = `Transcribing with Whisper AI... (${elapsedSeconds}s)`;
+    }, 1000);
 
     try {
       let data;
 
-      if (isUpload) {
+      if (hasSelectedFile) {
         const formData = new FormData();
         formData.append("file", this.currentFile);
         formData.append("model_size", this.modelSelect.value);
@@ -286,6 +292,7 @@ class SubtitleStudio {
       console.error(err);
       showToast(`Error: ${err.message}`, "error");
     } finally {
+      if (progressTimer) clearInterval(progressTimer);
       this.startBtn.disabled = false;
       this.progressCard.classList.remove('active');
     }

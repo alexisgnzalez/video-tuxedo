@@ -3,6 +3,7 @@ Video Tuxedo - FastAPI Backend Server
 """
 
 import os
+import time
 import shutil
 import tempfile
 from pathlib import Path
@@ -111,21 +112,25 @@ def get_davinci_guide():
 
 
 @app.post("/api/subtitles/transcribe-upload")
-async def transcribe_uploaded_file(
+def transcribe_uploaded_file(
     file: UploadFile = File(...),
     model_size: str = Form("base"),
     language: Optional[str] = Form(None),
     task: str = Form("transcribe")
 ):
     """
-    Upload a media file and transcribe it to subtitles.
+    Upload a media file and transcribe it to subtitles using threadpool worker.
     """
     safe_filename = Path(file.filename or "media_input.mp4").name
-    temp_target = UPLOAD_DIR / f"upload_{safe_filename}"
+    temp_target = UPLOAD_DIR / f"{int(time.time())}_{safe_filename}"
 
     try:
+        print(f"📥 Receiving upload: {safe_filename}...")
         with open(temp_target, "wb") as buffer:
             shutil.copyfileobj(file.file, buffer)
+
+        file_size_mb = os.path.getsize(temp_target) / (1024 * 1024)
+        print(f"💾 Saved to {temp_target.name} ({file_size_mb:.2f} MB). Transcribing with Whisper '{model_size}'...")
 
         result = transcribe_media(
             file_path=str(temp_target),
@@ -133,10 +138,12 @@ async def transcribe_uploaded_file(
             language=language,
             task=task
         )
+        print(f"✅ Transcribed successfully: {result.get('segments_count')} cues found in {result.get('processing_time')}s")
         result["filename"] = safe_filename
-        result["media_url"] = f"/api/media/{safe_filename}"
+        result["media_url"] = f"/api/media/{temp_target.name}"
         return result
     except Exception as e:
+        print(f"❌ Error transcribing upload: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
@@ -145,11 +152,16 @@ def transcribe_local_path(req: LocalFileTranscribeRequest):
     """
     Transcribe a video or audio file directly from a local directory path on the Mac.
     """
-    path = os.path.expanduser(req.file_path.strip())
+    raw_path = (req.file_path or "").strip()
+    if not raw_path:
+        raise HTTPException(status_code=400, detail="No file path provided. Please enter an absolute path on your Mac.")
+
+    path = os.path.expanduser(raw_path)
     if not os.path.exists(path):
-        raise HTTPException(status_code=404, detail=f"File not found on system: {path}")
+        raise HTTPException(status_code=404, detail=f"File not found on system: '{path}'")
 
     try:
+        print(f"📂 Transcribing local path: {path} with model '{req.model_size}'...")
         result = transcribe_media(
             file_path=path,
             model_size=req.model_size or "base",
@@ -159,13 +171,14 @@ def transcribe_local_path(req: LocalFileTranscribeRequest):
         result["filename"] = os.path.basename(path)
         return result
     except Exception as e:
+        print(f"❌ Error transcribing local path: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/api/media/{filename}")
 def stream_temp_media(filename: str):
     """Streams uploaded media back for the in-browser video/audio player."""
-    target = UPLOAD_DIR / f"upload_{filename}"
+    target = UPLOAD_DIR / filename
     if not target.exists():
         raise HTTPException(status_code=404, detail="Media file not found")
     return FileResponse(path=str(target))
