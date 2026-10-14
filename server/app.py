@@ -53,6 +53,15 @@ class LocalFileTranscribeRequest(BaseModel):
     model_size: Optional[str] = "base"
     language: Optional[str] = None
     task: Optional[str] = "transcribe"
+    pacing: Optional[str] = "natural"
+
+
+class ResegmentRequest(BaseModel):
+    words: List[Dict[str, Any]]
+    pacing: Optional[str] = "natural"
+    max_words: Optional[int] = None
+    max_duration: Optional[float] = None
+    max_silence: Optional[float] = None
 
 
 @app.get("/api/health")
@@ -63,6 +72,7 @@ def health_check():
         "version": "0.1.0",
         "features": {
             "subtitles_davinci": True,
+            "waveform_alignment": True,
             "silence_cutter": "upcoming",
             "background_remover": "upcoming"
         }
@@ -78,7 +88,7 @@ def get_tools_list():
             "name": "Auto Subtitles for DaVinci Resolve",
             "badge": "Ready",
             "badgeType": "success",
-            "description": "Transcribe speech with local Whisper AI into clean, timecode-accurate .SRT subtitles ready for DaVinci Resolve Free.",
+            "description": "Transcribe speech with local Whisper AI into clean, waveform-aligned .SRT subtitles ready for DaVinci Resolve Free.",
             "icon": "subtitles",
             "active": True,
             "category": "Captions & Audio"
@@ -116,7 +126,8 @@ def transcribe_uploaded_file(
     file: UploadFile = File(...),
     model_size: str = Form("base"),
     language: Optional[str] = Form(None),
-    task: str = Form("transcribe")
+    task: str = Form("transcribe"),
+    pacing: str = Form("natural")
 ):
     """
     Upload a media file and transcribe it to subtitles using threadpool worker.
@@ -130,15 +141,16 @@ def transcribe_uploaded_file(
             shutil.copyfileobj(file.file, buffer)
 
         file_size_mb = os.path.getsize(temp_target) / (1024 * 1024)
-        print(f"💾 Saved to {temp_target.name} ({file_size_mb:.2f} MB). Transcribing with Whisper '{model_size}'...")
+        print(f"💾 Saved to {temp_target.name} ({file_size_mb:.2f} MB). Transcribing with Whisper '{model_size}' (pacing: {pacing})...")
 
         result = transcribe_media(
             file_path=str(temp_target),
             model_size=model_size,
             language=language,
-            task=task
+            task=task,
+            pacing=pacing
         )
-        print(f"✅ Transcribed successfully: {result.get('segments_count')} cues found in {result.get('processing_time')}s")
+        print(f"✅ Transcribed successfully: {result.get('segments_count')} waveform-aligned cues found in {result.get('processing_time')}s")
         result["filename"] = safe_filename
         result["media_url"] = f"/api/media/{temp_target.name}"
         return result
@@ -161,18 +173,53 @@ def transcribe_local_path(req: LocalFileTranscribeRequest):
         raise HTTPException(status_code=404, detail=f"File not found on system: '{path}'")
 
     try:
-        print(f"📂 Transcribing local path: {path} with model '{req.model_size}'...")
+        print(f"📂 Transcribing local path: {path} with model '{req.model_size}' (pacing: {req.pacing})...")
         result = transcribe_media(
             file_path=path,
             model_size=req.model_size or "base",
             language=req.language,
-            task=req.task or "transcribe"
+            task=req.task or "transcribe",
+            pacing=req.pacing or "natural"
         )
         result["filename"] = os.path.basename(path)
         return result
     except Exception as e:
         print(f"❌ Error transcribing local path: {e}")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/subtitles/resegment")
+def resegment_words(req: ResegmentRequest):
+    """
+    Re-chunks existing word timestamps into shorter or longer phrases in milliseconds.
+    """
+    from server.subtitles import build_aligned_phrases
+
+    pacing_mode = (req.pacing or "natural").lower()
+    if pacing_mode == "punchy":
+        mw = req.max_words or 4
+        md = req.max_duration or 2.0
+        ms = req.max_silence or 0.35
+    elif pacing_mode == "broadcast":
+        mw = req.max_words or 10
+        md = req.max_duration or 5.0
+        ms = req.max_silence or 0.70
+    else:  # "natural"
+        mw = req.max_words or 6
+        md = req.max_duration or 3.2
+        ms = req.max_silence or 0.45
+
+    segments = build_aligned_phrases(req.words, max_words=mw, max_duration=md, max_silence=ms)
+    srt = format_davinci_srt(segments)
+    vtt = format_webvtt(segments)
+    return {
+        "success": True,
+        "segments_count": len(segments),
+        "segments": segments,
+        "srt": srt,
+        "vtt": vtt,
+        "pacing": pacing_mode
+    }
 
 
 @app.get("/api/media/{filename}")

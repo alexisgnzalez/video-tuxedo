@@ -38,10 +38,13 @@ class SubtitleStudio {
     this.modelSelect = document.getElementById('whisperModelSelect');
     this.langSelect = document.getElementById('languageSelect');
     this.taskSelect = document.getElementById('taskSelect');
+    this.pacingSelect = document.getElementById('pacingSelect');
+    this.quickPacingSelect = document.getElementById('quickPacingSelect');
     this.startBtn = document.getElementById('startTranscribeBtn');
     this.progressCard = document.getElementById('transcribeProgressCard');
     this.progressTitle = document.getElementById('progressStatusTitle');
     this.progressSubtext = document.getElementById('progressStatusSubtext');
+    this.allWords = [];
 
     // Workspace & Media
     this.workspaceContainer = document.getElementById('workspaceContainer');
@@ -117,6 +120,11 @@ class SubtitleStudio {
 
     // Cue list events
     this.addNewSegmentBtn.addEventListener('click', () => this.addNewCue());
+    if (this.quickPacingSelect) {
+      this.quickPacingSelect.addEventListener('change', () => {
+        this.resegmentExistingWords(this.quickPacingSelect.value);
+      });
+    }
 
     // Exports
     this.exportSrtBtn.addEventListener('click', () => this.exportFile('srt'));
@@ -227,6 +235,7 @@ class SubtitleStudio {
 
     try {
       let data;
+      const pacingMode = this.pacingSelect ? this.pacingSelect.value : 'natural';
 
       if (hasSelectedFile) {
         const formData = new FormData();
@@ -236,6 +245,7 @@ class SubtitleStudio {
           formData.append("language", this.langSelect.value);
         }
         formData.append("task", this.taskSelect.value);
+        formData.append("pacing", pacingMode);
 
         const response = await fetch("/api/subtitles/transcribe-upload", {
           method: "POST",
@@ -257,7 +267,8 @@ class SubtitleStudio {
           file_path: this.localPathInput.value.trim(),
           model_size: this.modelSelect.value,
           language: this.langSelect.value !== "auto" ? this.langSelect.value : null,
-          task: this.taskSelect.value
+          task: this.taskSelect.value,
+          pacing: pacingMode
         };
 
         const response = await fetch("/api/subtitles/transcribe-path", {
@@ -275,6 +286,7 @@ class SubtitleStudio {
 
       // Populate results
       this.segments = data.segments || [];
+      this.allWords = data.all_words || [];
       this.detectedLanguage = data.language ? `${data.language.toUpperCase()} (${Math.round((data.language_probability || 1) * 100)}% prob)` : "Auto";
       
       this.metaLang.textContent = `Lang: ${this.detectedLanguage}`;
@@ -283,10 +295,14 @@ class SubtitleStudio {
       }
       this.metaFilename.textContent = data.filename || "media_file";
 
+      if (this.quickPacingSelect) {
+        this.quickPacingSelect.value = pacingMode;
+      }
+
       this.renderSegmentsList();
       this.workspaceContainer.style.display = 'grid';
 
-      showToast(`Transcription complete! Found ${this.segments.length} subtitle cues in ${data.processing_time}s.`, "success");
+      showToast(`Transcription complete! Found ${this.segments.length} waveform-aligned cues in ${data.processing_time}s.`, "success");
 
     } catch (err) {
       console.error(err);
@@ -295,6 +311,35 @@ class SubtitleStudio {
       if (progressTimer) clearInterval(progressTimer);
       this.startBtn.disabled = false;
       this.progressCard.classList.remove('active');
+    }
+  }
+
+  async resegmentExistingWords(pacingMode) {
+    if (!this.allWords || this.allWords.length === 0) {
+      showToast("No word timestamps available to re-segment. Please generate subtitles first.", "error");
+      return;
+    }
+
+    try {
+      const response = await fetch("/api/subtitles/resegment", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          words: this.allWords,
+          pacing: pacingMode
+        })
+      });
+
+      if (!response.ok) throw new Error("Re-segmentation failed");
+      const data = await response.json();
+
+      this.segments = data.segments || [];
+      this.renderSegmentsList();
+      showToast(`Re-aligned phrases to '${pacingMode}' pacing (${this.segments.length} cues)!`, "success");
+
+    } catch (err) {
+      console.error(err);
+      showToast(`Error: ${err.message}`, "error");
     }
   }
 

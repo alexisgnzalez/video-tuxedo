@@ -16,10 +16,12 @@ A collection of tools and utilities designed to make your video editing workflow
 Automatic speech-to-text is normally locked behind the paid DaVinci Resolve Studio edition. This tool brings fast, free, and accurate subtitles to **DaVinci Resolve Free** users without needing any subscription or cloud API keys.
 
 - **Local AI Transcription**: Powered by `faster-whisper` running 100% locally and privately on your machine.
+- **Waveform-Aligned Silence Splitting**: Subtitle cues are automatically split on audio pauses and speech bursts (word-level precision), eliminating awkward lingering subtitles over silent waveform gaps.
+- **Pacing Control**: Select between *Natural* (4–6 words), *Punchy/Reels* (2–4 words), and *Broadcast* (7–10 words), with instant re-segmentation.
 - **Universal Input**: Select files via drag-and-drop, file browser, or direct macOS directory path (`.mp4`, `.mov`, `.mkv`, `.webm`, `.mp3`, `.wav`, `.m4a`, `.aac`).
 - **Real-Time Waveform & Video Sync**: Built-in player with synchronized audio waveform visualizer and click-to-seek subtitle navigation.
 - **Interactive Editor**: Edit subtitle text in-line, adjust cues, and add/delete subtitle blocks before exporting.
-- **DaVinci-Optimized .SRT Export**: Exports strict SubRip (`.srt`) files formatted specifically to import seamlessly into DaVinci Resolve Free's subtitle tracks (`ST1`). Also supports `.vtt` and plain text.
+- **DaVinci-Optimized .SRT Export**: Exports strict SubRip (`.srt`) files formatted specifically to import seamlessly into DaVinci Resolve Free's subtitle tracks (`ST1`). Automatically writes directly to `~/Downloads/`.
 
 #### 💡 How to Import into DaVinci Resolve Free:
 1. Open your project in DaVinci Resolve and switch to the **Edit** page (`Shift + 4`).

@@ -287,6 +287,16 @@
               <option value="translate">Translate to English</option>
             </select>
           </div>
+
+          <div class="form-group">
+            <label class="form-label" for="pacingSelect">Phrase Length & Alignment</label>
+            <select id="pacingSelect" class="form-select" title="Controls how subtitles are chopped to match speech waveforms">
+              <option value="natural" selected>✂️ Natural Waveform (4–6 words, cuts silences)</option>
+              <option value="punchy">⚡ Punchy / Reels (2–4 words, tight beats)</option>
+              <option value="broadcast">📜 Standard Broadcast (7–10 words)</option>
+              <option value="raw">📦 Raw Whisper Chunks (Long blocks)</option>
+            </select>
+          </div>
         </div>
 
         <!-- Run Transcription Button -->
@@ -345,9 +355,16 @@
               <span>Subtitle Cues</span>
               <span class="segments-count-badge" id="cuesCountBadge">0 segments</span>
             </div>
-            <button class="browse-btn" id="addNewSegmentBtn" style="padding: 0.35rem 0.85rem; font-size: 0.8rem;">
-              + Add Cue
-            </button>
+            <div style="display: flex; align-items: center; gap: 0.5rem;">
+              <select id="quickPacingSelect" class="form-select" style="padding: 0.25rem 0.6rem; font-size: 0.78rem;" title="Instant re-segment existing words">
+                <option value="natural" selected>Natural (4-6 words)</option>
+                <option value="punchy">Punchy (2-4 words)</option>
+                <option value="broadcast">Broadcast (7-10 words)</option>
+              </select>
+              <button class="browse-btn" id="addNewSegmentBtn" style="padding: 0.35rem 0.85rem; font-size: 0.8rem;">
+                + Add Cue
+              </button>
+            </div>
           </div>
 
           <!-- Scrollable Subtitles List -->
