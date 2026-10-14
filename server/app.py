@@ -184,27 +184,74 @@ def stream_temp_media(filename: str):
     return FileResponse(path=str(target))
 
 
+EXPORTS_DIR = BASE_DIR / "exports"
+EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
+
+
 @app.post("/api/subtitles/export-srt")
 def export_srt(payload: SegmentsExportRequest):
-    """Export segments as downloadable .srt for DaVinci Resolve Free."""
+    """Export segments as .srt, saving directly to ~/Downloads and exports/."""
     srt_content = format_davinci_srt(payload.segments)
-    filename = f"{payload.filename or 'subtitles'}.srt"
-    return PlainTextResponse(
-        content=srt_content,
-        media_type="application/x-subrip",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    clean_base = (payload.filename or "subtitles").replace(".mp4", "").replace(".mov", "").replace(".srt", "")
+    filename = f"{clean_base}.srt"
+
+    # 1. Save directly to user's macOS ~/Downloads
+    downloads_dir = Path.home() / "Downloads"
+    saved_path_downloads = None
+    try:
+        dest_downloads = downloads_dir / filename
+        with open(dest_downloads, "w", encoding="utf-8") as f:
+            f.write(srt_content)
+        saved_path_downloads = str(dest_downloads)
+        print(f"📁 Auto-saved SRT to ~/Downloads: {dest_downloads}")
+    except Exception as e:
+        print(f"⚠️ Could not write to ~/Downloads: {e}")
+
+    # 2. Save a backup to project exports/ folder
+    dest_exports = EXPORTS_DIR / filename
+    with open(dest_exports, "w", encoding="utf-8") as f:
+        f.write(srt_content)
+
+    return JSONResponse(
+        content={
+            "success": True,
+            "filename": filename,
+            "content": srt_content,
+            "saved_downloads": saved_path_downloads,
+            "saved_exports": str(dest_exports)
+        }
     )
 
 
 @app.post("/api/subtitles/export-vtt")
 def export_vtt(payload: SegmentsExportRequest):
-    """Export segments as downloadable .vtt."""
+    """Export segments as .vtt, saving directly to ~/Downloads and exports/."""
     vtt_content = format_webvtt(payload.segments)
-    filename = f"{payload.filename or 'subtitles'}.vtt"
-    return PlainTextResponse(
-        content=vtt_content,
-        media_type="text/vtt",
-        headers={"Content-Disposition": f'attachment; filename="{filename}"'}
+    clean_base = (payload.filename or "subtitles").replace(".mp4", "").replace(".mov", "").replace(".vtt", "")
+    filename = f"{clean_base}.vtt"
+
+    downloads_dir = Path.home() / "Downloads"
+    saved_path_downloads = None
+    try:
+        dest_downloads = downloads_dir / filename
+        with open(dest_downloads, "w", encoding="utf-8") as f:
+            f.write(vtt_content)
+        saved_path_downloads = str(dest_downloads)
+    except Exception as e:
+        print(f"⚠️ Could not write to ~/Downloads: {e}")
+
+    dest_exports = EXPORTS_DIR / filename
+    with open(dest_exports, "w", encoding="utf-8") as f:
+        f.write(vtt_content)
+
+    return JSONResponse(
+        content={
+            "success": True,
+            "filename": filename,
+            "content": vtt_content,
+            "saved_downloads": saved_path_downloads,
+            "saved_exports": str(dest_exports)
+        }
     )
 
 

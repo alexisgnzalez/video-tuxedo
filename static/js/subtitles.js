@@ -439,17 +439,24 @@ class SubtitleStudio {
 
       if (!response.ok) throw new Error("Failed to export subtitles file");
 
-      const blob = await response.blob();
-      const downloadUrl = URL.createObjectURL(blob);
+      const data = await response.json();
+      const content = data.content || "";
+      const outFilename = data.filename || `${filename}.${format}`;
+
+      // Trigger reliable browser download via UTF-8 Data URI
+      const dataUri = 'data:text/plain;charset=utf-8,' + encodeURIComponent(content);
       const a = document.createElement("a");
-      a.href = downloadUrl;
-      a.download = `${filename}.${format}`;
+      a.href = dataUri;
+      a.download = outFilename;
       document.body.appendChild(a);
       a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(downloadUrl);
+      setTimeout(() => a.remove(), 250);
 
-      showToast(`Exported ${filename}.${format} (DaVinci Resolve Ready!)`, "success");
+      const locationMsg = data.saved_downloads 
+        ? `Saved directly to ~/Downloads/${outFilename}`
+        : `Downloaded ${outFilename}`;
+
+      showToast(`✅ ${locationMsg} (DaVinci Resolve Ready!)`, "success");
 
     } catch (err) {
       console.error(err);
