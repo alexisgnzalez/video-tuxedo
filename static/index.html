@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Video Tuxedo — Professional Video Editing Helper Tools</title>
+  <meta name="description" content="Video Tuxedo is a suite of video editing tools built to streamline your workflow. Generate timecode-accurate subtitles for DaVinci Resolve Free using local Whisper AI.">
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐧</text></svg>">
+</head>
+<body>
+
+  <!-- App Header -->
+  <header class="app-header">
+    <div class="brand-wrapper" id="brandHomeBtn" role="button" tabindex="0" title="Return to Tools Launcher">
+      <div class="brand-logo">
+        <!-- Tuxedo & Film Icon -->
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polygon points="5 3 19 12 5 21 5 3"></polygon>
+        </svg>
+      </div>
+      <div class="brand-info">
+        <span class="brand-title">VIDEO TUXEDO</span>
+        <span class="brand-tagline">Video Editing Toolkit</span>
+      </div>
+    </div>
+
+    <div class="header-actions">
+      <div class="status-indicator" id="engineStatusIndicator" title="Faster-Whisper and PyAV active">
+        <span class="status-dot"></span>
+        <span id="engineStatusText">Local AI Engine Ready</span>
+      </div>
+      <button class="btn-secondary" id="openDavinciGuideBtn">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="10"></circle>
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"></path>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        DaVinci Guide
+      </button>
+    </div>
+  </header>
+
+  <!-- Main Application Body -->
+  <main class="main-content">
+
+    <!-- Breadcrumb Navigation -->
+    <nav class="breadcrumb-nav" id="breadcrumbNav" aria-label="Breadcrumbs">
+      <a href="#" id="breadcrumbHome">Tools</a>
+      <span class="breadcrumb-separator">/</span>
+      <span class="breadcrumb-current" id="breadcrumbCurrent">App Launcher</span>
+    </nav>
+
+    <!-- VIEW 1: TOOLS LAUNCHER (INTERFACE WITH ICONS) -->
+    <section class="view-container active" id="toolsLauncherView">
+      <div class="hero-banner">
+        <div class="hero-pill">
+          <span>✨ Streamlined Video Production</span>
+        </div>
+        <h1 class="hero-title">Video Tuxedo Toolkit</h1>
+        <p class="hero-subtitle">
+          A modular suite of high-performance tools designed to smooth out your video editing process and supercharge DaVinci Resolve.
+        </p>
+      </div>
+
+      <!-- Bento Grid with Tool Icons -->
+      <div class="tools-grid" id="toolsGrid">
+
+        <!-- Tool 1: Subtitle Generator (ACTIVE) -->
+        <article class="tool-card active-feature" id="toolCardSubtitles">
+          <div class="tool-header">
+            <div class="tool-icon-wrapper">
+              <!-- Subtitles / CC Icon -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="4" width="20" height="16" rx="2"></rect>
+                <path d="M6 10h4"></path>
+                <path d="M6 14h2"></path>
+                <path d="M14 10h4"></path>
+                <path d="M14 14h4"></path>
+              </svg>
+            </div>
+            <span class="badge-status badge-ready">● Ready to Use</span>
+          </div>
+
+          <div class="tool-body">
+            <span class="tool-category">Captions & Audio</span>
+            <h2 class="tool-name">Auto Subtitles for DaVinci Resolve</h2>
+            <p class="tool-desc">
+              Select any video or audio file from your computer and generate timecode-accurate subtitles. Exports formatted .SRT files ready for DaVinci Resolve Free's Subtitle Tracks.
+            </p>
+            <div class="tool-feature-pills">
+              <span class="feature-pill">🎙️ Local Whisper AI</span>
+              <span class="feature-pill">⚡ 100% Free & Private</span>
+              <span class="feature-pill">🎬 DaVinci Free Ready</span>
+              <span class="feature-pill">⏱️ Sync Audio Waveform</span>
+            </div>
+          </div>
+
+          <button class="tool-action-btn btn-primary" id="launchSubtitlesBtn">
+            Open Subtitle Studio
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </article>
+
+        <!-- Tool 2: Silence Cutter (ROADMAP) -->
+        <article class="tool-card upcoming-feature" id="toolCardSilence">
+          <div class="tool-header">
+            <div class="tool-icon-wrapper">
+              <!-- Scissors / Timeline Cut Icon -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="6" cy="6" r="3"></circle>
+                <circle cx="6" cy="18" r="3"></circle>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+              </svg>
+            </div>
+            <span class="badge-status badge-upcoming">Roadmap</span>
+          </div>
+
+          <div class="tool-body">
+            <span class="tool-category">Timeline & Trimming</span>
+            <h2 class="tool-name">Silence Cutter & Jump Cuts</h2>
+            <p class="tool-desc">
+              Automatically detect silent gaps and dead air. Export cut timelines directly into DaVinci Resolve via EDL/FCPXML without re-rendering original video files.
+            </p>
+            <div class="tool-feature-pills">
+              <span class="feature-pill">⚡ Fast FFmpeg Stream Copy</span>
+              <span class="feature-pill">🎞️ DaVinci XML Export</span>
+              <span class="feature-pill">📉 Decibel Thresholds</span>
+            </div>
+          </div>
+
+          <button class="tool-action-btn btn-disabled" disabled>
+            In Active Development
+          </button>
+        </article>
+
+        <!-- Tool 3: AI Background Remover (ROADMAP) -->
+        <article class="tool-card upcoming-feature" id="toolCardBgRemover">
+          <div class="tool-header">
+            <div class="tool-icon-wrapper">
+              <!-- Magic Wand / Matting Icon -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m19 11-4-4"></path>
+                <path d="m5 21 14-14"></path>
+                <path d="m3 3 1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2z"></path>
+                <path d="m18 17 1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2z"></path>
+              </svg>
+            </div>
+            <span class="badge-status badge-upcoming">Roadmap</span>
+          </div>
+
+          <div class="tool-body">
+            <span class="tool-category">VFX & Compositing</span>
+            <h2 class="tool-name">AI Video Background Remover</h2>
+            <p class="tool-desc">
+              Automatic rotoscoping and background removal without a green screen. Outputs transparent video or high-contrast alpha matte masks for DaVinci Resolve Free.
+            </p>
+            <div class="tool-feature-pills">
+              <span class="feature-pill">🧠 PyTorch Neural Matting</span>
+              <span class="feature-pill">🍏 Apple Silicon MPS</span>
+              <span class="feature-pill">🎭 Alpha Matte Export</span>
+            </div>
+          </div>
+
+          <button class="tool-action-btn btn-disabled" disabled>
+            In Active Development
+          </button>
+        </article>
+
+      </div>
+    </section>
+
+
+    <!-- VIEW 2: SUBTITLE STUDIO TOOL -->
+    <section class="view-container" id="subtitleToolView">
+
+      <div class="tool-view-header">
+        <div class="tool-view-title-group">
+          <h1>
+            Auto Subtitles Studio
+            <span class="davinci-badge-pill">DaVinci Resolve Free Ready</span>
+          </h1>
+          <p>Transcribe video or audio into timecode-synced SubRip (.SRT) subtitles with local Whisper AI.</p>
+        </div>
+
+        <button class="btn-secondary" id="backToLauncherBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Back to Tools Grid
+        </button>
+      </div>
+
+      <!-- Input Selection & Settings Panel -->
+      <div class="glass-panel" id="inputControlPanel" style="margin-bottom: 2rem;">
+        
+        <!-- Tabs for input mode -->
+        <div class="input-tabs-nav">
+          <button class="tab-btn active" id="tabUploadBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Choose File / Drag & Drop
+          </button>
+          <button class="tab-btn" id="tabPathBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Select from Directory Path
+          </button>
+          <button class="tab-btn" id="tabDemoBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            Test Sample Audio
+          </button>
+        </div>
+
+        <!-- Mode A: File Drag & Drop -->
+        <div id="uploadInputSection">
+          <div class="drop-zone" id="mediaDropZone">
+            <input type="file" id="mediaFileInput" accept="video/*,audio/*,.mp4,.mov,.mkv,.webm,.mp3,.wav,.m4a,.aac,.flac" style="display: none;">
+            <div class="drop-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                <line x1="7" y1="2" x2="7" y2="22"></line>
+                <line x1="17" y1="2" x2="17" y2="22"></line>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+              </svg>
+            </div>
+            <h3 class="drop-title" id="dropTitleText">Drop your video or audio file here</h3>
+            <p class="drop-subtitle" id="dropSubtitleText">
+              Supports MP4, MOV, MKV, WebM, MP3, WAV, M4A, AAC. Local offline processing.
+            </p>
+            <button type="button" class="browse-btn" id="browseMediaBtn">
+              Browse Media File...
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode B: Direct Directory Path Input -->
+        <div id="pathInputSection" style="display: none;">
+          <div class="path-input-group">
+            <input type="text" id="localPathInput" class="path-input" placeholder="e.g. /Users/alexisgonzalez/Movies/project_interview.mp4">
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+            💡 Tip: In macOS Finder, right-click any video or audio file, hold Option (⌥), and click "Copy as Pathname" to paste it here.
+          </p>
+        </div>
+
+        <!-- Configuration Bar -->
+        <div class="config-bar">
+          <div class="form-group">
+            <label class="form-label" for="whisperModelSelect">Whisper Model</label>
+            <select id="whisperModelSelect" class="form-select">
+              <option value="tiny">Tiny (~75 MB) — Blazing Fast</option>
+              <option value="base" selected>Base (~140 MB) — Recommended</option>
+              <option value="small">Small (~460 MB) — Higher Accuracy</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="languageSelect">Spoken Language</label>
+            <select id="languageSelect" class="form-select">
+              <option value="auto" selected>Auto-Detect (100+ languages)</option>
+              <option value="en">English</option>
+              <option value="es">Spanish (Español)</option>
+              <option value="fr">French (Français)</option>
+              <option value="de">German (Deutsch)</option>
+              <option value="it">Italian (Italiano)</option>
+              <option value="pt">Portuguese (Português)</option>
+              <option value="ja">Japanese (日本語)</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="taskSelect">Action Task</label>
+            <select id="taskSelect" class="form-select">
+              <option value="transcribe" selected>Transcribe Original Speech</option>
+              <option value="translate">Translate to English</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Run Transcription Button -->
+        <button class="transcribe-cta-btn" id="startTranscribeBtn">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"></path>
+            <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path>
+            <line x1="12" y1="19" x2="12" y2="22"></line>
+          </svg>
+          Generate Subtitles with Local AI
+        </button>
+
+        <!-- Progress Indicator -->
+        <div class="progress-card" id="transcribeProgressCard">
+          <div class="spinner"></div>
+          <h4 class="progress-title" id="progressStatusTitle">Analyzing & Transcribing Media...</h4>
+          <p class="progress-subtext" id="progressStatusSubtext">Extracting audio track and running Whisper speech recognition.</p>
+        </div>
+
+      </div>
+
+      <!-- WORKSPACE: Video Player & Subtitle Editor (Visible once file loaded or transcribed) -->
+      <div class="workspace-grid active-media" id="workspaceContainer" style="display: none;">
+        
+        <!-- Left Column: Video/Audio Preview & Waveform -->
+        <div class="glass-panel media-player-container">
+          <div class="video-wrapper" id="videoWrapper">
+            <video id="mainMediaElement" controls playsinline></video>
+            <div class="video-subtitle-overlay" id="videoSubtitleOverlay">
+              Subtitle preview text will appear here
+            </div>
+          </div>
+
+          <!-- Waveform Visualizer -->
+          <div class="waveform-box">
+            <div class="waveform-header">
+              <span>Real-Time Waveform & Playback</span>
+              <span id="playerTimeDisplay" style="font-family: var(--font-mono); color: #818cf8;">00:00.00 / 00:00.00</span>
+            </div>
+            <canvas id="waveformCanvas"></canvas>
+          </div>
+
+          <!-- Media Meta Info -->
+          <div class="media-meta-bar" id="mediaMetaBar">
+            <span class="meta-pill" id="metaFilename">clip.mp4</span>
+            <span class="meta-pill" id="metaDuration">Duration: --:--</span>
+            <span class="meta-pill" id="metaLang">Detected: Auto</span>
+            <span class="meta-pill" id="metaSegments">0 Cues</span>
+          </div>
+        </div>
+
+        <!-- Right Column: Interactive Subtitles Editor -->
+        <div class="glass-panel">
+          <div class="segments-header">
+            <div class="segments-title">
+              <span>Subtitle Cues</span>
+              <span class="segments-count-badge" id="cuesCountBadge">0 segments</span>
+            </div>
+            <button class="browse-btn" id="addNewSegmentBtn" style="padding: 0.35rem 0.85rem; font-size: 0.8rem;">
+              + Add Cue
+            </button>
+          </div>
+
+          <!-- Scrollable Subtitles List -->
+          <div class="segments-scroll-list" id="segmentsScrollList">
+            <!-- Dynamic Subtitle items will render here -->
+          </div>
+
+          <!-- Export Panel for DaVinci Resolve Free -->
+          <div class="export-panel">
+            <div class="export-header">
+              <div class="export-title-group">
+                <h3>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                  </svg>
+                  Export for DaVinci Resolve Free
+                </h3>
+                <p>Formatted SubRip (.SRT) with strict timecodes ready for timeline import.</p>
+              </div>
+            </div>
+
+            <div class="export-buttons-group">
+              <button class="btn-davinci-primary" id="exportSrtBtn">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="12" y1="18" x2="12" y2="12"></line>
+                  <line x1="9" y1="15" x2="15" y2="15"></line>
+                </svg>
+                Download .SRT (DaVinci Format)
+              </button>
+
+              <button class="btn-secondary" id="exportVttBtn">
+                Download .VTT
+              </button>
+
+              <button class="btn-secondary" id="copyClipboardBtn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                  <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                </svg>
+                Copy Text
+              </button>
+
+              <button class="btn-secondary" id="openDavinciGuideModalBtn" style="border-color: var(--border-gold); color: #fbbf24;">
+                ❓ How to Import into DaVinci
+              </button>
+            </div>
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- MODAL: DaVinci Resolve Free Subtitle Import Guide -->
+  <div class="modal-overlay" id="davinciModalOverlay">
+    <div class="modal-dialog">
+      <button class="modal-close-btn" id="closeDavinciModalBtn" aria-label="Close modal">✕</button>
+
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+        <span style="font-size: 1.5rem;">🎬</span>
+        <h2 style="font-family: var(--font-display); font-size: 1.45rem; color: #fbbf24; font-weight: 800;">
+          Importing Subtitles into DaVinci Resolve Free
+        </h2>
+      </div>
+      <p style="color: var(--text-secondary); font-size: 0.92rem;">
+        DaVinci Resolve Free doesn't have automatic speech-to-text built in, but supports standard <code>.SRT</code> subtitle files. Follow these simple steps:
+      </p>
+
+      <div class="guide-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Open Your Project & Go to the Edit Page</h4>
+          <p>In DaVinci Resolve, click on the <strong>Edit</strong> tab (third icon at the bottom, or press <kbd>Shift + 4</kbd>).</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Import the .SRT File</h4>
+          <p>From the top menu, go to <strong>File &gt; Import &gt; Subtitle...</strong> and select your downloaded <code>.srt</code> file from Video Tuxedo. Alternatively, drag and drop the <code>.srt</code> file directly into the <strong>Media Pool</strong>.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Place on the Timeline</h4>
+          <p>Drag the imported subtitle clip from the Media Pool onto your timeline. DaVinci will automatically create a dedicated <strong>Subtitle Track (ST1)</strong>. The subtitle blocks will align to your audio timecode.</p>
+        </div>
+      </div>
+
+      <div class="guide-step" style="border-bottom: none;">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>Customize Font, Colors & Background</h4>
+          <p>Select any subtitle block on the timeline and open the <strong>Inspector</strong> panel (top-right). Under <strong>Track Style</strong>, you can change the font, size, drop shadow, text color, and background box for all subtitles at once.</p>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem; text-align: right;">
+        <button class="btn-davinci-primary" id="guideGotItBtn" style="display: inline-flex;">
+          Got it! Ready to Edit
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div class="toast-container" id="toastContainer"></div>
+
+  <!-- Scripts -->
+  <script src="/static/js/visualizer.js"></script>
+  <script src="/static/js/subtitles.js"></script>
+  <script src="/static/js/app.js"></script>
+</body>
+</html>
