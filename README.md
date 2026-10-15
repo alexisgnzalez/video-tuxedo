@@ -35,8 +35,10 @@ Automatic speech-to-text is normally locked behind the paid DaVinci Resolve Stud
 Automatically detect dead air, pauses, and breath gaps in any video, removing them with surgical precision to produce jump-cut edits.
 
 - **100% Free & Local Silero VAD**: Powered by Silero Voice Activity Detection running entirely offline on your Mac. Analyzes 1 hour of audio in ~3 seconds with zero cloud fees or API keys.
-- **100% Lossless DaVinci Resolve Timeline (FCPXML & CMX 3600 EDL)**:
-  - Generates native timeline edit decision lists that reference your original camera master file directly.
+- **100% Lossless DaVinci Resolve Timeline (FCP 7 XML, FCPXML & CMX 3600 EDL)**:
+  - Generates native timeline sequences that reference your original camera master file directly.
+  - Automatically maps every take to **Video Track 1 (V1)** and synchronized audio to **Audio Tracks 1 & 2 (A1 & A2)** with linked clips.
+  - Preserves vertical smartphone resolution (e.g. `720x1280` or `1080x1920`) and sample-accurate timecodes.
   - **Zero re-encoding, zero compression, and 100% original camera sensor quality and bit depth preserved.**
 - **✨ Cut-Synchronized Subtitles (.SRT)**:
   - Subtitle timecodes are automatically re-calculated and shifted to match the jump-cut timeline.
@@ -53,9 +55,13 @@ Automatically detect dead air, pauses, and breath gaps in any video, removing th
   - All rendered videos, takes ZIPs, timelines, and subtitles are automatically saved directly to your macOS `~/Downloads/` directory.
 
 #### 💡 How to Import Timelines into DaVinci Resolve:
-1. **Via FCPXML**: In DaVinci Resolve, go to **File > Import > Timeline...** and select the `.fcpxml` file. Select your original video clip if prompted.
-2. **Via EDL**: In DaVinci Resolve, go to **File > Import > Timeline... > EDL...** and select the `.edl` file.
-3. **Add Synced Subtitles**: Right-click the subtitle track and import the `*_cut_subtitles.srt` file.
+1. **Via DaVinci XML (.xml) — Recommended**:
+   - In DaVinci Resolve, go to **File > Import > Timeline...** and select the `*_cuts.xml` file.
+   - In the *Load XML...* popup dialog, make sure **"Automatically import source clips into media pool"** is checked.
+   - **Resolution for vertical/smartphone videos:** Uncheck *"Use project settings"* if you want DaVinci to adopt the vertical resolution from the XML. If your timeline ever opens as horizontal, right-click the timeline in the Media Pool > **Timelines > Timeline Settings...** > check **"Use Vertical Resolution"**.
+2. **Via FCPXML (.fcpxml)**: In DaVinci Resolve, go to **File > Import > Timeline...** and select the `*_cuts.fcpxml` file.
+3. **Via EDL (.edl)**: In DaVinci Resolve, go to **File > Import > Timeline... > EDL...** and select the `*_cuts.edl` file.
+4. **Add Synced Subtitles**: Go to **File > Import > Subtitle...** and select your `*_cut_subtitles.srt` file. Track `ST1` will populate with subtitles matching every jump cut!
 
 ---
 

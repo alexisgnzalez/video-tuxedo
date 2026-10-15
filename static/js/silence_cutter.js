@@ -65,6 +65,7 @@ class SilenceCutterStudio {
     // Export Buttons
     this.exportSingleMp4Btn = document.getElementById('exportSingleMp4Btn');
     this.exportMultipartZipBtn = document.getElementById('exportMultipartZipBtn');
+    this.exportXmlBtn = document.getElementById('exportXmlBtn');
     this.exportFcpxmlBtn = document.getElementById('exportFcpxmlBtn');
     this.exportEdlBtn = document.getElementById('exportEdlBtn');
     this.exportCutSubtitlesBtn = document.getElementById('exportCutSubtitlesBtn');
@@ -164,6 +165,9 @@ class SilenceCutterStudio {
     }
     if (this.exportMultipartZipBtn) {
       this.exportMultipartZipBtn.addEventListener('click', () => this.exportMultipartTakes());
+    }
+    if (this.exportXmlBtn) {
+      this.exportXmlBtn.addEventListener('click', () => this.exportDaVinciTimeline('xml'));
     }
     if (this.exportFcpxmlBtn) {
       this.exportFcpxmlBtn.addEventListener('click', () => this.exportDaVinciTimeline('fcpxml'));
@@ -511,11 +515,24 @@ class SilenceCutterStudio {
       }
 
       const result = await res.json();
-      const target = type === 'fcpxml' ? result.fcpxml : result.edl;
+      let target;
+      let label;
+      if (type === 'xml') {
+        target = result.xml;
+        label = 'FCP 7 XML (.xml)';
+      } else if (type === 'fcpxml') {
+        target = result.fcpxml;
+        label = 'FCPXML (.fcpxml)';
+      } else {
+        target = result.edl;
+        label = 'CMX 3600 EDL (.edl)';
+      }
+
+      const resText = result.width && result.height ? ` (${result.width}x${result.height}${result.is_portrait ? ' Vertical' : ''})` : '';
 
       this.showExportSuccess(
-        `DaVinci Resolve ${type.toUpperCase()} Timeline Ready!`,
-        `100% Lossless, 0-Reencode Timeline with ${result.cuts_count} cuts referencing your original media.`,
+        `DaVinci Resolve ${label} Timeline Ready!`,
+        `100% Lossless, 0-Reencode Timeline${resText} with ${result.cuts_count} cuts and linked multi-channel audio referencing your original camera media.`,
         target.output_path,
         target.filename
       );

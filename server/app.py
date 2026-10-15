@@ -24,6 +24,7 @@ from server.silence_cutter import (
     render_multipart_takes,
     export_davinci_edl,
     export_davinci_fcpxml,
+    export_davinci_xmeml,
     remap_subtitles_to_cut_timeline,
     get_media_properties,
 )
@@ -479,6 +480,16 @@ def export_timeline_endpoint(req: SilenceExportTimelineRequest):
         height = props.get("height", 1080)
         dur = props.get("duration", 0.0)
 
+        xml_res = export_davinci_xmeml(
+            input_path=media_path,
+            speech_segments=req.speech_segments,
+            fps=fps,
+            width=width,
+            height=height,
+            audio_rate=props.get("audio_rate", 48000),
+            total_source_duration=dur,
+        )
+
         edl_res = export_davinci_edl(
             input_path=media_path,
             speech_segments=req.speech_segments,
@@ -496,10 +507,14 @@ def export_timeline_endpoint(req: SilenceExportTimelineRequest):
 
         return {
             "status": "success",
-            "edl": edl_res,
+            "xml": xml_res,
             "fcpxml": fcpxml_res,
+            "edl": edl_res,
             "cuts_count": len(req.speech_segments),
             "source_fps": fps,
+            "width": width,
+            "height": height,
+            "is_portrait": props.get("is_portrait", False),
         }
     except Exception as e:
         print(f"❌ Error exporting timeline: {e}")

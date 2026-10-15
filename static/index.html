@@ -655,7 +655,10 @@
                 </p>
               </div>
               <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-                <button class="btn-primary" id="exportFcpxmlBtn" style="width: 100%; justify-content: center;">
+                <button class="btn-primary" id="exportXmlBtn" style="width: 100%; justify-content: center; font-weight: 600;">
+                  🎬 Export DaVinci XML (.xml) — Recommended
+                </button>
+                <button class="btn-secondary" id="exportFcpxmlBtn" style="width: 100%; justify-content: center;">
                   Export FCPXML (.fcpxml)
                 </button>
                 <button class="btn-secondary" id="exportEdlBtn" style="width: 100%; justify-content: center;">
@@ -802,16 +805,18 @@
       <div class="guide-step">
         <div class="step-num">2</div>
         <div class="step-content">
-          <h4>Import the .fcpxml Timeline</h4>
+          <h4>Import the .xml Timeline</h4>
           <p>
-            From the top menu, go to <strong>File &gt; Import &gt; Timeline...</strong> and select your downloaded <code>*_cuts.fcpxml</code> file from <code>~/Downloads/</code>.
+            From the top menu, go to <strong>File &gt; Import &gt; Timeline...</strong> and select your downloaded <code>*_cuts.xml</code> file (or <code>*_cuts.fcpxml</code>) from <code>~/Downloads/</code>.
           </p>
-          <p style="margin-top: 0.35rem; font-size: 0.85rem; color: var(--text-primary); background: var(--bg-surface-warm); padding: 0.5rem 0.75rem; border-radius: var(--radius-xs);">
-            💡 In the <em>Load XML...</em> dialog:
-            <br>• Make sure <strong>"Automatically import source clips into media pool"</strong> is checked (DaVinci connects your original raw video automatically).
-            <br>• <strong>Timeline Resolution</strong>: For phone videos, it will now default to <code>720 x 1280</code> (Vertical 9:16). You can also type <code>1080 x 1920</code> if your project is 1080p vertical.
+          <div style="margin-top: 0.5rem; font-size: 0.85rem; color: var(--text-primary); background: var(--bg-surface-warm); padding: 0.75rem 0.85rem; border-radius: var(--radius-xs); border: 1px solid var(--border-gold);">
+            <strong>💡 Crucial Settings in the "Load XML..." Dialog:</strong>
+            <br>• <strong>Keep all cuts & audio:</strong> The <code>.xml</code> places every take onto <strong>V1</strong> and audio onto <strong>A1 &amp; A2</strong> linked together with 0 clips lost!
+            <br>• <strong>Timeline Resolution (for Vertical / Smartphone videos):</strong> If the dialog has <em>"Use project settings"</em> checked, <strong>uncheck it</strong> so DaVinci uses the sequence's vertical resolution (<code>720 x 1280</code> or <code>1080 x 1920</code>).
+            <br>• <em>Tip if already imported as horizontal:</em> Right-click the timeline in the Media Pool &gt; <strong>Timelines &gt; Timeline Settings...</strong> &gt; check <strong>"Use Vertical Resolution"</strong>!
+            <br>• Make sure <strong>"Automatically import source clips into media pool"</strong> is checked.
             <br>• Click <strong>Ok</strong>!
-          </p>
+          </div>
         </div>
       </div>
 

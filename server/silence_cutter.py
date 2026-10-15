@@ -506,6 +506,312 @@ def export_davinci_edl(
     }
 
 
+def _get_standard_timebase(fps: float) -> Tuple[int, bool, float]:
+    """
+    Resolves standard NLE timebase and NTSC flag from measured fps.
+    Returns (timebase, is_ntsc, effective_fps).
+    """
+    if abs(fps - 29.97) < 0.25 or abs(fps - 29.978) < 0.25:
+        return 30, True, 30000.0 / 1001.0
+    elif abs(fps - 23.976) < 0.25 or abs(fps - 23.98) < 0.25:
+        return 24, True, 24000.0 / 1001.0
+    elif abs(fps - 59.94) < 0.25:
+        return 60, True, 60000.0 / 1001.0
+    elif abs(fps - 24.0) < 0.25:
+        return 24, False, 24.0
+    elif abs(fps - 25.0) < 0.25:
+        return 25, False, 25.0
+    elif abs(fps - 30.0) < 0.25:
+        return 30, False, 30.0
+    elif abs(fps - 60.0) < 0.25:
+        return 60, False, 60.0
+    else:
+        tb = max(1, int(round(fps)))
+        return tb, False, float(tb)
+
+
+def export_davinci_xmeml(
+    input_path: str | Path,
+    speech_segments: List[Dict[str, Any]],
+    output_filename: Optional[str] = None,
+    fps: float = 30.0,
+    width: int = 1920,
+    height: int = 1080,
+    audio_rate: int = 48000,
+    total_source_duration: float = 0.0,
+) -> Dict[str, Any]:
+    """
+    Generates a Final Cut Pro 7 XML (xmeml version 5) sequence for DaVinci Resolve.
+    This is the industry-standard, rock-solid timeline interchange format.
+    - Explicitly sets sequence resolution (e.g. 720x1280 vertical or 1080x1920).
+    - Populates Video Track 1 (V1), Audio Track 1 (A1), and Audio Track 2 (A2).
+    - Audio and Video clips are explicitly linked together.
+    - Integer frame math guarantees zero dropped clips or timecode drift.
+    """
+    input_path = Path(input_path).resolve()
+    stem = input_path.stem
+    if not output_filename:
+        output_filename = f"{stem}_cuts.xml"
+
+    downloads_dir = Path.home() / "Downloads"
+    downloads_dir.mkdir(parents=True, exist_ok=True)
+    xml_path = downloads_dir / output_filename
+
+    timebase, ntsc, fps_eff = _get_standard_timebase(fps)
+    ntsc_str = "TRUE" if ntsc else "FALSE"
+    source_total_frames = int(round((total_source_duration or 3600.0) * fps_eff))
+    file_url = f"file://localhost{input_path.as_posix()}"
+
+    video_items = []
+    audio1_items = []
+    audio2_items = []
+
+    rec_frame = 0
+
+    for i, seg in enumerate(speech_segments):
+        clip_idx = i + 1
+        in_f = int(round(seg["start"] * fps_eff))
+        out_f = int(round(seg["end"] * fps_eff))
+        dur_f = max(1, out_f - in_f)
+        start_f = rec_frame
+        end_f = start_f + dur_f
+        rec_frame = end_f
+
+        if i == 0:
+            file_block = f"""        <file id="file-1">
+          <name>{input_path.name}</name>
+          <pathurl>{file_url}</pathurl>
+          <rate>
+            <timebase>{timebase}</timebase>
+            <ntsc>{ntsc_str}</ntsc>
+          </rate>
+          <duration>{source_total_frames}</duration>
+          <timecode>
+            <rate>
+              <timebase>{timebase}</timebase>
+              <ntsc>{ntsc_str}</ntsc>
+            </rate>
+            <string>00:00:00:00</string>
+            <frame>0</frame>
+            <displayformat>NDF</displayformat>
+          </timecode>
+          <media>
+            <video>
+              <samplecharacteristics>
+                <rate>
+                  <timebase>{timebase}</timebase>
+                  <ntsc>{ntsc_str}</ntsc>
+                </rate>
+                <width>{width}</width>
+                <height>{height}</height>
+                <anamorphic>FALSE</anamorphic>
+                <pixelaspectratio>square</pixelaspectratio>
+                <fielddominance>none</fielddominance>
+              </samplecharacteristics>
+            </video>
+            <audio>
+              <samplecharacteristics>
+                <depth>16</depth>
+                <samplerate>{audio_rate}</samplerate>
+              </samplecharacteristics>
+              <channelcount>2</channelcount>
+            </audio>
+          </media>
+        </file>"""
+        else:
+            file_block = '        <file id="file-1"/>'
+
+        v_item = f"""      <clipitem id="clipitem-video-{clip_idx}">
+        <masterclipid>masterclip-1</masterclipid>
+        <name>Take {clip_idx} ({seg["start"]:.1f}s - {seg["end"]:.1f}s)</name>
+        <enabled>TRUE</enabled>
+        <duration>{dur_f}</duration>
+        <rate>
+          <timebase>{timebase}</timebase>
+          <ntsc>{ntsc_str}</ntsc>
+        </rate>
+        <start>{start_f}</start>
+        <end>{end_f}</end>
+        <in>{in_f}</in>
+        <out>{out_f}</out>
+{file_block}
+        <link>
+          <linkclipref>clipitem-video-{clip_idx}</linkclipref>
+          <mediatype>video</mediatype>
+          <trackindex>1</trackindex>
+          <clipindex>{clip_idx}</clipindex>
+        </link>
+        <link>
+          <linkclipref>clipitem-audio-1-{clip_idx}</linkclipref>
+          <mediatype>audio</mediatype>
+          <trackindex>1</trackindex>
+          <clipindex>{clip_idx}</clipindex>
+          <groupindex>1</groupindex>
+        </link>
+        <link>
+          <linkclipref>clipitem-audio-2-{clip_idx}</linkclipref>
+          <mediatype>audio</mediatype>
+          <trackindex>2</trackindex>
+          <clipindex>{clip_idx}</clipindex>
+          <groupindex>1</groupindex>
+        </link>
+      </clipitem>"""
+        video_items.append(v_item)
+
+        a1_item = f"""      <clipitem id="clipitem-audio-1-{clip_idx}">
+        <masterclipid>masterclip-1</masterclipid>
+        <name>Take {clip_idx} ({seg["start"]:.1f}s - {seg["end"]:.1f}s)</name>
+        <enabled>TRUE</enabled>
+        <duration>{dur_f}</duration>
+        <rate>
+          <timebase>{timebase}</timebase>
+          <ntsc>{ntsc_str}</ntsc>
+        </rate>
+        <start>{start_f}</start>
+        <end>{end_f}</end>
+        <in>{in_f}</in>
+        <out>{out_f}</out>
+        <file id="file-1"/>
+        <sourcetrack>
+          <mediatype>audio</mediatype>
+          <trackindex>1</trackindex>
+        </sourcetrack>
+        <link>
+          <linkclipref>clipitem-video-{clip_idx}</linkclipref>
+          <mediatype>video</mediatype>
+          <trackindex>1</trackindex>
+          <clipindex>{clip_idx}</clipindex>
+        </link>
+        <link>
+          <linkclipref>clipitem-audio-1-{clip_idx}</linkclipref>
+          <mediatype>audio</mediatype>
+          <trackindex>1</trackindex>
+          <clipindex>{clip_idx}</clipindex>
+          <groupindex>1</groupindex>
+        </link>
+        <link>
+          <linkclipref>clipitem-audio-2-{clip_idx}</linkclipref>
+          <mediatype>audio</mediatype>
+          <trackindex>2</trackindex>
+          <clipindex>{clip_idx}</clipindex>
+          <groupindex>1</groupindex>
+        </link>
+      </clipitem>"""
+        audio1_items.append(a1_item)
+
+        a2_item = f"""      <clipitem id="clipitem-audio-2-{clip_idx}">
+        <masterclipid>masterclip-1</masterclipid>
+        <name>Take {clip_idx} ({seg["start"]:.1f}s - {seg["end"]:.1f}s)</name>
+        <enabled>TRUE</enabled>
+        <duration>{dur_f}</duration>
+        <rate>
+          <timebase>{timebase}</timebase>
+          <ntsc>{ntsc_str}</ntsc>
+        </rate>
+        <start>{start_f}</start>
+        <end>{end_f}</end>
+        <in>{in_f}</in>
+        <out>{out_f}</out>
+        <file id="file-1"/>
+        <sourcetrack>
+          <mediatype>audio</mediatype>
+          <trackindex>2</trackindex>
+        </sourcetrack>
+        <link>
+          <linkclipref>clipitem-video-{clip_idx}</linkclipref>
+          <mediatype>video</mediatype>
+          <trackindex>1</trackindex>
+          <clipindex>{clip_idx}</clipindex>
+        </link>
+        <link>
+          <linkclipref>clipitem-audio-1-{clip_idx}</linkclipref>
+          <mediatype>audio</mediatype>
+          <trackindex>1</trackindex>
+          <clipindex>{clip_idx}</clipindex>
+          <groupindex>1</groupindex>
+        </link>
+        <link>
+          <linkclipref>clipitem-audio-2-{clip_idx}</linkclipref>
+          <mediatype>audio</mediatype>
+          <trackindex>2</trackindex>
+          <clipindex>{clip_idx}</clipindex>
+          <groupindex>1</groupindex>
+        </link>
+      </clipitem>"""
+        audio2_items.append(a2_item)
+
+    total_rec_frames = rec_frame
+
+    full_xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xmeml>
+<xmeml version="5">
+  <sequence id="sequence-1">
+    <name>{stem}_JumpCut_Project</name>
+    <duration>{total_rec_frames}</duration>
+    <rate>
+      <timebase>{timebase}</timebase>
+      <ntsc>{ntsc_str}</ntsc>
+    </rate>
+    <timecode>
+      <rate>
+        <timebase>{timebase}</timebase>
+        <ntsc>{ntsc_str}</ntsc>
+      </rate>
+      <string>00:00:00:00</string>
+      <frame>0</frame>
+      <displayformat>NDF</displayformat>
+    </timecode>
+    <media>
+      <video>
+        <format>
+          <samplecharacteristics>
+            <rate>
+              <timebase>{timebase}</timebase>
+              <ntsc>{ntsc_str}</ntsc>
+            </rate>
+            <width>{width}</width>
+            <height>{height}</height>
+            <anamorphic>FALSE</anamorphic>
+            <pixelaspectratio>square</pixelaspectratio>
+            <fielddominance>none</fielddominance>
+          </samplecharacteristics>
+        </format>
+        <track>
+{chr(10).join(video_items)}
+        </track>
+      </video>
+      <audio>
+        <format>
+          <samplecharacteristics>
+            <depth>16</depth>
+            <samplerate>{audio_rate}</samplerate>
+          </samplecharacteristics>
+        </format>
+        <track>
+{chr(10).join(audio1_items)}
+        </track>
+        <track>
+{chr(10).join(audio2_items)}
+        </track>
+      </audio>
+    </media>
+  </sequence>
+</xmeml>
+"""
+    xml_path.write_text(full_xml, encoding="utf-8")
+
+    return {
+        "status": "success",
+        "output_path": str(xml_path),
+        "filename": xml_path.name,
+        "content": full_xml,
+        "cuts_count": len(speech_segments),
+        "total_timeline_duration": round(total_rec_frames / fps_eff, 2),
+        "width": width,
+        "height": height,
+    }
+
+
 def export_davinci_fcpxml(
     input_path: str | Path,
     speech_segments: List[Dict[str, Any]],
@@ -517,7 +823,9 @@ def export_davinci_fcpxml(
 ) -> Dict[str, Any]:
     """
     Generates a Final Cut Pro XML (FCPXML 1.8) sequence natively importable by DaVinci Resolve.
-    References the exact file path and slices the clips seamlessly onto the master timeline.
+    - Uses exact rational fractions conforming to NLE standards.
+    - Wraps clips in contiguous <spine> elements without conflicting offset attributes.
+    - Adds explicit <video> and <audio> sub-elements to ensure audio tracks populate.
     """
     input_path = Path(input_path).resolve()
     stem = input_path.stem
@@ -528,31 +836,47 @@ def export_davinci_fcpxml(
     downloads_dir.mkdir(parents=True, exist_ok=True)
     xml_path = downloads_dir / output_filename
 
-    # Frame duration representation
-    frame_dur = f"1001/{int(fps * 1000)}s" if abs(fps - 29.97) < 0.1 else f"1/{int(fps)}s"
-    source_dur_str = f"{total_source_duration:.3f}s" if total_source_duration > 0 else "3600s"
+    timebase, ntsc, fps_eff = _get_standard_timebase(fps)
+
+    if ntsc:
+        frame_dur = f"1001/{timebase * 1000}s"
+        den = timebase * 1000
+        mult = 1001
+    else:
+        frame_dur = f"1/{timebase}s"
+        den = timebase
+        mult = 1
+
+    source_frames = int(round((total_source_duration or 3600.0) * fps_eff))
+    source_dur_str = f"{source_frames * mult}/{den}s"
 
     clips_xml = []
-    cumulative_offset = 0.0
+    total_timeline_frames = 0
 
     for i, seg in enumerate(speech_segments):
-        start_s = f"{seg['start']:.3f}s"
-        dur_s = f"{seg['duration']:.3f}s"
-        offset_s = f"{cumulative_offset:.3f}s"
-        cumulative_offset += seg["duration"]
+        in_f = int(round(seg["start"] * fps_eff))
+        out_f = int(round(seg["end"] * fps_eff))
+        dur_f = max(1, out_f - in_f)
+        total_timeline_frames += dur_f
+
+        dur_s = f"{dur_f * mult}/{den}s"
+        start_s = f"{in_f * mult}/{den}s"
 
         clip_element = f"""
-                        <asset-clip name="Take {i+1} ({seg['start']:.1f}s - {seg['end']:.1f}s)" ref="r2" offset="{offset_s}" duration="{dur_s}" start="{start_s}"/>"""
+                        <clip name="Take {i+1} ({seg['start']:.1f}s - {seg['end']:.1f}s)" duration="{dur_s}" start="{start_s}">
+                            <video ref="r2" duration="{dur_s}" start="{start_s}"/>
+                            <audio ref="r2" duration="{dur_s}" start="{start_s}" role="dialogue"/>
+                        </clip>"""
         clips_xml.append(clip_element)
 
-    seq_dur_str = f"{cumulative_offset:.3f}s"
+    seq_dur_str = f"{total_timeline_frames * mult}/{den}s"
     file_uri = input_path.as_uri()
 
     fcpxml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE fcpxml>
 <fcpxml version="1.8">
     <resources>
-        <format id="r1" name="FFVideoFormat{width}x{height}p{int(round(fps))}" frameDuration="{frame_dur}" width="{width}" height="{height}"/>
+        <format id="r1" name="FFVideoFormat{width}x{height}p{timebase}" frameDuration="{frame_dur}" width="{width}" height="{height}"/>
         <asset id="r2" name="{input_path.name}" src="{file_uri}" start="0s" duration="{source_dur_str}" hasVideo="1" hasAudio="1" audioSources="1" audioChannels="2"/>
     </resources>
     <library>
@@ -575,7 +899,9 @@ def export_davinci_fcpxml(
         "filename": xml_path.name,
         "content": fcpxml_content,
         "cuts_count": len(speech_segments),
-        "total_timeline_duration": round(cumulative_offset, 2),
+        "total_timeline_duration": round(total_timeline_frames / fps_eff, 2),
+        "width": width,
+        "height": height,
     }
 
 
