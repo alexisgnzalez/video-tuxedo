@@ -31,9 +31,38 @@ Automatic speech-to-text is normally locked behind the paid DaVinci Resolve Stud
 
 ---
 
+### 2. ✂️ Silence Cutter & Jump Cuts *(New!)*
+Automatically detect dead air, pauses, and breath gaps in any video, removing them with surgical precision to produce jump-cut edits.
+
+- **100% Free & Local Silero VAD**: Powered by Silero Voice Activity Detection running entirely offline on your Mac. Analyzes 1 hour of audio in ~3 seconds with zero cloud fees or API keys.
+- **100% Lossless DaVinci Resolve Timeline (FCPXML & CMX 3600 EDL)**:
+  - Generates native timeline edit decision lists that reference your original camera master file directly.
+  - **Zero re-encoding, zero compression, and 100% original camera sensor quality and bit depth preserved.**
+- **✨ Cut-Synchronized Subtitles (.SRT)**:
+  - Subtitle timecodes are automatically re-calculated and shifted to match the jump-cut timeline.
+  - Drop the generated `.srt` directly into DaVinci Resolve's `ST1` track, and all subtitles snap onto the cut frames automatically!
+- **⚡ Hardware-Accelerated Single Video (.MP4)**:
+  - Renders all active speech takes into a single seamless video using Apple Silicon `h264_videotoolbox` hardware encoding in seconds.
+- **📦 Multipart Takes Package (.ZIP & Folder)**:
+  - Slices each speech take into an individual clip (`take_01.mp4`, `take_02.mp4`...) and bundles a ZIP for easy organization and sharing.
+- **🎧 Live In-Browser Jump-Cut Preview**:
+  - Built-in video player dynamically skips silences in real time so you can preview the jump-cut pacing before exporting.
+- **Interactive Proportional Visual Cut Map**:
+  - Visual timeline bar showing green speech takes and striped terracotta silence cuts. Click any block to seek instantly.
+- **Automatic Downloads**:
+  - All rendered videos, takes ZIPs, timelines, and subtitles are automatically saved directly to your macOS `~/Downloads/` directory.
+
+#### 💡 How to Import Timelines into DaVinci Resolve:
+1. **Via FCPXML**: In DaVinci Resolve, go to **File > Import > Timeline...** and select the `.fcpxml` file. Select your original video clip if prompted.
+2. **Via EDL**: In DaVinci Resolve, go to **File > Import > Timeline... > EDL...** and select the `.edl` file.
+3. **Add Synced Subtitles**: Right-click the subtitle track and import the `*_cut_subtitles.srt` file.
+
+---
+
 ### 🔮 Roadmap & Upcoming Tools
 
-- [ ] **Silence Cutter & Jump Cuts**: Automatically detect audio dead air and pauses, cutting them with lossless stream copy or exporting DaVinci Resolve timeline edits (`.fcpxml` / `.edl`).
+- [x] **Auto Subtitles for DaVinci Resolve Free** (Waveform-aligned Whisper AI speech-to-text)
+- [x] **Silence Cutter & Jump Cuts** (100% Lossless DaVinci FCPXML/EDL, Single/Multipart MP4, Synced SRT)
 - [ ] **AI Video Background Remover**: Automated video rotoscoping without a green screen, exporting transparent ProRes 4444 or alpha matte masks for DaVinci.
 
 ---

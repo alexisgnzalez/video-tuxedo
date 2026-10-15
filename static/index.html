@@ -105,8 +105,8 @@
           </button>
         </article>
 
-        <!-- Tool 2: Silence Cutter (ROADMAP) -->
-        <article class="tool-card upcoming-feature" id="toolCardSilence">
+        <!-- Tool 2: Silence Cutter (ACTIVE) -->
+        <article class="tool-card active-feature" id="toolCardSilence">
           <div class="tool-header">
             <div class="tool-icon-wrapper">
               <!-- Scissors / Timeline Cut Icon -->
@@ -118,24 +118,29 @@
                 <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
               </svg>
             </div>
-            <span class="badge-status badge-upcoming">Roadmap</span>
+            <span class="badge-status badge-ready">● Ready to Use</span>
           </div>
 
           <div class="tool-body">
             <span class="tool-category">Timeline & Trimming</span>
             <h2 class="tool-name">Silence Cutter & Jump Cuts</h2>
             <p class="tool-desc">
-              Automatically detect silent gaps and dead air. Export cut timelines directly into DaVinci Resolve via EDL/FCPXML without re-rendering original video files.
+              Cut dead air and pauses with 100% local Silero VAD. Export lossless DaVinci Resolve timelines (EDL/FCPXML) with synced subtitles, or render single and multipart MP4 videos.
             </p>
             <div class="tool-feature-pills">
-              <span class="feature-pill">⚡ Fast FFmpeg Stream Copy</span>
-              <span class="feature-pill">🎞️ DaVinci XML Export</span>
-              <span class="feature-pill">📉 Decibel Thresholds</span>
+              <span class="feature-pill">🎙️ Local Silero VAD</span>
+              <span class="feature-pill">🎬 100% Lossless DaVinci</span>
+              <span class="feature-pill">⚡ Apple Silicon Hardware</span>
+              <span class="feature-pill">✂️ Single & Multipart MP4</span>
             </div>
           </div>
 
-          <button class="tool-action-btn btn-disabled" disabled>
-            In Active Development
+          <button class="tool-action-btn btn-primary" id="launchSilenceBtn">
+            Open Silence Studio
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
           </button>
         </article>
 
@@ -423,6 +428,292 @@
 
     </section>
 
+
+    <!-- VIEW 3: SILENCE CUTTER & JUMP CUTS STUDIO -->
+    <section class="view-container" id="silenceToolView">
+
+      <div class="tool-view-header">
+        <div class="tool-view-title-group">
+          <h1>
+            Silence Cutter & Jump Cuts
+            <span class="davinci-badge-pill">DaVinci Lossless & MP4 Ready</span>
+          </h1>
+          <p>Cut dead air and pauses with 100% local Silero VAD. Export lossless DaVinci timelines with synced subtitles, or render single/multipart MP4 videos.</p>
+        </div>
+
+        <button class="btn-secondary" id="backFromSilenceToLauncherBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Back to Tools Grid
+        </button>
+      </div>
+
+      <!-- Input Selection & Settings Panel -->
+      <div class="glass-panel" id="silenceInputControlPanel" style="margin-bottom: 2rem;">
+        
+        <!-- Tabs for input mode -->
+        <div class="input-tabs-nav">
+          <button class="tab-btn active" id="tabSilenceUploadBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Choose File / Drag & Drop
+          </button>
+          <button class="tab-btn" id="tabSilencePathBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Select from Directory Path
+          </button>
+          <button class="tab-btn" id="tabSilenceDemoBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            Test Sample Video
+          </button>
+        </div>
+
+        <!-- Mode A: File Drag & Drop -->
+        <div id="silenceUploadSection">
+          <div class="drop-zone" id="silenceDropZone">
+            <input type="file" id="silenceFileInput" accept="video/*,audio/*,.mp4,.mov,.mkv,.webm,.mp3,.wav,.m4a" style="display: none;">
+            <div class="drop-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <circle cx="6" cy="6" r="3"></circle>
+                <circle cx="6" cy="18" r="3"></circle>
+                <line x1="20" y1="4" x2="8.12" y2="15.88"></line>
+                <line x1="14.47" y1="14.48" x2="20" y2="20"></line>
+                <line x1="8.12" y1="8.12" x2="12" y2="12"></line>
+              </svg>
+            </div>
+            <h3 class="drop-title" id="silenceDropTitle">Drop your video or audio file here</h3>
+            <p class="drop-subtitle" id="silenceDropSubtitle">
+              Supports MP4, MOV, MKV, WebM, WAV, AAC. High-accuracy offline Silero VAD analysis.
+            </p>
+            <button type="button" class="browse-btn" id="browseSilenceBtn">
+              Browse Media File...
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode B: Direct Directory Path Input -->
+        <div id="silencePathSection" style="display: none;">
+          <div class="path-input-group">
+            <input type="text" id="silenceLocalPathInput" class="path-input" placeholder="e.g. /Users/alexisgonzalez/Movies/raw_take_01.mp4">
+          </div>
+          <p style="font-size: 0.82rem; color: var(--text-muted); margin-bottom: 1.25rem;">
+            💡 Tip: In macOS Finder, right-click your video file, hold Option (⌥), and click "Copy as Pathname" to paste it here.
+          </p>
+        </div>
+
+        <!-- Sensitivity & Silence Settings Bar -->
+        <div class="config-bar" style="margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid var(--border-subtle);">
+          <div class="form-group" style="flex: 1; min-width: 200px;">
+            <label for="minSilenceSlider" style="display: flex; justify-content: space-between;">
+              <span>Min Silence Duration:</span>
+              <strong id="minSilenceVal" style="color: var(--accent-coral);">0.45s</strong>
+            </label>
+            <input type="range" id="minSilenceSlider" min="0.20" max="2.00" step="0.05" value="0.45" style="width: 100%; accent-color: var(--accent-coral);">
+            <span style="font-size: 0.78rem; color: var(--text-muted);">Pauses longer than this are cut.</span>
+          </div>
+
+          <div class="form-group" style="flex: 1; min-width: 200px;">
+            <label for="paddingSlider" style="display: flex; justify-content: space-between;">
+              <span>Speech Safety Margin:</span>
+              <strong id="paddingVal" style="color: var(--accent-coral);">0.12s</strong>
+            </label>
+            <input type="range" id="paddingSlider" min="0.05" max="0.30" step="0.01" value="0.12" style="width: 100%; accent-color: var(--accent-coral);">
+            <span style="font-size: 0.78rem; color: var(--text-muted);">Pre/post buffer so syllables never clip.</span>
+          </div>
+
+          <div class="form-group" style="flex: 1; min-width: 180px;">
+            <label for="vadThresholdSlider" style="display: flex; justify-content: space-between;">
+              <span>Voice Sensitivity:</span>
+              <strong id="vadThresholdVal" style="color: var(--accent-coral);">0.50</strong>
+            </label>
+            <input type="range" id="vadThresholdSlider" min="0.20" max="0.80" step="0.05" value="0.50" style="width: 100%; accent-color: var(--accent-coral);">
+            <span style="font-size: 0.78rem; color: var(--text-muted);">Silero VAD confidence threshold.</span>
+          </div>
+        </div>
+
+        <!-- Action Button -->
+        <div style="margin-top: 1.5rem; display: flex; justify-content: flex-end;">
+          <button class="btn-primary" id="detectSilencesBtn" style="padding: 0.85rem 2rem; font-size: 1rem;">
+            <span class="spinner" id="silenceBtnSpinner" style="display: none; width: 16px; height: 16px; margin-right: 8px;"></span>
+            <span id="silenceBtnText">Detect Silences & Preview Cuts</span>
+          </button>
+        </div>
+
+      </div>
+
+      <!-- RESULTS & CUT PREVIEW PANEL (HIDDEN BY DEFAULT) -->
+      <div id="silenceResultsPanel" style="display: none;">
+
+        <!-- Metrics Summary Grid -->
+        <div class="metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+          <div class="metric-card glass-panel" style="padding: 1.25rem;">
+            <span class="metric-label" style="font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Original Duration</span>
+            <h3 class="metric-val" id="metricOriginalDur" style="font-size: 1.75rem; font-family: var(--font-mono); margin-top: 0.25rem;">00:00</h3>
+          </div>
+          <div class="metric-card glass-panel" style="padding: 1.25rem;">
+            <span class="metric-label" style="font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Clean Speech Duration</span>
+            <h3 class="metric-val" id="metricSpeechDur" style="font-size: 1.75rem; font-family: var(--font-mono); color: #2E7D32; margin-top: 0.25rem;">00:00</h3>
+          </div>
+          <div class="metric-card glass-panel" style="padding: 1.25rem;">
+            <span class="metric-label" style="font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Silence Removed</span>
+            <h3 class="metric-val" id="metricSavedDur" style="font-size: 1.75rem; font-family: var(--font-mono); color: var(--accent-coral); margin-top: 0.25rem;">00:00 (0%)</h3>
+          </div>
+          <div class="metric-card glass-panel" style="padding: 1.25rem;">
+            <span class="metric-label" style="font-size: 0.82rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Speech Takes</span>
+            <h3 class="metric-val" id="metricCutsCount" style="font-size: 1.75rem; font-family: var(--font-mono); margin-top: 0.25rem;">0 takes</h3>
+          </div>
+        </div>
+
+        <!-- In-Browser Video Player & Live Jump Cut Preview -->
+        <div class="glass-panel" style="margin-bottom: 1.5rem; padding: 1.5rem;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.75rem;">
+            <div>
+              <h3 style="font-family: var(--font-serif); font-size: 1.35rem; font-weight: 600;">Interactive Jump-Cut Player</h3>
+              <p style="font-size: 0.85rem; color: var(--text-secondary);">Preview the cut video seamlessly in real-time before exporting.</p>
+            </div>
+            <!-- Playback Mode Switcher -->
+            <div class="pacing-switcher" style="margin-bottom: 0;">
+              <span class="pacing-label">Preview Mode:</span>
+              <div class="pacing-btn-group">
+                <button type="button" class="pacing-pill-btn active" id="playCutsOnlyToggle">
+                  ✂️ Skip Silences (Jump Cuts)
+                </button>
+                <button type="button" class="pacing-pill-btn" id="playOriginalToggle">
+                  ▶️ Full Original
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video element -->
+          <video id="silenceVideoPlayer" controls style="width: 100%; max-height: 480px; border-radius: var(--radius-sm); background: #000; margin-bottom: 1rem; display: none;"></video>
+
+          <!-- Proportional Cut Timeline Bar -->
+          <div style="margin-top: 1rem;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+              <span style="font-size: 0.85rem; font-weight: 600;">Visual Cut Map (Click any block to seek)</span>
+              <div style="display: flex; gap: 1rem; font-size: 0.8rem;">
+                <span style="display: inline-flex; align-items: center; gap: 4px;">
+                  <span style="width: 12px; height: 12px; background: #2E7D32; border-radius: 2px;"></span> Keep (Speech)
+                </span>
+                <span style="display: inline-flex; align-items: center; gap: 4px;">
+                  <span style="width: 12px; height: 12px; background: rgba(217, 119, 87, 0.35); border-radius: 2px;"></span> Cut (Silence)
+                </span>
+              </div>
+            </div>
+
+            <div class="cut-timeline-container" id="cutTimelineBar" style="height: 38px; width: 100%; background: var(--bg-surface-warm); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); display: flex; overflow: hidden; cursor: pointer;">
+              <!-- Dynamically populated segments -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Takes Explorer List -->
+        <div class="glass-panel" style="margin-bottom: 1.5rem; padding: 1.5rem;">
+          <h3 style="font-family: var(--font-serif); font-size: 1.35rem; font-weight: 600; margin-bottom: 0.5rem;">
+            Detected Takes List
+          </h3>
+          <p style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 1rem;">
+            Click any take to jump to that timestamp in the video player.
+          </p>
+          <div id="silenceSegmentsList" class="takes-grid" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 0.75rem; max-height: 260px; overflow-y: auto; padding-right: 4px;">
+            <!-- Takes populated dynamically -->
+          </div>
+        </div>
+
+        <!-- Export Deck Cards -->
+        <div class="glass-panel" style="padding: 1.75rem; margin-bottom: 2rem;">
+          <h3 style="font-family: var(--font-serif); font-size: 1.45rem; font-weight: 600; margin-bottom: 0.5rem;">
+            Export Options
+          </h3>
+          <p style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 1.5rem;">
+            All exports are automatically written directly to your macOS <code>~/Downloads/</code> directory.
+          </p>
+
+          <div class="export-cards-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.25rem;">
+
+            <!-- Export Card 1: DaVinci Resolve Timeline (Zero Re-encode) -->
+            <div class="export-card" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                  <span style="font-size: 1.5rem;">🎬</span>
+                  <span class="badge-status badge-ready">100% Original Quality</span>
+                </div>
+                <h4 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.35rem;">DaVinci Resolve Timeline</h4>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1rem;">
+                  Loads your original raw camera file non-destructively onto the DaVinci timeline. <strong>Zero generational compression loss.</strong>
+                </p>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 0.5rem;">
+                <button class="btn-primary" id="exportFcpxmlBtn" style="width: 100%; justify-content: center;">
+                  Export FCPXML (.fcpxml)
+                </button>
+                <button class="btn-secondary" id="exportEdlBtn" style="width: 100%; justify-content: center;">
+                  Export CMX 3600 EDL (.edl)
+                </button>
+                <button class="btn-secondary" id="exportCutSubtitlesBtn" style="width: 100%; justify-content: center; border-color: var(--accent-coral); color: var(--accent-coral);">
+                  ✨ Export Synced Subtitles (.srt)
+                </button>
+              </div>
+            </div>
+
+            <!-- Export Card 2: Single Jump-Cut Video -->
+            <div class="export-card" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                  <span style="font-size: 1.5rem;">⚡</span>
+                  <span class="badge-status badge-ready">Hardware Accelerated</span>
+                </div>
+                <h4 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.35rem;">Single Jump-Cut Video</h4>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1rem;">
+                  Concatenates all active speech takes into one seamless MP4 video using Apple Silicon <code>h264_videotoolbox</code>.
+                </p>
+              </div>
+              <div>
+                <button class="btn-primary" id="exportSingleMp4Btn" style="width: 100%; justify-content: center;">
+                  Render Single Video (.mp4)
+                </button>
+              </div>
+            </div>
+
+            <!-- Export Card 3: Multipart Takes Package -->
+            <div class="export-card" style="background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 1.5rem; display: flex; flex-direction: column; justify-content: space-between;">
+              <div>
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 0.75rem;">
+                  <span style="font-size: 1.5rem;">📦</span>
+                  <span class="badge-status badge-ready">All Takes + ZIP</span>
+                </div>
+                <h4 style="font-size: 1.1rem; font-weight: 600; margin-bottom: 0.35rem;">Multipart Takes Package</h4>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.5; margin-bottom: 1rem;">
+                  Slices every active speech take into individual clips (<code>take_01.mp4</code>, <code>take_02.mp4</code>...) and packages a ZIP.
+                </p>
+              </div>
+              <div>
+                <button class="btn-primary" id="exportMultipartZipBtn" style="width: 100%; justify-content: center;">
+                  Export All Takes (.zip)
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- Direct Feedback / Saved Path Banner -->
+          <div id="exportFeedbackBanner" style="display: none; margin-top: 1.5rem;"></div>
+
+        </div>
+
+      </div>
+
+    </section>
+
   </main>
 
   <!-- MODAL: DaVinci Resolve Free Subtitle Import Guide -->
@@ -484,8 +775,9 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Scripts -->
-  <script src="/static/js/visualizer.js"></script>
-  <script src="/static/js/subtitles.js"></script>
-  <script src="/static/js/app.js"></script>
+  <script src="/static/js/visualizer.js?v=0.2.0"></script>
+  <script src="/static/js/subtitles.js?v=0.2.0"></script>
+  <script src="/static/js/silence_cutter.js?v=0.2.0"></script>
+  <script src="/static/js/app.js?v=0.2.0"></script>
 </body>
 </html>

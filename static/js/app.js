@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
   // Views
   const toolsLauncherView = document.getElementById('toolsLauncherView');
   const subtitleToolView = document.getElementById('subtitleToolView');
+  const silenceToolView = document.getElementById('silenceToolView');
   const breadcrumbCurrent = document.getElementById('breadcrumbCurrent');
   const breadcrumbHome = document.getElementById('breadcrumbHome');
   const brandHomeBtn = document.getElementById('brandHomeBtn');
@@ -37,6 +38,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const launchSubtitlesBtn = document.getElementById('launchSubtitlesBtn');
   const toolCardSubtitles = document.getElementById('toolCardSubtitles');
   const backToLauncherBtn = document.getElementById('backToLauncherBtn');
+
+  const launchSilenceBtn = document.getElementById('launchSilenceBtn');
+  const toolCardSilence = document.getElementById('toolCardSilence');
+  const backFromSilenceToLauncherBtn = document.getElementById('backFromSilenceToLauncherBtn');
 
   // Modal elements
   const openGuideBtn = document.getElementById('openDavinciGuideBtn');
@@ -51,19 +56,46 @@ document.addEventListener('DOMContentLoaded', () => {
     subtitleStudio = new window.SubtitleStudio();
   }
 
+  // Initialize Silence Cutter Studio instance
+  let silenceStudio = null;
+  if (window.SilenceCutterStudio) {
+    silenceStudio = new window.SilenceCutterStudio();
+  }
+
   // Navigation functions
   function navigateToView(viewName) {
     if (viewName === 'subtitles') {
       toolsLauncherView.classList.remove('active');
+      silenceToolView.classList.remove('active');
       subtitleToolView.classList.add('active');
       breadcrumbCurrent.textContent = 'Auto Subtitles Studio';
+      window.history.replaceState(null, '', '#subtitles');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (viewName === 'silence') {
+      toolsLauncherView.classList.remove('active');
+      subtitleToolView.classList.remove('active');
+      silenceToolView.classList.add('active');
+      breadcrumbCurrent.textContent = 'Silence Cutter & Jump Cuts';
+      window.history.replaceState(null, '', '#silence');
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       subtitleToolView.classList.remove('active');
+      silenceToolView.classList.remove('active');
       toolsLauncherView.classList.add('active');
       breadcrumbCurrent.textContent = 'App Launcher';
+      window.history.replaceState(null, '', window.location.pathname);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
+  }
+
+  // Deep linking on load
+  const urlParams = new URLSearchParams(window.location.search);
+  const toolParam = urlParams.get('tool');
+  const hash = (window.location.hash || '').toLowerCase();
+  if (toolParam === 'silence' || hash === '#silence') {
+    navigateToView('silence');
+  } else if (toolParam === 'subtitles' || hash === '#subtitles') {
+    navigateToView('subtitles');
   }
 
   // Bind navigation
@@ -80,8 +112,25 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (launchSilenceBtn) {
+    launchSilenceBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigateToView('silence');
+    });
+  }
+
+  if (toolCardSilence) {
+    toolCardSilence.addEventListener('click', () => {
+      navigateToView('silence');
+    });
+  }
+
   if (backToLauncherBtn) {
     backToLauncherBtn.addEventListener('click', () => navigateToView('launcher'));
+  }
+
+  if (backFromSilenceToLauncherBtn) {
+    backFromSilenceToLauncherBtn.addEventListener('click', () => navigateToView('launcher'));
   }
 
   if (breadcrumbHome) {
