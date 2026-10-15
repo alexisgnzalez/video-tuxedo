@@ -6,6 +6,7 @@ import os
 import time
 import shutil
 import tempfile
+import urllib.parse
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
@@ -273,6 +274,16 @@ def stream_temp_media(filename: str):
     return FileResponse(path=str(target))
 
 
+@app.get("/api/media-stream")
+def stream_local_media(path: str = Query(...)):
+    """Streams any local media file to the in-browser video player."""
+    decoded_path = urllib.parse.unquote(path)
+    target = Path(os.path.expanduser(decoded_path))
+    if not target.exists():
+        raise HTTPException(status_code=404, detail=f"Media file not found: {decoded_path}")
+    return FileResponse(path=str(target))
+
+
 EXPORTS_DIR = BASE_DIR / "exports"
 EXPORTS_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -401,6 +412,7 @@ def detect_silence_local_path(req: SilenceDetectPathRequest):
         )
         result["filename"] = os.path.basename(path)
         result["server_media_path"] = path
+        result["media_url"] = f"/api/media-stream?path={urllib.parse.quote(str(path))}"
         print(f"✅ Local VAD Detection complete: {result['speech_segments_count']} speech clips ({result['silence_percentage']}% silence cut)")
         return result
     except Exception as e:

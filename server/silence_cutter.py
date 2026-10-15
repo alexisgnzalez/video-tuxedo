@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import math
 import os
+import re
 import shutil
 import subprocess
 import time
@@ -38,8 +39,31 @@ class CutSegment:
     rec_end: float = 0.0
 
 
+def get_video_rotation(media_path: str | Path) -> int:
+    """
+    Detects video display matrix rotation (e.g. 90, 180, 270 degrees) using ffmpeg.
+    Mobile phone vertical videos often store pixels horizontally with a 90° rotation tag.
+    """
+    try:
+        exe = _get_ffmpeg_exe()
+        proc = subprocess.run([exe, "-i", str(media_path)], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        stderr = proc.stderr.decode("utf-8", errors="replace")
+        for line in stderr.splitlines():
+            if "rotation of" in line:
+                m = re.search(r"rotation of ([-\d.]+)", line)
+                if m:
+                    return int(float(m.group(1)))
+            elif "rotate" in line and ":" in line:
+                m = re.search(r"rotate\s*:\s*([-\d.]+)", line)
+                if m:
+                    return int(float(m.group(1)))
+    except Exception:
+        pass
+    return 0
+
+
 def get_media_properties(media_path: str | Path) -> Dict[str, Any]:
-    """Inspects video/audio properties using PyAV."""
+    """Inspects video/audio properties using PyAV, accounting for display rotation."""
     container = av.open(str(media_path))
     v_stream = container.streams.video[0] if container.streams.video else None
     a_stream = container.streams.audio[0] if container.streams.audio else None
@@ -53,11 +77,24 @@ def get_media_properties(media_path: str | Path) -> Dict[str, Any]:
         "fps": 30.0,
         "audio_rate": 48000,
         "audio_channels": 2,
+        "rotation": 0,
+        "is_portrait": False,
     }
 
     if v_stream:
-        props["width"] = v_stream.width
-        props["height"] = v_stream.height
+        w = v_stream.width
+        h = v_stream.height
+        rot = get_video_rotation(media_path)
+        # Mobile phones store raw pixel buffer as landscape with a 90/270deg display matrix.
+        # Swap width & height so timeline matches the true visible aspect ratio!
+        if abs(rot) in (90, 270):
+            w, h = h, w
+
+        props["width"] = w
+        props["height"] = h
+        props["rotation"] = rot
+        props["is_portrait"] = h > w
+
         if v_stream.average_rate:
             props["fps"] = float(v_stream.average_rate)
         if v_stream.duration and v_stream.time_base:
@@ -515,7 +552,7 @@ def export_davinci_fcpxml(
 <!DOCTYPE fcpxml>
 <fcpxml version="1.8">
     <resources>
-        <format id="r1" name="FFVideoFormat{height}p{int(fps)}" frameDuration="{frame_dur}" width="{width}" height="{height}"/>
+        <format id="r1" name="FFVideoFormat{width}x{height}p{int(round(fps))}" frameDuration="{frame_dur}" width="{width}" height="{height}"/>
         <asset id="r2" name="{input_path.name}" src="{file_uri}" start="0s" duration="{source_dur_str}" hasVideo="1" hasAudio="1" audioSources="1" audioChannels="2"/>
     </resources>
     <library>

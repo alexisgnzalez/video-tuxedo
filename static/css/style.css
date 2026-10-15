@@ -1221,35 +1221,95 @@ body {
    Silence Cutter & Jump Cuts Studio Styles
    ========================================================================== */
 
+/* Preview Mode Switcher & Segmented Pill Buttons */
+.pacing-switcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.65rem;
+}
+
+.pacing-label {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pacing-btn-group {
+  display: inline-flex;
+  background: var(--bg-surface-warm);
+  padding: 3px;
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-subtle);
+  gap: 3px;
+}
+
+.pacing-pill-btn {
+  background: transparent;
+  border: none;
+  padding: 0.45rem 1rem;
+  border-radius: var(--radius-full);
+  font-family: var(--font-sans);
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  outline: none;
+}
+
+.pacing-pill-btn:hover {
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.pacing-pill-btn.active {
+  background: var(--bg-surface);
+  color: var(--accent-coral);
+  box-shadow: 0 1px 4px rgba(20, 20, 19, 0.12);
+  font-weight: 700;
+}
+
+/* Visual Cut Timeline Bar */
 .cut-timeline-container {
-  box-shadow: inset 0 2px 4px rgba(20, 20, 19, 0.04);
+  box-shadow: inset 0 2px 4px rgba(20, 20, 19, 0.06);
+  min-height: 38px;
 }
 
 .timeline-segment {
   height: 100%;
+  min-height: 38px;
   position: relative;
+  display: block;
+  flex-shrink: 0;
+  box-sizing: border-box;
   transition: opacity 0.15s ease, filter 0.15s ease;
 }
 
 .timeline-segment:hover {
-  filter: brightness(1.15);
+  filter: brightness(1.2);
   z-index: 2;
 }
 
 .timeline-segment.speech-segment {
-  background: #2D5A27;
-  border-right: 1px solid rgba(255, 255, 255, 0.2);
+  background-color: #2E7D32 !important;
+  border-right: 1px solid rgba(255, 255, 255, 0.35);
 }
 
 .timeline-segment.silence-segment {
-  background: repeating-linear-gradient(
+  background-color: #D97757 !important;
+  background-image: repeating-linear-gradient(
     45deg,
-    rgba(217, 119, 87, 0.3),
-    rgba(217, 119, 87, 0.3) 4px,
-    rgba(217, 119, 87, 0.15) 4px,
-    rgba(217, 119, 87, 0.15) 8px
-  );
-  border-right: 1px solid rgba(217, 119, 87, 0.35);
+    #D97757,
+    #D97757 5px,
+    #C56343 5px,
+    #C56343 10px
+  ) !important;
+  border-right: 1px solid rgba(20, 20, 19, 0.25);
 }
 
 .take-card {

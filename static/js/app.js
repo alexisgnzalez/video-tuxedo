@@ -144,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
     brandHomeBtn.addEventListener('click', () => navigateToView('launcher'));
   }
 
-  // Modal handlers
+  // Subtitle Modal handlers
   function openModal() {
     modalOverlay.classList.add('open');
   }
@@ -162,9 +162,34 @@ document.addEventListener('DOMContentLoaded', () => {
     if (e.target === modalOverlay) closeModal();
   });
 
+  // Timeline Guide Modal handlers
+  const timelineModalOverlay = document.getElementById('davinciTimelineModalOverlay');
+  const openTimelineGuideBtn = document.getElementById('openDavinciTimelineGuideBtn');
+  const closeTimelineGuideBtn = document.getElementById('closeDavinciTimelineModalBtn');
+  const timelineGuideGotItBtn = document.getElementById('timelineGuideGotItBtn');
+
+  function openTimelineModal() {
+    if (timelineModalOverlay) timelineModalOverlay.classList.add('open');
+  }
+
+  function closeTimelineModal() {
+    if (timelineModalOverlay) timelineModalOverlay.classList.remove('open');
+  }
+
+  if (openTimelineGuideBtn) openTimelineGuideBtn.addEventListener('click', openTimelineModal);
+  if (closeTimelineGuideBtn) closeTimelineGuideBtn.addEventListener('click', closeTimelineModal);
+  if (timelineGuideGotItBtn) timelineGuideGotItBtn.addEventListener('click', closeTimelineModal);
+
+  if (timelineModalOverlay) {
+    timelineModalOverlay.addEventListener('click', (e) => {
+      if (e.target === timelineModalOverlay) closeTimelineModal();
+    });
+  }
+
   document.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && modalOverlay.classList.contains('open')) {
-      closeModal();
+    if (e.key === 'Escape') {
+      if (modalOverlay && modalOverlay.classList.contains('open')) closeModal();
+      if (timelineModalOverlay && timelineModalOverlay.classList.contains('open')) closeTimelineModal();
     }
   });
 

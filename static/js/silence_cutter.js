@@ -322,13 +322,27 @@ class SilenceCutterStudio {
     const total = data.total_duration || 1;
     const timeline = data.timeline || [];
 
+    if (!timeline.length) {
+      this.cutTimelineBar.innerHTML = '<div style="width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; font-size: 0.85rem; color: var(--text-muted);">No cuts detected</div>';
+      return;
+    }
+
     timeline.forEach(item => {
       const segEl = document.createElement('div');
-      const widthPct = Math.max(0.2, (item.duration / total) * 100);
+      const widthPct = Math.max(0.25, (item.duration / total) * 100);
       segEl.style.width = `${widthPct}%`;
+      segEl.style.flex = `0 0 ${widthPct}%`;
+      segEl.style.height = '42px';
+      segEl.style.minHeight = '42px';
+      segEl.style.display = 'block';
+      segEl.style.boxSizing = 'border-box';
+      segEl.style.cursor = 'pointer';
+      segEl.style.position = 'relative';
 
       if (item.type === 'speech') {
         segEl.className = 'timeline-segment speech-segment';
+        segEl.style.backgroundColor = '#15803D';
+        segEl.style.borderRight = '1px solid rgba(255, 255, 255, 0.4)';
         segEl.title = `Take ${item.index}: ${this.formatTime(item.start)} - ${this.formatTime(item.end)} (${item.duration}s)`;
         segEl.addEventListener('click', () => {
           if (this.silenceVideoPlayer) {
@@ -338,6 +352,9 @@ class SilenceCutterStudio {
         });
       } else {
         segEl.className = 'timeline-segment silence-segment';
+        segEl.style.backgroundColor = '#DC2626';
+        segEl.style.backgroundImage = 'repeating-linear-gradient(45deg, #DC2626, #DC2626 5px, #B91C1C 5px, #B91C1C 10px)';
+        segEl.style.borderRight = '1px solid rgba(0, 0, 0, 0.25)';
         segEl.title = `Silence Cut: ${this.formatTime(item.start)} - ${this.formatTime(item.end)} (${item.duration}s)`;
       }
 

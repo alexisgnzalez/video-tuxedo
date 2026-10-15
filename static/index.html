@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Video Tuxedo — Professional Video Editing Helper Tools</title>
   <meta name="description" content="Video Tuxedo is a suite of video editing tools built to streamline your workflow. Generate timecode-accurate subtitles for DaVinci Resolve Free using local Whisper AI.">
-  <link rel="stylesheet" href="/static/css/style.css?v=anthropic_v1">
+  <link rel="stylesheet" href="/static/css/style.css?v=0.2.1">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐧</text></svg>">
 </head>
 <body>
@@ -600,17 +600,19 @@
           <div style="margin-top: 1rem;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
               <span style="font-size: 0.85rem; font-weight: 600;">Visual Cut Map (Click any block to seek)</span>
-              <div style="display: flex; gap: 1rem; font-size: 0.8rem;">
-                <span style="display: inline-flex; align-items: center; gap: 4px;">
-                  <span style="width: 12px; height: 12px; background: #2E7D32; border-radius: 2px;"></span> Keep (Speech)
+              <div style="display: flex; gap: 1.25rem; font-size: 0.85rem;">
+                <span style="display: inline-flex; align-items: center; gap: 6px;">
+                  <span style="width: 14px; height: 14px; background-color: #15803D; border-radius: 3px; display: inline-block; border: 1px solid rgba(0,0,0,0.15);"></span>
+                  <strong style="color: #15803D;">Keep (Speech)</strong>
                 </span>
-                <span style="display: inline-flex; align-items: center; gap: 4px;">
-                  <span style="width: 12px; height: 12px; background: rgba(217, 119, 87, 0.35); border-radius: 2px;"></span> Cut (Silence)
+                <span style="display: inline-flex; align-items: center; gap: 6px;">
+                  <span style="width: 14px; height: 14px; background-color: #DC2626; background-image: repeating-linear-gradient(45deg, #DC2626, #DC2626 3px, #B91C1C 3px, #B91C1C 6px); border-radius: 3px; display: inline-block; border: 1px solid rgba(0,0,0,0.15);"></span>
+                  <strong style="color: #DC2626;">Cut (Silence)</strong>
                 </span>
               </div>
             </div>
 
-            <div class="cut-timeline-container" id="cutTimelineBar" style="height: 38px; width: 100%; background: var(--bg-surface-warm); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); display: flex; overflow: hidden; cursor: pointer;">
+            <div class="cut-timeline-container" id="cutTimelineBar" style="height: 42px; width: 100%; min-height: 42px; background: var(--bg-surface-warm); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); display: flex; flex-direction: row; align-items: stretch; overflow: hidden; cursor: pointer;">
               <!-- Dynamically populated segments -->
             </div>
           </div>
@@ -661,6 +663,9 @@
                 </button>
                 <button class="btn-secondary" id="exportCutSubtitlesBtn" style="width: 100%; justify-content: center; border-color: var(--accent-coral); color: var(--accent-coral);">
                   ✨ Export Synced Subtitles (.srt)
+                </button>
+                <button class="btn-secondary" id="openDavinciTimelineGuideBtn" style="width: 100%; justify-content: center; border-color: var(--border-gold); color: #fbbf24; font-size: 0.84rem;">
+                  ❓ How to Import Timeline & Subtitles
                 </button>
               </div>
             </div>
@@ -771,13 +776,80 @@
     </div>
   </div>
 
+  <!-- MODAL: DaVinci Resolve Free Timeline & Subtitles Import Guide -->
+  <div class="modal-overlay" id="davinciTimelineModalOverlay">
+    <div class="modal-dialog">
+      <button class="modal-close-btn" id="closeDavinciTimelineModalBtn" aria-label="Close modal">✕</button>
+
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+        <span style="font-size: 1.5rem;">🎬</span>
+        <h2 style="font-family: var(--font-display); font-size: 1.45rem; color: #fbbf24; font-weight: 800;">
+          Importing Cut Timeline & Subtitles into DaVinci Resolve
+        </h2>
+      </div>
+      <p style="color: var(--text-secondary); font-size: 0.92rem;">
+        Follow these simple steps to import your cut sequence with 100% original camera quality and frame-synced subtitles:
+      </p>
+
+      <div class="guide-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Open Your Project & Go to the Edit Page</h4>
+          <p>In DaVinci Resolve, click on the <strong>Edit</strong> tab (third icon at the bottom, or press <kbd>Shift + 4</kbd>).</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Import the .fcpxml Timeline</h4>
+          <p>
+            From the top menu, go to <strong>File &gt; Import &gt; Timeline...</strong> and select your downloaded <code>*_cuts.fcpxml</code> file from <code>~/Downloads/</code>.
+          </p>
+          <p style="margin-top: 0.35rem; font-size: 0.85rem; color: var(--text-primary); background: var(--bg-surface-warm); padding: 0.5rem 0.75rem; border-radius: var(--radius-xs);">
+            💡 In the <em>Load XML...</em> dialog:
+            <br>• Make sure <strong>"Automatically import source clips into media pool"</strong> is checked (DaVinci connects your original raw video automatically).
+            <br>• <strong>Timeline Resolution</strong>: For phone videos, it will now default to <code>720 x 1280</code> (Vertical 9:16). You can also type <code>1080 x 1920</code> if your project is 1080p vertical.
+            <br>• Click <strong>Ok</strong>!
+          </p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Import the Synced .SRT Subtitles</h4>
+          <p>
+            Go to <strong>File &gt; Import &gt; Subtitle...</strong> and select your downloaded <code>*_cut_subtitles.srt</code>. DaVinci will automatically add track <strong>ST1</strong> with each phrase synchronized to the jump cuts!
+          </p>
+        </div>
+      </div>
+
+      <div class="guide-step" style="border-bottom: none;">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>100% Original Camera Master Quality</h4>
+          <p>
+            Your timeline is now fully assembled with non-destructive cuts and matching subtitles, using 100% of your camera's original color depth and bitrate with zero compression loss!
+          </p>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem; text-align: right;">
+        <button class="btn-davinci-primary" id="timelineGuideGotItBtn" style="display: inline-flex;">
+          Got it! Ready to Edit
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Scripts -->
-  <script src="/static/js/visualizer.js?v=0.2.0"></script>
-  <script src="/static/js/subtitles.js?v=0.2.0"></script>
-  <script src="/static/js/silence_cutter.js?v=0.2.0"></script>
-  <script src="/static/js/app.js?v=0.2.0"></script>
+  <script src="/static/js/visualizer.js?v=0.2.3"></script>
+  <script src="/static/js/subtitles.js?v=0.2.3"></script>
+  <script src="/static/js/silence_cutter.js?v=0.2.3"></script>
+  <script src="/static/js/app.js?v=0.2.3"></script>
 </body>
 </html>
