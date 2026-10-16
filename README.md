@@ -65,11 +65,46 @@ Automatically detect dead air, pauses, and breath gaps in any video, removing th
 
 ---
 
+### 3. 🪄 Magic Mask & AI Rotoscoper *(New!)*
+Point-and-click AI rotoscoper inspired by DaVinci Resolve Studio's Magic Mask. Paint simple strokes over any subject—talking heads, people, products, or objects—and the AI tracks and segments it across every video frame.
+
+- **100% Offline SAM 2.1 Engine**: Class-agnostic visual segmentation powered by Meta's Segment Anything 2.1 Tiny (`sam2.1_t.pt`), accelerated locally by Apple Silicon MPS (`torch`).
+- **Interactive In-Browser Canvas**:
+  - Green brush for foreground (Keep Subject), Red brush for background (Exclude).
+  - Multi-size brushes (8px, 20px, 45px), unlimited Undo, and single-click clear.
+  - Live segmentation preview in **~350ms** with 3 selectable display styles:
+    - **DaVinci Magenta Glow**: Classic DaVinci Resolve Magic Mask stroke overlay.
+    - **Cutout Transparency**: Real-time RGBA cutout displayed over an alpha checkerboard.
+    - **B&W Matte**: High-contrast black & white luminance mask preview.
+- **Edge Refinements (Feather & Choke)**:
+  - **Feather (Softness)**: Gaussian sub-pixel edge blur to eliminate harsh pixel borders around hair and silhouettes.
+  - **Expand / Shrink (Choke)**: Morphological dilation/erosion to remove halo fringes or expand borders.
+- **Selective Range Clipping**:
+  - `[ Set In ]` and `[ Set Out ]` scrubber points or instant `[ 5s Clip ]` button for rapid testing and focused rotoscoping.
+- **⚡ Native Apple ProRes 4444 (.MOV) with 10-Bit Alpha**:
+  - **Zero intermediate PNG files**: Direct BGRA memory piping into high-fidelity QuickTime ProRes 4444 (`yuva444p10le / yuva444p12le`) with original synchronized audio.
+  - Directly importable into **DaVinci Resolve Free** onto Video Track 2 (`V2`) above Video Track 1 (`V1`) with native transparency—no keying, green screen, or Studio license required!
+- **Additional Export Formats**:
+  - **Black & White Alpha Matte (.MP4)**: Clean luminance mask for DaVinci Resolve Color page External Matte or Fusion inputs.
+  - **Chroma Green Screen (.MP4)**: Subject composited over pure `#00FF00` green for universal chroma keying.
+  - **Cinematic Background Blur (.MP4)**: Subject stays razor sharp while the background is smoothly blurred for portrait depth-of-field.
+- **Automatic Downloads**:
+  - Rendered files save automatically directly to your macOS `~/Downloads/` directory.
+
+#### 💡 How to Use ProRes 4444 Alpha in DaVinci Resolve Free:
+1. In DaVinci Resolve, drag the exported `*_magic_mask_prores_alpha.mov` into your **Media Pool**.
+2. Place your background video, graphics, b-roll, or animated text on **Video Track 1 (V1)**.
+3. Drag the ProRes 4444 clip onto **Video Track 2 (V2)** directly above it.
+4. Your subject appears with 100% native transparency—no green screen or Studio license needed!
+
+---
+
 ### 🔮 Roadmap & Upcoming Tools
 
 - [x] **Auto Subtitles for DaVinci Resolve Free** (Waveform-aligned Whisper AI speech-to-text)
 - [x] **Silence Cutter & Jump Cuts** (100% Lossless DaVinci FCPXML/EDL, Single/Multipart MP4, Synced SRT)
-- [ ] **AI Video Background Remover**: Automated video rotoscoping without a green screen, exporting transparent ProRes 4444 or alpha matte masks for DaVinci.
+- [x] **Magic Mask & AI Rotoscoper** (Apple ProRes 4444 10-bit Alpha, B&W Matte, Green Screen, Blur)
+- [ ] **AI Video Eye Contact Fix**: Local gaze redirection for talking head videos.
 
 ---
 

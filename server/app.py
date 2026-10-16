@@ -7,6 +7,8 @@ import time
 import shutil
 import tempfile
 import urllib.parse
+import uuid
+from threading import Thread
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
@@ -16,7 +18,7 @@ from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
-from server.davinci import format_davinci_srt, format_webvtt, DAVINCI_IMPORT_GUIDE
+from server.davinci import format_davinci_srt, format_webvtt, DAVINCI_IMPORT_GUIDE, DAVINCI_MAGIC_MASK_GUIDE
 from server.subtitles import transcribe_media
 from server.silence_cutter import (
     detect_silence_and_speech,
@@ -28,12 +30,19 @@ from server.silence_cutter import (
     remap_subtitles_to_cut_timeline,
     get_media_properties,
 )
+from server.magic_mask import (
+    extract_frame_at_timestamp,
+    segment_frame_preview,
+    rotoscope_and_render_video,
+    get_video_info,
+)
 
 app = FastAPI(
     title="Video Tuxedo",
     description="Video editing productivity tools suite",
-    version="0.2.0"
+    version="0.3.0"
 )
+
 
 # CORS
 app.add_middleware(
@@ -110,17 +119,47 @@ class SilenceSyncSubtitlesRequest(BaseModel):
     filename: Optional[str] = None
 
 
+class MagicMaskExtractFrameRequest(BaseModel):
+    media_path: str
+    timestamp_s: Optional[float] = 0.0
+
+
+class MagicMaskPreviewRequest(BaseModel):
+    media_path: str
+    timestamp_s: float
+    points: List[List[float]]
+    labels: List[int]
+    feather: Optional[int] = 3
+    expand: Optional[int] = 0
+
+
+class MagicMaskTrackRenderRequest(BaseModel):
+    media_path: str
+    points: List[List[float]]
+    labels: List[int]
+    export_mode: Optional[str] = "prores_alpha"
+    feather: Optional[int] = 3
+    expand: Optional[int] = 0
+    start_time: Optional[float] = 0.0
+    end_time: Optional[float] = None
+    filename: Optional[str] = None
+
+
+# In-memory tracking tasks
+_MAGIC_MASK_TASKS: Dict[str, Dict[str, Any]] = {}
+
+
 @app.get("/api/health")
 def health_check():
     return {
         "status": "healthy",
         "app": "Video Tuxedo",
-        "version": "0.2.0",
+        "version": "0.3.0",
         "features": {
             "subtitles_davinci": True,
             "waveform_alignment": True,
             "silence_cutter": True,
-            "background_remover": "upcoming"
+            "magic_mask_rotoscoper": True
         }
     }
 
@@ -150,16 +189,17 @@ def get_tools_list():
             "category": "Timeline & Trimming"
         },
         {
-            "id": "bg-remover",
-            "name": "AI Video Background Remover",
-            "badge": "Upcoming",
-            "badgeType": "neutral",
-            "description": "Smart rotoscoping and background separation to export transparent ProRes 4444 or alpha matte masks.",
+            "id": "magic-mask",
+            "name": "Magic Mask & Rotoscoping Studio",
+            "badge": "Ready",
+            "badgeType": "success",
+            "description": "Interactive AI rotoscoping with SAM 2.1 on Apple Silicon. Stroke foreground/background to isolate subjects and export Apple ProRes 4444 with native 10-bit Alpha channel.",
             "icon": "wand",
-            "active": False,
+            "active": True,
             "category": "VFX & Compositing"
         }
     ]
+
 
 
 @app.get("/api/davinci/guide")
@@ -564,7 +604,183 @@ def sync_subtitles_endpoint(req: SilenceSyncSubtitlesRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
+# ==========================================
+# MAGIC MASK & ROTOSCOPING STUDIO ENDPOINTS
+# ==========================================
+
+@app.get("/api/magic-mask/guide")
+def get_magic_mask_guide():
+    return DAVINCI_MAGIC_MASK_GUIDE
+
+
+@app.post("/api/magic-mask/upload")
+def upload_magic_mask_media(file: UploadFile = File(...)):
+    """Uploads a video to temp_media specifically for Magic Mask rotoscoping."""
+    safe_filename = Path(file.filename or "media_input.mp4").name
+    temp_target = UPLOAD_DIR / f"{int(time.time())}_{safe_filename}"
+    try:
+        with open(temp_target, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+        info = get_video_info(str(temp_target))
+        return {
+            "status": "success",
+            "media_path": str(temp_target),
+            "media_url": f"/api/media/{temp_target.name}",
+            "filename": safe_filename,
+            **info
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/magic-mask/info")
+def get_media_info_endpoint(req: MagicMaskExtractFrameRequest):
+    """Returns video dimensions, framerate, and duration."""
+    path = os.path.expanduser(req.media_path.strip())
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail=f"File not found: {path}")
+    try:
+        info = get_video_info(path)
+        return {
+            "status": "success",
+            "media_path": path,
+            "filename": Path(path).name,
+            **info
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/magic-mask/extract-frame")
+def extract_frame_endpoint(req: MagicMaskExtractFrameRequest):
+    """Extracts a video frame at timestamp in seconds."""
+    path = os.path.expanduser(req.media_path.strip())
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail=f"File not found: {path}")
+    try:
+        res = extract_frame_at_timestamp(path, req.timestamp_s or 0.0)
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/magic-mask/segment-preview")
+def segment_preview_endpoint(req: MagicMaskPreviewRequest):
+    """Runs instant SAM 2.1 inference on user stroke points."""
+    path = os.path.expanduser(req.media_path.strip())
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail=f"File not found: {path}")
+    try:
+        res = segment_frame_preview(
+            media_path=path,
+            timestamp_s=req.timestamp_s,
+            points=req.points,
+            labels=req.labels,
+            feather=req.feather or 3,
+            expand=req.expand or 0,
+        )
+        return res
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@app.post("/api/magic-mask/track-and-render")
+def track_and_render_endpoint(req: MagicMaskTrackRenderRequest):
+    """Spawns background rotoscoping and encoding task."""
+    path = os.path.expanduser(req.media_path.strip())
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail=f"File not found: {path}")
+
+    task_id = str(uuid.uuid4())[:8]
+    _MAGIC_MASK_TASKS[task_id] = {
+        "task_id": task_id,
+        "status": "starting",
+        "percent": 0.0,
+        "frame": 0,
+        "total_frames": 0,
+        "fps": 0.0,
+        "eta_s": 0.0,
+        "elapsed_s": 0.0,
+        "result": None,
+        "error": None,
+    }
+
+    def _worker():
+        try:
+            def _on_prog(p):
+                _MAGIC_MASK_TASKS[task_id].update({
+                    "status": "tracking",
+                    "percent": p.get("percent", 0.0),
+                    "frame": p.get("frame", 0),
+                    "total_frames": p.get("total_frames", 0),
+                    "fps": p.get("fps", 0.0),
+                    "eta_s": p.get("eta_s", 0.0),
+                    "elapsed_s": p.get("elapsed_s", 0.0),
+                })
+
+            result = rotoscope_and_render_video(
+                media_path=path,
+                points=req.points,
+                labels=req.labels,
+                export_mode=req.export_mode or "prores_alpha",
+                feather=req.feather or 3,
+                expand=req.expand or 0,
+                start_time=req.start_time or 0.0,
+                end_time=req.end_time,
+                output_filename=req.filename,
+                progress_callback=_on_prog,
+                cancel_check=lambda: _MAGIC_MASK_TASKS.get(task_id, {}).get("cancelled", False),
+            )
+            _MAGIC_MASK_TASKS[task_id].update({
+                "status": "completed",
+                "percent": 100.0,
+                "result": result,
+            })
+        except InterruptedError:
+            _MAGIC_MASK_TASKS[task_id].update({
+                "status": "cancelled",
+                "error": "Tracking cancelled by user",
+            })
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            _MAGIC_MASK_TASKS[task_id].update({
+                "status": "error",
+                "error": str(e),
+            })
+
+    t = Thread(target=_worker, daemon=True)
+    t.start()
+
+    return {
+        "status": "accepted",
+        "task_id": task_id,
+        "export_mode": req.export_mode or "prores_alpha"
+    }
+
+
+@app.get("/api/magic-mask/progress/{task_id}")
+def get_task_progress(task_id: str):
+    """Returns current progress of video tracking task."""
+    task = _MAGIC_MASK_TASKS.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+
+@app.post("/api/magic-mask/cancel/{task_id}")
+def cancel_task_endpoint(task_id: str):
+    """Cancels an in-progress video tracking task."""
+    task = _MAGIC_MASK_TASKS.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    task["cancelled"] = True
+    return {"status": "cancelling", "task_id": task_id}
+
+
+
 @app.get("/")
 def serve_index():
     index_file = STATIC_DIR / "index.html"
     return FileResponse(str(index_file))
+

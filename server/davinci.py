@@ -129,3 +129,31 @@ DAVINCI_IMPORT_GUIDE = {
         }
     ]
 }
+
+
+DAVINCI_MAGIC_MASK_GUIDE = {
+    "title": "Using Transparent ProRes 4444 in DaVinci Resolve Free",
+    "steps": [
+        {
+            "step": 1,
+            "title": "Drag ProRes 4444 (.mov) into Media Pool",
+            "description": "Locate the exported file in your Downloads folder and drag it directly into the Media Pool in DaVinci Resolve Free."
+        },
+        {
+            "step": 2,
+            "title": "Place Background on Video Track 1 (V1)",
+            "description": "Drag your background video, still image, solid color, or motion graphics onto Video Track 1 (V1)."
+        },
+        {
+            "step": 3,
+            "title": "Place ProRes 4444 on Video Track 2 (V2)",
+            "description": "Drag the exported ProRes 4444 clip onto Video Track 2 (V2) directly above V1. The background is 100% transparent instantly—no green screen keying or composite mode tweaks required!"
+        },
+        {
+            "step": 4,
+            "title": "Add Effects & Text Layers Between Tracks",
+            "description": "You can now place text titles, logos, or particle effects on an intermediate track (V1.5 / V2) to have them appear directly behind your person or product!"
+        }
+    ]
+}
+

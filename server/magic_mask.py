@@ -1,0 +1,463 @@
+"""
+Video Tuxedo - Magic Mask & Rotoscoping Engine (Tool 3)
+Powered by Segment Anything 2.1 (SAM 2.1) on Apple Silicon MPS.
+Exports Apple ProRes 4444 with native 10-bit Alpha channel (.mov)
+for seamless drag-and-drop compositing in DaVinci Resolve Free.
+"""
+
+import os
+import sys
+import time
+import math
+import base64
+import subprocess
+from pathlib import Path
+from typing import Optional, List, Dict, Any, Callable
+
+import cv2
+import numpy as np
+import torch
+import imageio_ffmpeg
+from ultralytics import SAM
+from ultralytics.models.sam import SAM2VideoPredictor
+
+
+_MODEL_CACHE: Dict[str, Any] = {}
+DOWNLOADS_DIR = Path.home() / "Downloads"
+BASE_DIR = Path(__file__).resolve().parent.parent
+MODEL_PATH = BASE_DIR / "sam2.1_t.pt"
+
+
+def get_torch_device() -> str:
+    """Returns 'mps' on Apple Silicon if available, otherwise 'cpu'."""
+    if torch.backends.mps.is_available():
+        return "mps"
+    if torch.cuda.is_available():
+        return "cuda"
+    return "cpu"
+
+
+def get_sam_model():
+    """Loads and caches SAM 2.1 Tiny model instance."""
+    global _MODEL_CACHE
+    device = get_torch_device()
+    cache_key = f"sam_{device}"
+
+    if cache_key not in _MODEL_CACHE:
+        if not MODEL_PATH.exists():
+            raise FileNotFoundError(f"SAM 2.1 model checkpoint not found at {MODEL_PATH}")
+        print(f"🧠 Loading SAM 2.1 on {device.upper()} ({MODEL_PATH.name})...")
+        model = SAM(str(MODEL_PATH))
+        _MODEL_CACHE[cache_key] = model
+        print("✅ SAM 2.1 model ready in memory.")
+
+    return _MODEL_CACHE[cache_key]
+
+
+def get_video_info(media_path: str) -> Dict[str, Any]:
+    """Inspects video resolution, framerate, duration and frame count."""
+    cap = cv2.VideoCapture(media_path)
+    if not cap.isOpened():
+        raise ValueError(f"Unable to open media file: {media_path}")
+
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
+    height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
+    duration = total_frames / fps if fps > 0 else 0.0
+
+    cap.release()
+    return {
+        "width": width,
+        "height": height,
+        "fps": round(fps, 3),
+        "total_frames": total_frames,
+        "duration": round(duration, 3),
+    }
+
+
+def extract_frame_at_timestamp(media_path: str, timestamp_s: float = 0.0) -> Dict[str, Any]:
+    """
+    Extracts a single high-resolution video frame at the given timestamp in seconds.
+    Returns RGB image and Base64-encoded JPEG for immediate client rendering.
+    """
+    if not os.path.exists(media_path):
+        raise FileNotFoundError(f"Media file not found: {media_path}")
+
+    cap = cv2.VideoCapture(media_path)
+    if not cap.isOpened():
+        raise ValueError(f"Unable to open media file: {media_path}")
+
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    duration = total_frames / fps if fps > 0 else 0.0
+
+    target_frame = max(0, min(int(round(timestamp_s * fps)), total_frames - 1))
+    cap.set(cv2.CAP_PROP_POS_FRAMES, target_frame)
+
+    ret, frame_bgr = cap.read()
+    actual_msec = cap.get(cv2.CAP_PROP_POS_MSEC)
+    cap.release()
+
+    if not ret or frame_bgr is None:
+        raise RuntimeError(f"Could not read frame at timestamp {timestamp_s}s (frame {target_frame})")
+
+    height, width = frame_bgr.shape[:2]
+
+    # Encode to JPEG for fast browser transmission
+    encode_param = [int(cv2.IMWRITE_JPEG_QUALITY), 90]
+    ret_enc, jpeg_bytes = cv2.imencode(".jpg", frame_bgr, encode_param)
+    if not ret_enc:
+        raise RuntimeError("Failed to encode frame to JPEG")
+
+    b64_str = base64.b64encode(jpeg_bytes).decode("utf-8")
+    data_uri = f"data:image/jpeg;base64,{b64_str}"
+
+    return {
+        "frame_index": target_frame,
+        "timestamp_s": round(actual_msec / 1000.0 if actual_msec > 0 else target_frame / fps, 3),
+        "width": width,
+        "height": height,
+        "fps": round(fps, 3),
+        "duration": round(duration, 3),
+        "image_data_uri": data_uri,
+    }
+
+
+def apply_mask_refinements(mask_uint8: np.ndarray, feather: int = 3, expand: int = 0) -> np.ndarray:
+    """
+    Applies edge refinement controls:
+    - expand: positive values expand mask (dilation), negative shrink mask (erosion).
+    - feather: gaussian blur radius to soften hard edges (hair, silhouettes).
+    """
+    processed = mask_uint8.copy()
+
+    # Expand or shrink (choke)
+    if expand != 0:
+        kernel_size = 2 * abs(expand) + 1
+        kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (kernel_size, kernel_size))
+        if expand > 0:
+            processed = cv2.dilate(processed, kernel, iterations=1)
+        else:
+            processed = cv2.erode(processed, kernel, iterations=1)
+
+    # Feathering (soft edge blend)
+    if feather > 0:
+        k = 2 * feather + 1
+        processed = cv2.GaussianBlur(processed, (k, k), 0)
+
+    return processed
+
+
+def segment_frame_preview(
+    media_path: str,
+    timestamp_s: float,
+    points: List[List[float]],
+    labels: List[int],
+    feather: int = 3,
+    expand: int = 0,
+) -> Dict[str, Any]:
+    """
+    Executes single-frame segmentation using SAM 2.1 on the designated video frame.
+    Supports Keep (+1) and Exclude (0) strokes.
+    Returns:
+    - mask_png_uri: 8-bit alpha mask PNG data URI
+    - overlay_png_uri: DaVinci Resolve style Magenta glow overlay
+    - cutout_png_uri: Transparent RGBA cutout of the subject
+    """
+    if not points or not labels or len(points) != len(labels):
+        raise ValueError("Points and labels must be non-empty and have matching lengths")
+
+    cap = cv2.VideoCapture(media_path)
+    if not cap.isOpened():
+        raise ValueError(f"Unable to open media: {media_path}")
+
+    fps = cap.get(cv2.CAP_PROP_FPS) or 30.0
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    target_frame = max(0, min(int(round(timestamp_s * fps)), total_frames - 1))
+    cap.set(cv2.CAP_PROP_POS_FRAMES, target_frame)
+    ret, frame_bgr = cap.read()
+    cap.release()
+
+    if not ret or frame_bgr is None:
+        raise RuntimeError(f"Could not read frame at {timestamp_s}s")
+
+    h, w = frame_bgr.shape[:2]
+    device = get_torch_device()
+    model = get_sam_model()
+
+    # Format points for 1 object: shape (1, num_points, 2) and labels (1, num_points)
+    formatted_points = [points]
+    formatted_labels = [labels]
+
+    t0 = time.time()
+    results = model(frame_bgr, points=formatted_points, labels=formatted_labels, device=device)
+    inference_time_ms = int((time.time() - t0) * 1000)
+
+    if not results or results[0].masks is None or len(results[0].masks.data) == 0:
+        raise RuntimeError("SAM did not produce a segmentation mask for the given points.")
+
+    raw_mask = (results[0].masks.data[0].cpu().numpy().astype(np.uint8)) * 255
+    refined_mask = apply_mask_refinements(raw_mask, feather=feather, expand=expand)
+
+    # 1. 8-Bit Grayscale Alpha Mask PNG
+    _, mask_png_bytes = cv2.imencode(".png", refined_mask)
+    mask_b64 = base64.b64encode(mask_png_bytes).decode("utf-8")
+
+    # 2. DaVinci Magic Mask Magenta Overlay (#E91E63 @ 45% opacity)
+    # Magenta in BGR is (99, 30, 233)
+    overlay = frame_bgr.copy()
+    magenta_bgr = np.array([99, 30, 233], dtype=np.uint8)
+    alpha_norm = (refined_mask.astype(np.float32) / 255.0)[:, :, np.newaxis]
+    tinted = (overlay.astype(np.float32) * 0.55 + magenta_bgr * 0.45).astype(np.uint8)
+    blended = (overlay.astype(np.float32) * (1.0 - alpha_norm) + tinted.astype(np.float32) * alpha_norm).astype(np.uint8)
+    _, overlay_bytes = cv2.imencode(".jpg", blended, [int(cv2.IMWRITE_JPEG_QUALITY), 88])
+    overlay_b64 = base64.b64encode(overlay_bytes).decode("utf-8")
+
+    # 3. Transparent RGBA Cutout PNG
+    b, g, r = cv2.split(frame_bgr)
+    rgba = cv2.merge([b, g, r, refined_mask])
+    _, cutout_bytes = cv2.imencode(".png", rgba)
+    cutout_b64 = base64.b64encode(cutout_bytes).decode("utf-8")
+
+    coverage_pct = round(float(np.mean(refined_mask > 128) * 100), 2)
+
+    return {
+        "status": "success",
+        "inference_time_ms": inference_time_ms,
+        "coverage_pct": coverage_pct,
+        "mask_data_uri": f"data:image/png;base64,{mask_b64}",
+        "overlay_data_uri": f"data:image/jpeg;base64,{overlay_b64}",
+        "cutout_data_uri": f"data:image/png;base64,{cutout_b64}",
+    }
+
+
+def rotoscope_and_render_video(
+    media_path: str,
+    points: List[List[float]],
+    labels: List[int],
+    export_mode: str = "prores_alpha",  # "prores_alpha", "matte", "green_screen", "blur"
+    feather: int = 3,
+    expand: int = 0,
+    start_time: float = 0.0,
+    end_time: Optional[float] = None,
+    output_filename: Optional[str] = None,
+    progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
+    cancel_check: Optional[Callable[[], bool]] = None,
+) -> Dict[str, Any]:
+    """
+    Tracks the prompt mask across the video frames using SAM 2.1 video memory propagation,
+    and encodes the output directly to the chosen format:
+    - prores_alpha: Apple ProRes 4444 (.mov) with 10-bit transparent Alpha channel and original audio.
+    - matte: High-contrast black & white matte video (.mp4) for DaVinci Resolve Matte inputs.
+    - green_screen: Composited against pure Chroma Green (#00FF00) with original audio.
+    - blur: Composited against a cinematic Gaussian blurred background with original audio.
+    """
+    if not os.path.exists(media_path):
+        raise FileNotFoundError(f"Media file not found: {media_path}")
+
+    info = get_video_info(media_path)
+    fps = info["fps"]
+    width = info["width"]
+    height = info["height"]
+    duration = info["duration"]
+    total_video_frames = info["total_frames"]
+
+    # In/Out range clipping if requested
+    actual_start = max(0.0, float(start_time))
+    actual_end = min(duration, float(end_time)) if end_time is not None and end_time > actual_start else duration
+    clip_duration = actual_end - actual_start
+    expected_frames = max(1, int(round(clip_duration * fps)))
+
+    stem = Path(media_path).stem
+    ext = ".mov" if export_mode == "prores_alpha" else ".mp4"
+    if not output_filename:
+        out_name = f"{stem}_magic_mask_{export_mode}{ext}"
+    else:
+        out_name = output_filename if output_filename.endswith(ext) else f"{output_filename}{ext}"
+
+    output_path = DOWNLOADS_DIR / out_name
+    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+    device = get_torch_device()
+
+    print(f"🎬 Starting Magic Mask Tracking & Render for {stem}...")
+    print(f"   Mode: {export_mode} | Range: {actual_start:.2f}s -> {actual_end:.2f}s ({expected_frames} frames)")
+    print(f"   Device: {device.upper()} | Output: {output_path}")
+
+    # Prepare video source for SAM2VideoPredictor
+    # If a sub-range is specified, create a fast slice
+    temp_clip_path = None
+    if actual_start > 0.05 or actual_end < (duration - 0.05):
+        temp_clip_path = str(Path(media_path).parent / f"temp_slice_{int(time.time())}_{stem}.mp4")
+        slice_cmd = [
+            ffmpeg_exe, "-y",
+            "-noautorotate",
+            "-ss", str(actual_start),
+            "-i", media_path,
+            "-t", str(clip_duration),
+            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "18",
+            "-c:a", "copy",
+            temp_clip_path,
+        ]
+        subprocess.run(slice_cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        source_video = temp_clip_path
+        sliced_info = get_video_info(source_video)
+        fps = sliced_info["fps"]
+        width = sliced_info["width"]
+        height = sliced_info["height"]
+        expected_frames = max(1, sliced_info["total_frames"])
+    else:
+        source_video = media_path
+
+    # Build FFmpeg command based on export_mode
+    if export_mode == "prores_alpha":
+        # BGRA rawvideo stdin -> ProRes 4444 (profile 4) with 10-bit alpha
+        ffmpeg_cmd = [
+            ffmpeg_exe, "-y",
+            "-f", "rawvideo", "-pix_fmt", "bgra", "-s", f"{width}x{height}", "-r", str(fps), "-i", "-",
+            "-i", source_video,
+            "-map", "0:v", "-map", "1:a?",
+            "-c:v", "prores_ks", "-profile:v", "4", "-pix_fmt", "yuva444p10le",
+            "-c:a", "copy",
+            str(output_path),
+        ]
+    elif export_mode == "matte":
+        # Grayscale rawvideo stdin -> H.264 B&W Matte
+        ffmpeg_cmd = [
+            ffmpeg_exe, "-y",
+            "-f", "rawvideo", "-pix_fmt", "gray", "-s", f"{width}x{height}", "-r", str(fps), "-i", "-",
+            "-map", "0:v",
+            "-c:v", "libx264", "-preset", "medium", "-crf", "16", "-pix_fmt", "yuv420p",
+            str(output_path),
+        ]
+    elif export_mode == "green_screen":
+        # BGR rawvideo stdin -> H.264 Chroma Green
+        ffmpeg_cmd = [
+            ffmpeg_exe, "-y",
+            "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{width}x{height}", "-r", str(fps), "-i", "-",
+            "-i", source_video,
+            "-map", "0:v", "-map", "1:a?",
+            "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-pix_fmt", "yuv420p",
+            "-c:a", "copy",
+            str(output_path),
+        ]
+    elif export_mode == "blur":
+        # BGR rawvideo stdin -> H.264 Cinematic Blur
+        ffmpeg_cmd = [
+            ffmpeg_exe, "-y",
+            "-f", "rawvideo", "-pix_fmt", "bgr24", "-s", f"{width}x{height}", "-r", str(fps), "-i", "-",
+            "-i", source_video,
+            "-map", "0:v", "-map", "1:a?",
+            "-c:v", "libx264", "-preset", "medium", "-crf", "17", "-pix_fmt", "yuv420p",
+            "-c:a", "copy",
+            str(output_path),
+        ]
+    else:
+        raise ValueError(f"Unknown export mode: {export_mode}")
+
+    # Launch FFmpeg process with pipe
+    proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
+
+    # Initialize SAM 2 Video Predictor
+    predictor = SAM2VideoPredictor(overrides=dict(model=str(MODEL_PATH), imgsz=1024, device=device))
+    formatted_points = [points]
+    formatted_labels = [labels]
+
+    t_start = time.time()
+    frame_idx = 0
+
+    try:
+        results_gen = predictor(source=source_video, points=formatted_points, labels=formatted_labels, stream=True)
+
+        for r in results_gen:
+            if cancel_check and cancel_check():
+                proc.kill()
+                raise InterruptedError("Tracking cancelled by user.")
+
+            frame_idx += 1
+            orig_bgr = r.orig_img
+            if orig_bgr is None:
+                continue
+
+
+            # Extract mask from results
+            if r.masks is not None and len(r.masks.data) > 0:
+                raw_mask = (r.masks.data[0].cpu().numpy().astype(np.uint8)) * 255
+            else:
+                raw_mask = np.zeros((height, width), dtype=np.uint8)
+
+            # Apply user refinements (feathering + choke/expansion)
+            mask_refined = apply_mask_refinements(raw_mask, feather=feather, expand=expand)
+
+            # Write frame to FFmpeg based on export mode
+            if export_mode == "prores_alpha":
+                bgra_frame = cv2.merge([orig_bgr[:, :, 0], orig_bgr[:, :, 1], orig_bgr[:, :, 2], mask_refined])
+                proc.stdin.write(bgra_frame.tobytes())
+            elif export_mode == "matte":
+                proc.stdin.write(mask_refined.tobytes())
+            elif export_mode == "green_screen":
+                # Composite over pure green (0, 255, 0)
+                alpha_f = (mask_refined.astype(np.float32) / 255.0)[:, :, np.newaxis]
+                green_bg = np.array([0, 255, 0], dtype=np.uint8)
+                comp = (orig_bgr.astype(np.float32) * alpha_f + green_bg * (1.0 - alpha_f)).astype(np.uint8)
+                proc.stdin.write(comp.tobytes())
+            elif export_mode == "blur":
+                # Composite over blurred background
+                blurred_bg = cv2.GaussianBlur(orig_bgr, (45, 45), 0)
+                alpha_f = (mask_refined.astype(np.float32) / 255.0)[:, :, np.newaxis]
+                comp = (orig_bgr.astype(np.float32) * alpha_f + blurred_bg.astype(np.float32) * (1.0 - alpha_f)).astype(np.uint8)
+                proc.stdin.write(comp.tobytes())
+
+            # Progress callback update
+            elapsed = time.time() - t_start
+            cur_fps = round(frame_idx / elapsed, 2) if elapsed > 0 else 0.0
+            percent = min(99.0, round((frame_idx / expected_frames) * 100, 1))
+            remaining_frames = max(0, expected_frames - frame_idx)
+            eta_s = round(remaining_frames / cur_fps, 1) if cur_fps > 0 else 0.0
+
+            if progress_callback and (frame_idx % 2 == 0 or frame_idx == expected_frames):
+                progress_callback({
+                    "frame": frame_idx,
+                    "total_frames": expected_frames,
+                    "percent": percent,
+                    "fps": cur_fps,
+                    "eta_s": eta_s,
+                    "elapsed_s": round(elapsed, 1),
+                })
+
+        # Close pipe and wait for FFmpeg to finalize encoding
+        stdout, stderr = proc.communicate()
+        if proc.returncode != 0:
+            err_msg = stderr.decode()[-600:] if stderr else "Unknown error"
+            raise RuntimeError(f"FFmpeg encoding failed with code {proc.returncode}: {err_msg}")
+
+    finally:
+        if temp_clip_path and os.path.exists(temp_clip_path):
+            try:
+                os.remove(temp_clip_path)
+            except OSError:
+                pass
+
+    total_time = round(time.time() - t_start, 2)
+    file_size_mb = round(os.path.getsize(output_path) / (1024 * 1024), 2) if output_path.exists() else 0.0
+
+    print(f"🎉 Rotoscope complete in {total_time}s ({frame_idx} frames)!")
+    print(f"   Saved to: {output_path} ({file_size_mb} MB)")
+
+    davinci_guide = (
+        "1. Open DaVinci Resolve Free and drag the exported ProRes 4444 file into your Media Pool.\n"
+        "2. Place your background video, graphics, or text on Video Track 1 (V1).\n"
+        "3. Drag this transparent ProRes 4444 clip onto Video Track 2 (V2) directly above it.\n"
+        "4. Your subject appears with transparent background—no keying, green screen, or Studio license needed!"
+    )
+
+    return {
+        "status": "success",
+        "output_path": str(output_path),
+        "filename": output_path.name,
+        "file_size_mb": file_size_mb,
+        "frames_rendered": frame_idx,
+        "render_time_s": total_time,
+        "export_mode": export_mode,
+        "davinci_guide": davinci_guide,
+    }

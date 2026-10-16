@@ -144,8 +144,8 @@
           </button>
         </article>
 
-        <!-- Tool 3: AI Background Remover (ROADMAP) -->
-        <article class="tool-card upcoming-feature" id="toolCardBgRemover">
+        <!-- Tool 3: Magic Mask & AI Rotoscoper (ACTIVE) -->
+        <article class="tool-card active-feature" id="toolCardMagicMask">
           <div class="tool-header">
             <div class="tool-icon-wrapper">
               <!-- Magic Wand / Matting Icon -->
@@ -156,26 +156,32 @@
                 <path d="m18 17 1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2z"></path>
               </svg>
             </div>
-            <span class="badge-status badge-upcoming">Roadmap</span>
+            <span class="badge-status badge-ready">● Ready to Use</span>
           </div>
 
           <div class="tool-body">
             <span class="tool-category">VFX & Compositing</span>
-            <h2 class="tool-name">AI Video Background Remover</h2>
+            <h2 class="tool-name">Magic Mask & AI Rotoscoper</h2>
             <p class="tool-desc">
-              Automatic rotoscoping and background removal without a green screen. Outputs transparent video or high-contrast alpha matte masks for DaVinci Resolve Free.
+              Draw green/red strokes to isolate people or products with SAM 2.1. Tracks subjects across your video and exports Apple ProRes 4444 with native 10-bit Alpha for DaVinci Resolve Free.
             </p>
             <div class="tool-feature-pills">
-              <span class="feature-pill">🧠 PyTorch Neural Matting</span>
+              <span class="feature-pill">🪄 SAM 2.1 Rotoscoper</span>
               <span class="feature-pill">🍏 Apple Silicon MPS</span>
-              <span class="feature-pill">🎭 Alpha Matte Export</span>
+              <span class="feature-pill">🎬 ProRes 4444 with Alpha</span>
+              <span class="feature-pill">🎭 B&W Matte & Green Screen</span>
             </div>
           </div>
 
-          <button class="tool-action-btn btn-disabled" disabled>
-            In Active Development
+          <button class="tool-action-btn btn-primary" id="launchMagicMaskBtn">
+            Open Magic Mask Studio
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
           </button>
         </article>
+
 
       </div>
     </section>
@@ -722,7 +728,432 @@
 
     </section>
 
+
+    <!-- VIEW 4: MAGIC MASK & ROTOSCOPING STUDIO -->
+    <section class="view-container" id="magicMaskToolView">
+
+      <div class="tool-view-header">
+        <div class="tool-view-title-group">
+          <h1>
+            Magic Mask & Rotoscoping Studio
+            <span class="davinci-badge-pill">DaVinci Free ProRes 4444 Ready</span>
+          </h1>
+          <p>
+            Stroke what to keep (green) or exclude (red). SAM 2.1 segments and tracks your person or product across the video, exporting native 10-bit transparent Apple ProRes 4444 (.mov) directly to your Downloads.
+          </p>
+        </div>
+
+        <button class="btn-secondary" id="backFromMagicMaskToLauncherBtn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <polyline points="15 18 9 12 15 6"></polyline>
+          </svg>
+          Back to Tools Grid
+        </button>
+      </div>
+
+      <!-- Input Selection & Settings Panel -->
+      <div class="glass-panel" id="mmInputControlPanel" style="margin-bottom: 2rem;">
+        
+        <!-- Tabs for input mode -->
+        <div class="input-tabs-nav">
+          <button class="tab-btn active" id="tabMmUploadBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+              <polyline points="17 8 12 3 7 8"></polyline>
+              <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            Choose File / Drag & Drop
+          </button>
+          <button class="tab-btn" id="tabMmPathBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+            Select from Directory Path
+          </button>
+          <button class="tab-btn" id="tabMmDemoBtn">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polygon points="5 3 19 12 5 21 5 3"></polygon>
+            </svg>
+            Test Talking Head Video
+          </button>
+        </div>
+
+        <!-- Mode A: File Drag & Drop -->
+        <div id="mmUploadSection">
+          <div class="drop-zone" id="mmDropZone">
+            <div class="drop-zone-icon">
+              <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+                <path d="m19 11-4-4"></path>
+                <path d="m5 21 14-14"></path>
+                <path d="m3 3 1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2z"></path>
+                <path d="m18 17 1 2 2 1-2 1-1 2-1-2-2-1 2-1 1-2z"></path>
+              </svg>
+            </div>
+            <p class="drop-zone-text">Drag and drop your video file here</p>
+            <p class="drop-zone-subtext">Supports MP4, MOV, MKV, WebM • 100% processed locally on Apple Silicon MPS</p>
+            <input type="file" id="mmFileInput" accept="video/*" style="display: none;">
+            <button class="btn-primary" id="mmBrowseBtn" type="button" style="margin-top: 1rem;">
+              Browse Video File
+            </button>
+          </div>
+        </div>
+
+        <!-- Mode B: Local Mac Absolute Path -->
+        <div id="mmPathSection" style="display: none; padding: 1.5rem 0 0.5rem 0;">
+          <div style="display: flex; gap: 0.75rem; align-items: flex-end;">
+            <div style="flex: 1;">
+              <label for="mmLocalPathInput" style="display: block; font-size: 0.85rem; font-weight: 600; margin-bottom: 0.5rem;">
+                Absolute Video File Path on Mac
+              </label>
+              <input type="text" id="mmLocalPathInput" class="input-text-field" placeholder="/Users/username/Movies/clip.mp4" style="width: 100%;">
+            </div>
+            <button class="btn-primary" id="mmLoadPathBtn">
+              Load Video
+            </button>
+          </div>
+          <p style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 0.5rem;">
+            Tip: You can drag a file directly from Finder into this text field to paste its path.
+          </p>
+        </div>
+
+        <!-- Mode C: Test Talking Head Video -->
+        <div id="mmDemoSection" style="display: none; padding: 1.5rem 0 0.5rem 0;">
+          <div style="background: var(--bg-surface-warm); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 1.25rem; display: flex; align-items: center; justify-content: space-between;">
+            <div>
+              <h4 style="font-size: 0.95rem; margin-bottom: 0.25rem;">Talking Head Sample Video</h4>
+              <p style="font-size: 0.82rem; color: var(--text-secondary);">
+                1280x720 • 29.98 FPS • Portrait speaker with background objects. Test SAM 2.1 rotoscoping and ProRes 4444 export immediately.
+              </p>
+            </div>
+            <button class="btn-primary" id="mmLoadSampleBtn">
+              Load Sample Video
+            </button>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- WORKSPACE CONTAINER (Shown after video loads) -->
+      <div id="mmWorkspace" style="display: none;">
+
+        <!-- Top Bar: Media Info & Scrubber -->
+        <div class="glass-panel" style="margin-bottom: 1.5rem; padding: 1.25rem;">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 1rem; margin-bottom: 1rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+              <span style="font-size: 1.2rem;">🎞️</span>
+              <div>
+                <span id="mmVideoName" style="font-weight: 700; font-size: 1rem;">video.mp4</span>
+                <span id="mmVideoMeta" style="font-size: 0.8rem; color: var(--text-secondary); margin-left: 0.75rem;">1920x1080 • 30 FPS • 00:00:00</span>
+              </div>
+            </div>
+
+            <!-- Timecode & Playhead Info -->
+            <div style="display: flex; align-items: center; gap: 1rem;">
+              <div class="timecode-display" id="mmTimecodeDisplay" style="font-family: var(--font-mono); font-size: 1.1rem; font-weight: 700; background: var(--bg-surface-warm); padding: 0.35rem 0.75rem; border-radius: var(--radius-xs); border: 1px solid var(--border-subtle);">
+                00:00:00:00
+              </div>
+              <div style="font-size: 0.8rem; color: var(--text-secondary); font-family: var(--font-mono);">
+                Frame <span id="mmFrameNum">0</span> / <span id="mmTotalFrames">0</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Video Scrubber Slider & Transport Controls -->
+          <div style="display: flex; align-items: center; gap: 0.75rem;">
+            <button class="btn-secondary" id="mmPlayBtn" style="padding: 0.4rem 0.75rem;" title="Play/Pause Video">
+              ▶
+            </button>
+            <button class="btn-secondary" id="mmPrevFrameBtn" style="padding: 0.4rem 0.6rem; font-size: 0.75rem;" title="Previous Frame (1 frame)">
+              ◀ 1f
+            </button>
+            <input type="range" id="mmScrubber" min="0" max="100" value="0" step="0.01" style="flex: 1; accent-color: var(--accent-coral); cursor: pointer;">
+            <button class="btn-secondary" id="mmNextFrameBtn" style="padding: 0.4rem 0.6rem; font-size: 0.75rem;" title="Next Frame (1 frame)">
+              1f ▶
+            </button>
+
+            <!-- In / Out Range Setting -->
+            <div style="display: flex; align-items: center; gap: 0.35rem; margin-left: 0.5rem; padding-left: 0.75rem; border-left: 1px solid var(--border-subtle);">
+              <button class="btn-secondary" id="mmSetInBtn" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;" title="Set In Point">
+                [ Set In
+              </button>
+              <button class="btn-secondary" id="mmSetOutBtn" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;" title="Set Out Point">
+                Set Out ]
+              </button>
+              <button class="btn-secondary" id="mmRange5sBtn" style="padding: 0.35rem 0.6rem; font-size: 0.75rem;" title="Set 5s Test Range">
+                5s Clip
+              </button>
+              <button class="btn-secondary" id="mmClearRangeBtn" style="padding: 0.35rem 0.5rem; font-size: 0.75rem; color: var(--text-muted);" title="Reset to Full Video">
+                ✕
+              </button>
+            </div>
+          </div>
+
+          <!-- Range Indicator Bar -->
+          <div style="display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-top: 0.35rem; font-family: var(--font-mono);">
+            <span>In: <strong id="mmInLabel" style="color: var(--text-primary);">00:00:00</strong></span>
+            <span id="mmRangeDurationLabel">Range: Full Video</span>
+            <span>Out: <strong id="mmOutLabel" style="color: var(--text-primary);">End</strong></span>
+          </div>
+        </div>
+
+        <!-- Two Column Studio Layout: Canvas on Left, Controls & Export on Right -->
+        <div style="display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 1.5rem; align-items: start;">
+
+          <!-- LEFT COLUMN: Interactive Drawing Viewport -->
+          <div class="glass-panel" style="padding: 1.25rem;">
+
+            <!-- Brush Toolbar -->
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-subtle);">
+              
+              <!-- Brush Type Selector -->
+              <div style="display: flex; gap: 0.5rem;">
+                <button class="btn-brush active" id="mmBrushKeepBtn" title="Stroke on subject to KEEP (Foreground)">
+                  <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #10b981; margin-right: 0.35rem;"></span>
+                  Keep Subject
+                </button>
+                <button class="btn-brush" id="mmBrushExcludeBtn" title="Stroke on background to EXCLUDE">
+                  <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #ef4444; margin-right: 0.35rem;"></span>
+                  Exclude Background
+                </button>
+              </div>
+
+              <!-- Brush Size Selector -->
+              <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--text-secondary);">
+                <span>Brush:</span>
+                <button class="btn-size" data-size="8" id="mmSizeSmallBtn">8px</button>
+                <button class="btn-size active" data-size="20" id="mmSizeMedBtn">20px</button>
+                <button class="btn-size" data-size="45" id="mmSizeLargeBtn">45px</button>
+              </div>
+
+              <!-- Stroke Actions -->
+              <div style="display: flex; gap: 0.4rem;">
+                <button class="btn-secondary" id="mmUndoBtn" style="padding: 0.35rem 0.65rem; font-size: 0.8rem;" title="Undo last stroke">
+                  ↩ Undo
+                </button>
+                <button class="btn-secondary" id="mmClearStrokesBtn" style="padding: 0.35rem 0.65rem; font-size: 0.8rem;" title="Clear all strokes">
+                  🗑️ Clear
+                </button>
+              </div>
+            </div>
+
+            <!-- Canvas Viewport Box -->
+            <div class="mm-canvas-container" id="mmCanvasContainer" style="position: relative; width: 100%; aspect-ratio: 16/9; background: #0c0c0b; border-radius: var(--radius-sm); overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: crosshair;">
+              
+              <!-- Hidden Video Element for seeking frames -->
+              <video id="mmVideo" preload="auto" playsinline style="display: none;"></video>
+              
+              <!-- Interactive Drawing Canvas -->
+              <canvas id="mmCanvas" style="max-width: 100%; max-height: 100%; display: block; object-fit: contain;"></canvas>
+
+              <!-- Loading / Segmenting Spinner Overlay -->
+              <div id="mmSegmentLoading" style="position: absolute; top: 1rem; right: 1rem; background: rgba(20, 20, 19, 0.85); backdrop-filter: blur(8px); padding: 0.4rem 0.75rem; border-radius: var(--radius-full); font-size: 0.78rem; color: var(--text-light); display: none; align-items: center; gap: 0.5rem; border: 1px solid var(--border-dark);">
+                <div class="spinner-small" style="width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--accent-coral); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                <span>Segmenting with SAM 2.1...</span>
+              </div>
+
+              <!-- First Time Hint Overlay -->
+              <div id="mmFirstTimeHint" style="position: absolute; pointer-events: none; text-align: center; background: rgba(20, 20, 19, 0.82); backdrop-filter: blur(6px); border: 1px solid var(--border-dark); border-radius: var(--radius-md); padding: 1.25rem 2rem; color: var(--text-light);">
+                <div style="font-size: 2rem; margin-bottom: 0.5rem;">🪄</div>
+                <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.25rem; color: #FAF9F5;">Draw a Stroke on Your Subject</h3>
+                <p style="font-size: 0.85rem; color: var(--text-light-muted); max-width: 320px;">
+                  Drag your mouse over the person or product you want to isolate. Green adds foreground; red excludes background.
+                </p>
+              </div>
+
+            </div>
+
+            <!-- Bottom Preview Mode Toolbar -->
+            <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem; margin-top: 1rem; padding-top: 0.75rem; border-top: 1px solid var(--border-subtle);">
+              <span style="font-size: 0.82rem; font-weight: 600; color: var(--text-secondary);">Mask Overlay Style:</span>
+              
+              <div style="display: flex; gap: 0.5rem;">
+                <button class="btn-preview-mode active" data-mode="magenta" id="mmModeMagentaBtn" title="DaVinci Magic Mask style magenta glow">
+                  🟣 DaVinci Magenta Glow
+                </button>
+                <button class="btn-preview-mode" data-mode="cutout" id="mmModeCutoutBtn" title="Isolated subject on transparent checkerboard">
+                  🏁 Cutout Transparency
+                </button>
+                <button class="btn-preview-mode" data-mode="matte" id="mmModeMatteBtn" title="Black and White binary matte">
+                  ⬛ B&W Matte
+                </button>
+              </div>
+            </div>
+
+          </div>
+
+
+          <!-- RIGHT COLUMN: Refinements, Export Card, Progress -->
+          <div style="display: flex; flex-direction: column; gap: 1.5rem;">
+
+            <!-- CARD 1: Mask Stats & Refinement Sliders -->
+            <div class="glass-panel" style="padding: 1.25rem;">
+              <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
+                <span>Edge Refinements</span>
+                <span id="mmStatsBadge" style="font-size: 0.72rem; font-family: var(--font-mono); font-weight: 500; background: var(--bg-surface-warm); padding: 0.2rem 0.5rem; border-radius: var(--radius-xs); color: var(--accent-coral);">
+                  0 points
+                </span>
+              </h3>
+
+              <!-- Feather Slider -->
+              <div style="margin-bottom: 1.25rem;">
+                <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 0.35rem;">
+                  <span style="font-weight: 600;">Feather (Softness)</span>
+                  <span id="mmFeatherVal" style="font-family: var(--font-mono); color: var(--accent-coral);">3px</span>
+                </div>
+                <input type="range" id="mmFeatherSlider" min="0" max="15" value="3" step="1" style="width: 100%; accent-color: var(--accent-coral);">
+                <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">
+                  Smooths silhouette and hair edges to eliminate harsh pixel borders.
+                </p>
+              </div>
+
+              <!-- Expand / Shrink (Choke) Slider -->
+              <div>
+                <div style="display: flex; justify-content: space-between; font-size: 0.82rem; margin-bottom: 0.35rem;">
+                  <span style="font-weight: 600;">Expand / Shrink (Choke)</span>
+                  <span id="mmExpandVal" style="font-family: var(--font-mono); color: var(--accent-coral);">0px</span>
+                </div>
+                <input type="range" id="mmExpandSlider" min="-10" max="10" value="0" step="1" style="width: 100%; accent-color: var(--accent-coral);">
+                <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">
+                  Negative values choke the mask inwards to remove halo fringes; positive values expand it.
+                </p>
+              </div>
+            </div>
+
+
+            <!-- CARD 2: Export Options -->
+            <div class="glass-panel" style="padding: 1.25rem;" id="mmExportCard">
+              <h3 style="font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem;">Export Target</h3>
+
+              <!-- Export Format Radio Buttons -->
+              <div class="export-format-options" style="display: flex; flex-direction: column; gap: 0.65rem; margin-bottom: 1.25rem;">
+                
+                <!-- Format A: ProRes 4444 (PRIMARY / RECOMMENDED) -->
+                <label class="format-card selected" id="fmtProResLabel" style="cursor: pointer;">
+                  <input type="radio" name="mmExportFormat" value="prores_alpha" checked style="accent-color: var(--accent-coral);">
+                  <div style="margin-left: 0.5rem; flex: 1;">
+                    <div style="display: flex; align-items: center; justify-content: space-between;">
+                      <span style="font-weight: 700; font-size: 0.9rem;">Apple ProRes 4444 (.mov)</span>
+                      <span class="badge-status badge-ready" style="font-size: 0.68rem; padding: 0.15rem 0.45rem;">★ Recommended</span>
+                    </div>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                      Native 10-bit Alpha transparency channel. Drag into DaVinci Resolve Free on Track V2—instantly transparent!
+                    </p>
+                  </div>
+                </label>
+
+                <!-- Format B: B&W Alpha Matte -->
+                <label class="format-card" id="fmtMatteLabel" style="cursor: pointer;">
+                  <input type="radio" name="mmExportFormat" value="matte" style="accent-color: var(--accent-coral);">
+                  <div style="margin-left: 0.5rem; flex: 1;">
+                    <span style="font-weight: 700; font-size: 0.9rem;">Black & White Matte (.mp4)</span>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                      High-contrast grayscale mask for DaVinci Resolve Color page External Matte or Fusion.
+                    </p>
+                  </div>
+                </label>
+
+                <!-- Format C: Green Screen -->
+                <label class="format-card" id="fmtGreenLabel" style="cursor: pointer;">
+                  <input type="radio" name="mmExportFormat" value="green_screen" style="accent-color: var(--accent-coral);">
+                  <div style="margin-left: 0.5rem; flex: 1;">
+                    <span style="font-weight: 700; font-size: 0.9rem;">Chroma Green Screen (.mp4)</span>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                      Subject composited against pure #00FF00 green for keying in any editor.
+                    </p>
+                  </div>
+                </label>
+
+                <!-- Format D: Background Blur -->
+                <label class="format-card" id="fmtBlurLabel" style="cursor: pointer;">
+                  <input type="radio" name="mmExportFormat" value="blur" style="accent-color: var(--accent-coral);">
+                  <div style="margin-left: 0.5rem; flex: 1;">
+                    <span style="font-weight: 700; font-size: 0.9rem;">Cinematic Background Blur (.mp4)</span>
+                    <p style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.2rem;">
+                      Subject stays sharp while the background is smoothly blurred for portrait depth.
+                    </p>
+                  </div>
+                </label>
+
+              </div>
+
+              <!-- Primary Action Button -->
+              <button class="btn-primary" id="mmTrackAndExportBtn" style="width: 100%; padding: 0.85rem; font-size: 0.95rem; font-weight: 700; display: flex; align-items: center; justify-content: center; gap: 0.5rem;">
+                <span>⚡ Track & Export ProRes 4444</span>
+              </button>
+              <p style="font-size: 0.72rem; color: var(--text-muted); text-align: center; margin-top: 0.5rem;">
+                Processed locally with Apple Silicon MPS GPU acceleration. Automatically saved to ~/Downloads/.
+              </p>
+            </div>
+
+
+            <!-- CARD 3: Tracking & Export Progress (Active while tracking) -->
+            <div class="glass-panel" id="mmProgressCard" style="display: none; padding: 1.25rem; border-color: var(--accent-coral);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <div class="spinner-small" style="width: 14px; height: 14px; border: 2px solid rgba(217, 119, 87, 0.2); border-top-color: var(--accent-coral); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
+                  <h4 style="font-size: 0.9rem; font-weight: 700;">Tracking & Encoding Video...</h4>
+                </div>
+                <div style="display: flex; align-items: center; gap: 0.5rem;">
+                  <span id="mmProgressPercent" style="font-family: var(--font-mono); font-weight: 700; color: var(--accent-coral); font-size: 0.95rem;">0%</span>
+                  <button class="btn-secondary" id="mmCancelTrackBtn" style="padding: 0.2rem 0.5rem; font-size: 0.72rem; color: #ef4444; border-color: rgba(239, 68, 68, 0.3);">Cancel</button>
+                </div>
+              </div>
+
+
+              <!-- Animated Progress Bar -->
+              <div style="width: 100%; height: 8px; background: var(--bg-surface-warm); border-radius: var(--radius-full); overflow: hidden; margin-bottom: 0.75rem;">
+                <div id="mmProgressBar" style="width: 0%; height: 100%; background: linear-gradient(90deg, var(--accent-coral), #ef4444); border-radius: var(--radius-full); transition: width 0.3s ease;"></div>
+              </div>
+
+              <!-- Stats Grid -->
+              <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.78rem; color: var(--text-secondary); font-family: var(--font-mono);">
+                <div>Frame: <strong id="mmProgFrame" style="color: var(--text-primary);">0</strong> / <span id="mmProgTotal">0</span></div>
+                <div>Speed: <strong id="mmProgFps" style="color: var(--text-primary);">0.0</strong> fps</div>
+                <div>Elapsed: <strong id="mmProgElapsed" style="color: var(--text-primary);">0s</strong></div>
+                <div>ETA: <strong id="mmProgEta" style="color: var(--accent-coral);">calculating...</strong></div>
+              </div>
+            </div>
+
+
+            <!-- CARD 4: Export Success Card -->
+            <div class="glass-panel" id="mmSuccessCard" style="display: none; padding: 1.25rem; background: var(--accent-coral-subtle); border-color: rgba(217, 119, 87, 0.4);">
+              <div style="display: flex; align-items: flex-start; gap: 0.75rem; margin-bottom: 0.75rem;">
+                <span style="font-size: 1.5rem;">🎉</span>
+                <div style="flex: 1;">
+                  <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.2rem;">
+                    Export Completed!
+                  </h4>
+                  <p style="font-size: 0.8rem; color: var(--text-secondary);" id="mmSuccessDetails">
+                    Saved to your Downloads folder.
+                  </p>
+                </div>
+              </div>
+
+              <div style="background: var(--bg-surface); padding: 0.75rem; border-radius: var(--radius-xs); border: 1px solid var(--border-subtle); margin-bottom: 0.75rem;">
+                <div style="font-size: 0.72rem; color: var(--text-muted); text-transform: uppercase; font-weight: 600;">Saved File</div>
+                <div id="mmSuccessFilename" style="font-family: var(--font-mono); font-size: 0.82rem; word-break: break-all; font-weight: 600; color: var(--text-primary); margin-top: 0.15rem;">
+                  video_magic_mask_prores4444.mov
+                </div>
+                <div style="font-size: 0.75rem; color: var(--text-secondary); margin-top: 0.35rem;" id="mmSuccessMeta">
+                  Size: 12.4 MB • Render time: 14.2s
+                </div>
+              </div>
+
+              <button class="btn-primary" id="openDavinciMmGuideBtn" style="width: 100%; font-size: 0.85rem; padding: 0.6rem;">
+                🎬 How to Use in DaVinci Resolve Free
+              </button>
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </section>
+
   </main>
+
 
   <!-- MODAL: DaVinci Resolve Free Subtitle Import Guide -->
   <div class="modal-overlay" id="davinciModalOverlay">
@@ -848,13 +1279,70 @@
     </div>
   </div>
 
+  <!-- MODAL: DaVinci Resolve Free ProRes 4444 Alpha Guide -->
+  <div class="modal-overlay" id="davinciMmModalOverlay">
+    <div class="modal-dialog">
+      <button class="modal-close-btn" id="closeDavinciMmModalBtn" aria-label="Close modal">✕</button>
+
+      <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.5rem;">
+        <span style="font-size: 1.5rem;">🎬</span>
+        <h2 style="font-family: var(--font-display); font-size: 1.45rem; color: #fbbf24; font-weight: 800;">
+          Using ProRes 4444 Alpha in DaVinci Resolve Free
+        </h2>
+      </div>
+      <p style="color: var(--text-secondary); font-size: 0.92rem;">
+        DaVinci Resolve Free does not include Studio's Magic Mask, but natively supports 10-bit transparent <strong>Apple ProRes 4444 (.mov)</strong> with zero plugins or keys required:
+      </p>
+
+      <div class="guide-step">
+        <div class="step-num">1</div>
+        <div class="step-content">
+          <h4>Drag ProRes 4444 (.mov) into Media Pool</h4>
+          <p>Locate the exported file in your <code>~/Downloads/</code> folder and drag it directly into the <strong>Media Pool</strong> in DaVinci Resolve Free.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="step-num">2</div>
+        <div class="step-content">
+          <h4>Place Background on Video Track 1 (V1)</h4>
+          <p>Drag your background video, still image, motion graphic, or b-roll onto <strong>Track V1</strong> on the Edit timeline.</p>
+        </div>
+      </div>
+
+      <div class="guide-step">
+        <div class="step-num">3</div>
+        <div class="step-content">
+          <h4>Place ProRes 4444 on Video Track 2 (V2)</h4>
+          <p>Drag the exported ProRes 4444 clip onto <strong>Track V2</strong> directly above V1. The background is <strong>100% transparent instantly</strong> without any chroma keying, DeltaKeyer, or composite mode changes!</p>
+        </div>
+      </div>
+
+      <div class="guide-step" style="border-bottom: none;">
+        <div class="step-num">4</div>
+        <div class="step-content">
+          <h4>Add Text, Titles, or VFX Behind Your Subject</h4>
+          <p>You can insert text layers, lower thirds, or lighting glows between V1 and V2 to make graphics appear directly behind your talking head or product!</p>
+        </div>
+      </div>
+
+      <div style="margin-top: 1.5rem; text-align: right;">
+        <button class="btn-davinci-primary" id="davinciMmGuideGotItBtn" style="display: inline-flex;">
+          Got it! Ready to Composite
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Scripts -->
-  <script src="/static/js/visualizer.js?v=0.2.3"></script>
-  <script src="/static/js/subtitles.js?v=0.2.3"></script>
-  <script src="/static/js/silence_cutter.js?v=0.2.3"></script>
-  <script src="/static/js/app.js?v=0.2.3"></script>
+  <script src="/static/js/visualizer.js?v=0.3.0"></script>
+  <script src="/static/js/subtitles.js?v=0.3.0"></script>
+  <script src="/static/js/silence_cutter.js?v=0.3.0"></script>
+  <script src="/static/js/magic_mask.js?v=0.3.0"></script>
+  <script src="/static/js/app.js?v=0.3.0"></script>
 </body>
 </html>
+

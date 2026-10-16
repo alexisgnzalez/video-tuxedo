@@ -34,3 +34,5 @@ venv/
 .venv/
 temp_media/
 exports/
+runs/
+*.pt

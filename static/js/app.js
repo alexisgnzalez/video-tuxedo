@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const toolsLauncherView = document.getElementById('toolsLauncherView');
   const subtitleToolView = document.getElementById('subtitleToolView');
   const silenceToolView = document.getElementById('silenceToolView');
+  const magicMaskToolView = document.getElementById('magicMaskToolView');
   const breadcrumbCurrent = document.getElementById('breadcrumbCurrent');
   const breadcrumbHome = document.getElementById('breadcrumbHome');
   const brandHomeBtn = document.getElementById('brandHomeBtn');
@@ -42,6 +43,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const launchSilenceBtn = document.getElementById('launchSilenceBtn');
   const toolCardSilence = document.getElementById('toolCardSilence');
   const backFromSilenceToLauncherBtn = document.getElementById('backFromSilenceToLauncherBtn');
+
+  const launchMagicMaskBtn = document.getElementById('launchMagicMaskBtn');
+  const toolCardMagicMask = document.getElementById('toolCardMagicMask');
+  const backFromMagicMaskToLauncherBtn = document.getElementById('backFromMagicMaskToLauncherBtn');
 
   // Modal elements
   const openGuideBtn = document.getElementById('openDavinciGuideBtn');
@@ -62,11 +67,18 @@ document.addEventListener('DOMContentLoaded', () => {
     silenceStudio = new window.SilenceCutterStudio();
   }
 
+  // Initialize Magic Mask Studio instance
+  let magicMaskStudio = null;
+  if (window.MagicMaskStudio) {
+    magicMaskStudio = new window.MagicMaskStudio();
+  }
+
   // Navigation functions
   function navigateToView(viewName) {
     if (viewName === 'subtitles') {
       toolsLauncherView.classList.remove('active');
       silenceToolView.classList.remove('active');
+      if (magicMaskToolView) magicMaskToolView.classList.remove('active');
       subtitleToolView.classList.add('active');
       breadcrumbCurrent.textContent = 'Auto Subtitles Studio';
       window.history.replaceState(null, '', '#subtitles');
@@ -74,13 +86,23 @@ document.addEventListener('DOMContentLoaded', () => {
     } else if (viewName === 'silence') {
       toolsLauncherView.classList.remove('active');
       subtitleToolView.classList.remove('active');
+      if (magicMaskToolView) magicMaskToolView.classList.remove('active');
       silenceToolView.classList.add('active');
       breadcrumbCurrent.textContent = 'Silence Cutter & Jump Cuts';
       window.history.replaceState(null, '', '#silence');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (viewName === 'magicmask') {
+      toolsLauncherView.classList.remove('active');
+      subtitleToolView.classList.remove('active');
+      silenceToolView.classList.remove('active');
+      if (magicMaskToolView) magicMaskToolView.classList.add('active');
+      breadcrumbCurrent.textContent = 'Magic Mask & Rotoscoping Studio';
+      window.history.replaceState(null, '', '#magicmask');
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } else {
       subtitleToolView.classList.remove('active');
       silenceToolView.classList.remove('active');
+      if (magicMaskToolView) magicMaskToolView.classList.remove('active');
       toolsLauncherView.classList.add('active');
       breadcrumbCurrent.textContent = 'App Launcher';
       window.history.replaceState(null, '', window.location.pathname);
@@ -96,6 +118,8 @@ document.addEventListener('DOMContentLoaded', () => {
     navigateToView('silence');
   } else if (toolParam === 'subtitles' || hash === '#subtitles') {
     navigateToView('subtitles');
+  } else if (toolParam === 'magicmask' || toolParam === 'magic-mask' || hash === '#magicmask' || hash === '#magic-mask') {
+    navigateToView('magicmask');
   }
 
   // Bind navigation
@@ -125,6 +149,19 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
+  if (launchMagicMaskBtn) {
+    launchMagicMaskBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigateToView('magicmask');
+    });
+  }
+
+  if (toolCardMagicMask) {
+    toolCardMagicMask.addEventListener('click', () => {
+      navigateToView('magicmask');
+    });
+  }
+
   if (backToLauncherBtn) {
     backToLauncherBtn.addEventListener('click', () => navigateToView('launcher'));
   }
@@ -132,6 +169,11 @@ document.addEventListener('DOMContentLoaded', () => {
   if (backFromSilenceToLauncherBtn) {
     backFromSilenceToLauncherBtn.addEventListener('click', () => navigateToView('launcher'));
   }
+
+  if (backFromMagicMaskToLauncherBtn) {
+    backFromMagicMaskToLauncherBtn.addEventListener('click', () => navigateToView('launcher'));
+  }
+
 
   if (breadcrumbHome) {
     breadcrumbHome.addEventListener('click', (e) => {
