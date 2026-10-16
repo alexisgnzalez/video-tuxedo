@@ -535,16 +535,16 @@ def export_davinci_xmeml(
     speech_segments: List[Dict[str, Any]],
     output_filename: Optional[str] = None,
     fps: float = 30.0,
-    width: int = 1920,
-    height: int = 1080,
+    width: int = 1080,
+    height: int = 1920,
     audio_rate: int = 48000,
     total_source_duration: float = 0.0,
 ) -> Dict[str, Any]:
     """
     Generates a Final Cut Pro 7 XML (xmeml version 5) sequence for DaVinci Resolve.
     This is the industry-standard, rock-solid timeline interchange format.
-    - Explicitly sets sequence resolution (e.g. 720x1280 vertical or 1080x1920).
-    - Populates Video Track 1 (V1), Audio Track 1 (A1), and Audio Track 2 (A2).
+    - Explicitly sets sequence resolution (defaults to 1080x1920 Vertical).
+    - Populates Video Track 1 (V1) and a single synchronized Audio Track 1 (A1).
     - Audio and Video clips are explicitly linked together.
     - Integer frame math guarantees zero dropped clips or timecode drift.
     """
@@ -563,8 +563,7 @@ def export_davinci_xmeml(
     file_url = f"file://localhost{input_path.as_posix()}"
 
     video_items = []
-    audio1_items = []
-    audio2_items = []
+    audio_items = []
 
     rec_frame = 0
 
@@ -642,23 +641,15 @@ def export_davinci_xmeml(
           <clipindex>{clip_idx}</clipindex>
         </link>
         <link>
-          <linkclipref>clipitem-audio-1-{clip_idx}</linkclipref>
+          <linkclipref>clipitem-audio-{clip_idx}</linkclipref>
           <mediatype>audio</mediatype>
           <trackindex>1</trackindex>
           <clipindex>{clip_idx}</clipindex>
-          <groupindex>1</groupindex>
-        </link>
-        <link>
-          <linkclipref>clipitem-audio-2-{clip_idx}</linkclipref>
-          <mediatype>audio</mediatype>
-          <trackindex>2</trackindex>
-          <clipindex>{clip_idx}</clipindex>
-          <groupindex>1</groupindex>
         </link>
       </clipitem>"""
         video_items.append(v_item)
 
-        a1_item = f"""      <clipitem id="clipitem-audio-1-{clip_idx}">
+        a_item = f"""      <clipitem id="clipitem-audio-{clip_idx}">
         <masterclipid>masterclip-1</masterclipid>
         <name>Take {clip_idx} ({seg["start"]:.1f}s - {seg["end"]:.1f}s)</name>
         <enabled>TRUE</enabled>
@@ -683,62 +674,13 @@ def export_davinci_xmeml(
           <clipindex>{clip_idx}</clipindex>
         </link>
         <link>
-          <linkclipref>clipitem-audio-1-{clip_idx}</linkclipref>
+          <linkclipref>clipitem-audio-{clip_idx}</linkclipref>
           <mediatype>audio</mediatype>
           <trackindex>1</trackindex>
           <clipindex>{clip_idx}</clipindex>
-          <groupindex>1</groupindex>
-        </link>
-        <link>
-          <linkclipref>clipitem-audio-2-{clip_idx}</linkclipref>
-          <mediatype>audio</mediatype>
-          <trackindex>2</trackindex>
-          <clipindex>{clip_idx}</clipindex>
-          <groupindex>1</groupindex>
         </link>
       </clipitem>"""
-        audio1_items.append(a1_item)
-
-        a2_item = f"""      <clipitem id="clipitem-audio-2-{clip_idx}">
-        <masterclipid>masterclip-1</masterclipid>
-        <name>Take {clip_idx} ({seg["start"]:.1f}s - {seg["end"]:.1f}s)</name>
-        <enabled>TRUE</enabled>
-        <duration>{dur_f}</duration>
-        <rate>
-          <timebase>{timebase}</timebase>
-          <ntsc>{ntsc_str}</ntsc>
-        </rate>
-        <start>{start_f}</start>
-        <end>{end_f}</end>
-        <in>{in_f}</in>
-        <out>{out_f}</out>
-        <file id="file-1"/>
-        <sourcetrack>
-          <mediatype>audio</mediatype>
-          <trackindex>2</trackindex>
-        </sourcetrack>
-        <link>
-          <linkclipref>clipitem-video-{clip_idx}</linkclipref>
-          <mediatype>video</mediatype>
-          <trackindex>1</trackindex>
-          <clipindex>{clip_idx}</clipindex>
-        </link>
-        <link>
-          <linkclipref>clipitem-audio-1-{clip_idx}</linkclipref>
-          <mediatype>audio</mediatype>
-          <trackindex>1</trackindex>
-          <clipindex>{clip_idx}</clipindex>
-          <groupindex>1</groupindex>
-        </link>
-        <link>
-          <linkclipref>clipitem-audio-2-{clip_idx}</linkclipref>
-          <mediatype>audio</mediatype>
-          <trackindex>2</trackindex>
-          <clipindex>{clip_idx}</clipindex>
-          <groupindex>1</groupindex>
-        </link>
-      </clipitem>"""
-        audio2_items.append(a2_item)
+        audio_items.append(a_item)
 
     total_rec_frames = rec_frame
 
@@ -788,10 +730,7 @@ def export_davinci_xmeml(
           </samplecharacteristics>
         </format>
         <track>
-{chr(10).join(audio1_items)}
-        </track>
-        <track>
-{chr(10).join(audio2_items)}
+{chr(10).join(audio_items)}
         </track>
       </audio>
     </media>
@@ -817,8 +756,8 @@ def export_davinci_fcpxml(
     speech_segments: List[Dict[str, Any]],
     output_filename: Optional[str] = None,
     fps: float = 30.0,
-    width: int = 1920,
-    height: int = 1080,
+    width: int = 1080,
+    height: int = 1920,
     total_source_duration: float = 0.0,
 ) -> Dict[str, Any]:
     """
@@ -914,6 +853,8 @@ def remap_subtitles_to_cut_timeline(
     Translates original subtitle cues to the new jump-cut timeline!
     Because silences have been removed, timestamps are adjusted by subtracting
     accumulated silence durations before each speech segment.
+    Guarantees ZERO dropped cues: any cue spoken before, during, or across speech takes
+    is smoothly clamped to the corresponding speech segment on the cut timeline.
     Produces a 100% synchronized .srt file ready to drop into DaVinci Resolve ST1 track.
     """
     if not subtitle_cues or not speech_segments:
@@ -921,33 +862,66 @@ def remap_subtitles_to_cut_timeline(
 
     remapped_cues: List[Dict[str, Any]] = []
 
-    def map_timestamp(orig_t: float) -> Optional[float]:
-        """Maps an original video timestamp to the cut timeline."""
-        for seg in speech_segments:
-            # Allow a small 0.15s margin around speech segments
-            if seg["start"] - 0.15 <= orig_t <= seg["end"] + 0.15:
-                # Relative position inside this keep segment
-                rel_offset = max(0.0, min(orig_t - seg["start"], seg["duration"]))
-                return round(seg["rec_start"] + rel_offset, 3)
-        return None
-
-    cue_id = 1
     for cue in subtitle_cues:
-        orig_s = cue["start"]
-        orig_e = cue["end"]
-        new_s = map_timestamp(orig_s)
-        new_e = map_timestamp(orig_e)
+        s = cue["start"]
+        e = cue["end"]
+        text = cue.get("text", "").strip()
+        if not text:
+            continue
 
-        if new_s is not None and new_e is not None:
-            if new_e <= new_s:
-                new_e = new_s + max(0.3, cue.get("duration", 0.5))
-            remapped_cues.append({
-                "id": cue_id,
-                "start": round(new_s, 3),
-                "end": round(new_e, 3),
-                "text": cue["text"],
-            })
-            cue_id += 1
+        # 1. Check for overlapping speech segment(s)
+        best_seg = None
+        best_overlap = -1.0
+
+        for seg in speech_segments:
+            ov_s = max(s, seg["start"])
+            ov_e = min(e, seg["end"])
+            ov = ov_e - ov_s
+            if ov > best_overlap and ov > 0:
+                best_overlap = ov
+                best_seg = seg
+
+        # 2. If no strict overlap, find closest speech segment within 1.2s window
+        if best_seg is None:
+            min_dist = float("inf")
+            for seg in speech_segments:
+                if e < seg["start"]:
+                    dist = seg["start"] - e
+                elif s > seg["end"]:
+                    dist = s - seg["end"]
+                else:
+                    dist = 0.0
+                if dist < min_dist and dist < 1.2:
+                    min_dist = dist
+                    best_seg = seg
+
+        # 3. Fallback: if cue is outside 1.2s, attach to nearest segment by midpoint
+        if best_seg is None and speech_segments:
+            mid = (s + e) / 2.0
+            best_seg = min(speech_segments, key=lambda seg: abs((seg["start"] + seg["end"]) / 2.0 - mid))
+
+        if best_seg is None:
+            continue
+
+        # Map to cut timeline within best_seg
+        rel_s = max(0.0, min(s - best_seg["start"], best_seg["duration"]))
+        rel_e = max(0.0, min(e - best_seg["start"], best_seg["duration"]))
+
+        # Ensure legible minimum duration (at least 0.35s, up to segment duration)
+        if rel_e <= rel_s or (rel_e - rel_s) < 0.35:
+            rel_e = min(best_seg["duration"], rel_s + max(0.5, e - s))
+            if rel_e <= rel_s:
+                rel_s = max(0.0, rel_e - 0.5)
+
+        rec_s = round(best_seg["rec_start"] + rel_s, 3)
+        rec_e = round(best_seg["rec_start"] + rel_e, 3)
+
+        remapped_cues.append({
+            "id": len(remapped_cues) + 1,
+            "start": rec_s,
+            "end": rec_e,
+            "text": text,
+        })
 
     # Format SubRip (.srt)
     srt_lines = []

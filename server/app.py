@@ -97,8 +97,10 @@ class SilenceRenderMultipartRequest(BaseModel):
 class SilenceExportTimelineRequest(BaseModel):
     media_path: str
     speech_segments: List[Dict[str, Any]]
-    export_type: Optional[str] = "both"  # "edl", "fcpxml", or "both"
+    export_type: Optional[str] = "both"  # "xml", "fcpxml", "edl", or "both"
     filename: Optional[str] = None
+    width: Optional[int] = None
+    height: Optional[int] = None
 
 
 class SilenceSyncSubtitlesRequest(BaseModel):
@@ -476,9 +478,19 @@ def export_timeline_endpoint(req: SilenceExportTimelineRequest):
     try:
         props = get_media_properties(media_path)
         fps = props.get("fps", 30.0)
-        width = props.get("width", 1920)
-        height = props.get("height", 1080)
         dur = props.get("duration", 0.0)
+        is_portrait = props.get("is_portrait", False)
+
+        # Full HD 1080x1920 by default for vertical smartphone videos
+        if req.width and req.height:
+            width = req.width
+            height = req.height
+        elif is_portrait:
+            width = 1080
+            height = 1920
+        else:
+            width = 1920
+            height = 1080
 
         xml_res = export_davinci_xmeml(
             input_path=media_path,
