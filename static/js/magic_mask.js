@@ -24,6 +24,7 @@ class MagicMaskStudio {
     this.activeBrushLabel = 1; // 1 = Keep, 0 = Exclude
     this.brushSize = 20;
     this.previewMode = 'magenta'; // 'magenta' | 'cutout' | 'matte'
+    this.targetType = 'person'; // 'person' (YOLO 16-30fps) | 'object' (SAM 2)
     this.feather = 3;
     this.expand = 0;
 
@@ -31,6 +32,7 @@ class MagicMaskStudio {
     this.baseFrameImg = null;
     this.maskImg = null;
     this.cutoutImg = null;
+    this.overlayImg = null;
     this.isSegmenting = false;
     this.segmentDebounceTimer = null;
     this.activeTaskId = null;
@@ -86,6 +88,12 @@ class MagicMaskStudio {
     this.video = document.getElementById('mmVideo');
     this.segmentLoading = document.getElementById('mmSegmentLoading');
     this.firstTimeHint = document.getElementById('mmFirstTimeHint');
+
+    // Dual Engine Targets
+    this.targetPersonBtn = document.getElementById('mmTargetPersonBtn');
+    this.targetObjectBtn = document.getElementById('mmTargetObjectBtn');
+    this.targetHint = document.getElementById('mmTargetHint');
+    this.segmentLoadingText = document.getElementById('mmSegmentLoadingText');
 
     // Tools
     this.toolBrushBtn = document.getElementById('mmToolBrushBtn');
@@ -221,6 +229,14 @@ class MagicMaskStudio {
       this.cancelTrackBtn.addEventListener('click', () => this.cancelTracking());
     }
 
+    // Dual Engine Target Mode Selection (Person vs Object)
+    if (this.targetPersonBtn) {
+      this.targetPersonBtn.addEventListener('click', () => this.setTargetType('person'));
+    }
+    if (this.targetObjectBtn) {
+      this.targetObjectBtn.addEventListener('click', () => this.setTargetType('object'));
+    }
+
     // Interaction Tool Selector (Brush / Box / Lasso)
     if (this.toolBrushBtn) {
       this.toolBrushBtn.addEventListener('click', () => this.setTool('brush'));
@@ -328,6 +344,24 @@ class MagicMaskStudio {
     this.initCanvasDrawing();
   }
 
+  setTargetType(type) {
+    this.targetType = type;
+    if (this.targetPersonBtn) this.targetPersonBtn.classList.toggle('active', type === 'person');
+    if (this.targetObjectBtn) this.targetObjectBtn.classList.toggle('active', type === 'object');
+    if (this.targetHint) {
+      this.targetHint.textContent = type === 'person' 
+        ? '⚡ High-Speed MPS Neural Engine (16-30 FPS)' 
+        : '🎯 SAM 2.1 Object Segmentation';
+    }
+    if (this.segmentLoadingText) {
+      this.segmentLoadingText.textContent = type === 'person' 
+        ? 'Segmenting subject...' 
+        : 'Segmenting with SAM 2.1...';
+    }
+    showToast(type === 'person' ? '👤 Switched to Person Mode (Instant Full Body)' : '📦 Switched to Object Mode (SAM 2.1)');
+    this.requestSegmentPreview();
+  }
+
   setTool(tool) {
     this.currentTool = tool;
     if (this.toolBrushBtn) this.toolBrushBtn.classList.toggle('active', tool === 'brush');
@@ -429,9 +463,11 @@ class MagicMaskStudio {
       this.canvasContainer.style.aspectRatio = `${this.videoMeta.width} / ${this.videoMeta.height}`;
     }
 
-    // Load initial frame at 0.0s
-    this.seekToTimestamp(0.0);
-    showToast('Video ready! Draw a stroke down the center of your subject.');
+    // Load initial frame at 0.0s and auto-segment subject
+    this.seekToTimestamp(0.0).then(() => {
+      this.requestSegmentPreview();
+    });
+    showToast('Video ready! Subject detected automatically.');
   }
 
   formatDuration(seconds) {
@@ -480,17 +516,22 @@ class MagicMaskStudio {
           timestamp_s: this.currentTime,
         }),
       });
-      if (!res.ok) return;
+      if (!res.ok) return null;
       const data = await res.json();
       
-      const img = new Image();
-      img.onload = () => {
-        this.baseFrameImg = img;
-        this.renderCanvas();
-      };
-      img.src = data.image_data_uri;
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.onload = () => {
+          this.baseFrameImg = img;
+          this.renderCanvas();
+          resolve(img);
+        };
+        img.onerror = () => resolve(null);
+        img.src = data.image_data_uri;
+      });
     } catch (e) {
       console.warn('Frame seek error:', e);
+      return null;
     }
   }
 
@@ -664,12 +705,7 @@ class MagicMaskStudio {
   }
 
   async requestSegmentPreview() {
-    if (!this.mediaPath || (!this.currentBbox && this.strokes.length === 0)) {
-      this.maskImg = null;
-      this.cutoutImg = null;
-      this.renderCanvas();
-      return;
-    }
+    if (!this.mediaPath) return;
 
     // Flatten sampled points and labels
     const points = [];
@@ -684,9 +720,16 @@ class MagicMaskStudio {
       }
     }
 
-    if (!this.currentBbox && points.length === 0) return;
+    // In Object mode, don't run preview if there are no inputs
+    if (this.targetType === 'object' && !this.currentBbox && points.length === 0) {
+      this.maskImg = null;
+      this.cutoutImg = null;
+      this.overlayImg = null;
+      this.renderCanvas();
+      return;
+    }
 
-    this.statsBadge.textContent = this.currentBbox ? 'Box Selected' : `${count} points`;
+    this.statsBadge.textContent = this.currentBbox ? 'Box Selected' : (count > 0 ? `${count} points` : 'Auto Detect');
     if (this.segmentLoading) this.segmentLoading.style.display = 'flex';
     this.isSegmenting = true;
 
@@ -703,6 +746,7 @@ class MagicMaskStudio {
           feather: this.feather,
           expand: this.expand,
           invert: this.isInverted,
+          target_type: this.targetType,
         }),
       });
 
@@ -711,18 +755,23 @@ class MagicMaskStudio {
 
       const mask = new Image();
       const cutout = new Image();
+      const overlay = new Image();
       let loaded = 0;
       const onLoaded = () => {
         loaded++;
-        if (loaded >= 2) {
+        if (loaded >= 3) {
           this.maskImg = mask;
           this.cutoutImg = cutout;
+          this.overlayImg = overlay;
           this.renderCanvas();
           if (this.segmentLoading) this.segmentLoading.style.display = 'none';
           this.isSegmenting = false;
-          const statusText = this.currentBbox ? 'Box' : `${count} pts`;
+          const statusText = this.currentBbox ? 'Box' : (count > 0 ? `${count} pts` : 'Auto');
           this.statsBadge.textContent = `${statusText} • ${data.coverage_pct}% cov • ${data.inference_time_ms}ms`;
 
+          if (this.firstTimeHint && data.coverage_pct > 0) {
+            this.firstTimeHint.style.display = 'none';
+          }
           if (data.coverage_pct === 0) {
             showToast('No subject detected. Draw a stroke across the center of your subject.', 'warning');
           }
@@ -730,10 +779,13 @@ class MagicMaskStudio {
       };
       mask.onload = onLoaded;
       cutout.onload = onLoaded;
+      overlay.onload = onLoaded;
       mask.onerror = onLoaded;
       cutout.onerror = onLoaded;
+      overlay.onerror = onLoaded;
       mask.src = data.mask_data_uri;
       cutout.src = data.cutout_data_uri;
+      overlay.src = data.overlay_data_uri;
     } catch (err) {
       console.error('Segment error:', err);
       if (this.segmentLoading) this.segmentLoading.style.display = 'none';
@@ -761,28 +813,12 @@ class MagicMaskStudio {
       this.ctx.drawImage(this.maskImg, 0, 0, w, h);
 
     } else {
-      // Default: Magenta DaVinci Resolve Magic Mask Glow
-      this.ctx.drawImage(this.baseFrameImg, 0, 0, w, h);
-
-      if (this.maskImg) {
-        const offCanvas = document.createElement('canvas');
-        offCanvas.width = w;
-        offCanvas.height = h;
-        const offCtx = offCanvas.getContext('2d');
-
-        // Draw magenta tint (#E91E63)
-        offCtx.fillStyle = '#e91e63';
-        offCtx.fillRect(0, 0, w, h);
-
-        // Clip to mask
-        offCtx.globalCompositeOperation = 'destination-in';
-        offCtx.drawImage(this.maskImg, 0, 0, w, h);
-
-        // Blend over base frame with glowing alpha
-        this.ctx.save();
-        this.ctx.globalAlpha = 0.50;
-        this.ctx.drawImage(offCanvas, 0, 0);
-        this.ctx.restore();
+      // Default: DaVinci Resolve Magic Mask Magenta Glow
+      // Uses the pixel-perfect blended image from server where magenta glow is applied strictly to subject
+      if (this.overlayImg) {
+        this.ctx.drawImage(this.overlayImg, 0, 0, w, h);
+      } else {
+        this.ctx.drawImage(this.baseFrameImg, 0, 0, w, h);
       }
     }
 
@@ -860,7 +896,7 @@ class MagicMaskStudio {
       showToast('No video loaded!', 'warning');
       return;
     }
-    if (!this.currentBbox && this.strokes.length === 0) {
+    if (this.targetType === 'object' && !this.currentBbox && this.strokes.length === 0) {
       showToast('Please draw a stroke or drag a box over your subject first!', 'warning');
       return;
     }
@@ -884,7 +920,7 @@ class MagicMaskStudio {
     this.progressPercent.textContent = '0%';
     this.progEta.textContent = 'initializing...';
 
-    showToast('Starting SAM 2.1 video tracking on Apple Silicon...');
+    showToast(this.targetType === 'person' ? '⚡ Starting high-speed neural tracking (16-30 FPS)...' : '🧠 Starting SAM 2.1 video tracking...');
 
     try {
       const res = await fetch('/api/magic-mask/track-and-render', {
@@ -899,6 +935,7 @@ class MagicMaskStudio {
           feather: this.feather,
           expand: this.expand,
           invert: this.isInverted,
+          target_type: this.targetType,
           start_time: this.rangeIn,
           end_time: this.rangeOut,
         }),

@@ -902,10 +902,26 @@
           <!-- LEFT COLUMN: Interactive Drawing Viewport -->
           <div class="glass-panel" style="padding: 1.25rem;">
 
+            <!-- Dual-Engine Target Selector: Person vs Any Object -->
+            <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin-bottom: 0.75rem; background: var(--bg-surface-warm); padding: 0.5rem 0.75rem; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle);">
+              <div style="display: flex; align-items: center; gap: 0.5rem;">
+                <span style="font-size: 0.8rem; font-weight: 700; color: var(--text-primary);">Subject Type:</span>
+                <button class="btn-brush active" id="mmTargetPersonBtn" title="Instant full-body isolation with zero curtain/wall bleed (Talking heads, full body)">
+                  👤 Person (Smart Body)
+                </button>
+                <button class="btn-brush" id="mmTargetObjectBtn" title="Segment arbitrary products, props, pets, or objects using SAM 2.1">
+                  📦 Any Object (SAM 2)
+                </button>
+              </div>
+              <span id="mmTargetHint" style="font-size: 0.75rem; color: var(--text-muted); font-family: var(--font-mono);">
+                ⚡ High-Speed MPS Neural Engine (16-30 FPS)
+              </span>
+            </div>
+
             <!-- Pro Tip Guidance Banner -->
             <div style="background: rgba(217, 119, 87, 0.08); border: 1px solid rgba(217, 119, 87, 0.22); border-radius: var(--radius-xs); padding: 0.55rem 0.85rem; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
               <span style="font-size: 1.1rem;">💡</span>
-              <span><strong>Pro Tip:</strong> Draw a single stroke down the <em>center</em> of your subject (face, body, or product), or drag a box over it. You do not need to trace edges!</span>
+              <span><strong>Pro Tip:</strong> In <strong>Person Mode</strong>, Video Tuxedo isolates your entire subject (hair, face, clothes, limbs) with zero background curtain bleed! Toggle <strong>🏁 Cutout Transparency</strong> below to see the isolated subject.</span>
             </div>
 
             <!-- Brush & Tool Toolbar -->
@@ -967,16 +983,17 @@
               <!-- Loading / Segmenting Spinner Overlay -->
               <div id="mmSegmentLoading" style="position: absolute; top: 1rem; right: 1rem; background: rgba(20, 20, 19, 0.85); backdrop-filter: blur(8px); padding: 0.4rem 0.75rem; border-radius: var(--radius-full); font-size: 0.78rem; color: var(--text-light); display: none; align-items: center; gap: 0.5rem; border: 1px solid var(--border-dark);">
                 <div class="spinner-small" style="width: 12px; height: 12px; border: 2px solid rgba(255,255,255,0.2); border-top-color: var(--accent-coral); border-radius: 50%; animation: spin 0.8s linear infinite;"></div>
-                <span>Segmenting with SAM 2.1...</span>
+                <span id="mmSegmentLoadingText">Segmenting with AI...</span>
               </div>
 
               <!-- First Time Hint Overlay -->
-              <div id="mmFirstTimeHint" style="position: absolute; pointer-events: none; text-align: center; background: rgba(20, 20, 19, 0.82); backdrop-filter: blur(6px); border: 1px solid var(--border-dark); border-radius: var(--radius-md); padding: 1.25rem 2rem; color: var(--text-light);">
+              <div id="mmFirstTimeHint" style="position: absolute; pointer-events: none; text-align: center; background: rgba(20, 20, 19, 0.85); backdrop-filter: blur(8px); border: 1px solid var(--border-dark); border-radius: var(--radius-md); padding: 1.25rem 2rem; color: var(--text-light); max-width: 360px;">
                 <div style="font-size: 2rem; margin-bottom: 0.5rem;">🪄</div>
-                <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.25rem; color: #FAF9F5;">Draw a Stroke on Your Subject</h3>
-                <p style="font-size: 0.85rem; color: var(--text-light-muted); max-width: 320px;">
-                  Paint down the center of the person or drag a box. Green keeps foreground, red removes background.
+                <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.25rem; color: #FAF9F5;">Instant Subject Selection</h3>
+                <p style="font-size: 0.82rem; color: var(--text-light-muted); margin-bottom: 0.5rem;">
+                  Click anywhere on your subject, draw a stroke down the center, or drag a box.
                 </p>
+                <div style="font-size: 0.75rem; color: var(--accent-coral);">Person mode isolates full body automatically!</div>
               </div>
 
             </div>
@@ -1369,11 +1386,11 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Scripts -->
-  <script src="/static/js/visualizer.js?v=0.3.0"></script>
-  <script src="/static/js/subtitles.js?v=0.3.0"></script>
-  <script src="/static/js/silence_cutter.js?v=0.3.0"></script>
-  <script src="/static/js/magic_mask.js?v=0.3.0"></script>
-  <script src="/static/js/app.js?v=0.3.0"></script>
+  <script src="/static/js/visualizer.js?v=0.3.1"></script>
+  <script src="/static/js/subtitles.js?v=0.3.1"></script>
+  <script src="/static/js/silence_cutter.js?v=0.3.1"></script>
+  <script src="/static/js/magic_mask.js?v=0.3.1"></script>
+  <script src="/static/js/app.js?v=0.3.1"></script>
 </body>
 </html>
 

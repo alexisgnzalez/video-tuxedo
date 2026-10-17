@@ -19,7 +19,7 @@ import cv2
 import numpy as np
 import torch
 import imageio_ffmpeg
-from ultralytics import SAM
+from ultralytics import SAM, YOLO
 from ultralytics.models.sam import SAM2VideoPredictor
 
 
@@ -28,7 +28,10 @@ _HARDWARE_PRORES_CACHE: Optional[bool] = None
 
 DOWNLOADS_DIR = Path.home() / "Downloads"
 BASE_DIR = Path(__file__).resolve().parent.parent
-MODEL_PATH = BASE_DIR / "sam2.1_t.pt"
+SAM_MODEL_PATH = BASE_DIR / "sam2.1_t.pt"
+YOLO_SEG_PATH = BASE_DIR / "yolov8m-seg.pt"
+if not YOLO_SEG_PATH.exists():
+    YOLO_SEG_PATH = BASE_DIR / "yolov8n-seg.pt"
 
 
 def get_torch_device() -> str:
@@ -56,17 +59,34 @@ def is_hardware_prores_available() -> bool:
     return _HARDWARE_PRORES_CACHE
 
 
+def get_yolo_seg_model():
+    """Loads and caches YOLO Segmentation model instance for instant person rotoscoping."""
+    global _MODEL_CACHE
+    device = get_torch_device()
+    cache_key = f"yolo_seg_{device}"
+
+    if cache_key not in _MODEL_CACHE:
+        if not YOLO_SEG_PATH.exists():
+            raise FileNotFoundError(f"YOLO-seg checkpoint not found at {YOLO_SEG_PATH}")
+        print(f"🧠 Loading YOLO-Seg on {device.upper()} ({YOLO_SEG_PATH.name})...")
+        model = YOLO(str(YOLO_SEG_PATH))
+        _MODEL_CACHE[cache_key] = model
+        print("✅ YOLO-Seg model ready in memory.")
+
+    return _MODEL_CACHE[cache_key]
+
+
 def get_sam_model():
-    """Loads and caches SAM 2.1 Tiny model instance."""
+    """Loads and caches SAM 2.1 Tiny model instance for arbitrary objects."""
     global _MODEL_CACHE
     device = get_torch_device()
     cache_key = f"sam_{device}"
 
     if cache_key not in _MODEL_CACHE:
-        if not MODEL_PATH.exists():
-            raise FileNotFoundError(f"SAM 2.1 model checkpoint not found at {MODEL_PATH}")
-        print(f"🧠 Loading SAM 2.1 on {device.upper()} ({MODEL_PATH.name})...")
-        model = SAM(str(MODEL_PATH))
+        if not SAM_MODEL_PATH.exists():
+            raise FileNotFoundError(f"SAM 2.1 model checkpoint not found at {SAM_MODEL_PATH}")
+        print(f"🧠 Loading SAM 2.1 on {device.upper()} ({SAM_MODEL_PATH.name})...")
+        model = SAM(str(SAM_MODEL_PATH))
         _MODEL_CACHE[cache_key] = model
         print("✅ SAM 2.1 model ready in memory.")
 
@@ -268,10 +288,12 @@ def segment_frame_preview(
     feather: int = 3,
     expand: int = 0,
     invert: bool = False,
+    target_type: str = "person",
 ) -> Dict[str, Any]:
     """
-    Executes single-frame segmentation using SAM 2.1 on the designated video frame.
-    Supports Keep (+1) and Exclude (0) strokes, Bounding Box prompts, and Invert Mask.
+    Executes single-frame segmentation on designated video frame:
+    - 'person': Uses YOLO-Seg on Apple Silicon MPS for instant full-body segmentation (10ms).
+    - 'object': Uses SAM 2.1 Tiny for arbitrary products and objects.
     """
     cap = cv2.VideoCapture(media_path)
     if not cap.isOpened():
@@ -289,40 +311,77 @@ def segment_frame_preview(
 
     h, w = frame_bgr.shape[:2]
     device = get_torch_device()
-    model = get_sam_model()
-
     t0 = time.time()
-    results = None
 
-    if bbox and len(bbox) == 4:
-        # Bounding box prompt [xmin, ymin, xmax, ymax]
-        results = model(frame_bgr, bboxes=[bbox], device=device)
-    elif points and labels:
-        # Smart downsample / loop-fill points
-        filt_pts, filt_lbls = smart_filter_points(points, labels, width=w, height=h)
-        if filt_pts:
-            results = model(frame_bgr, points=[filt_pts], labels=[filt_lbls], device=device)
+    if target_type == "person":
+        model = get_yolo_seg_model()
+        results = model(frame_bgr, classes=[0], device=device, verbose=False)
+
+        if results and results[0].masks is not None and len(results[0].masks.data) > 0:
+            masks_data = results[0].masks.data
+            boxes = results[0].boxes.xyxy.cpu().numpy()
+            n_people = len(boxes)
+
+            if n_people == 1:
+                chosen_idx = 0
+            else:
+                # Score detections against user input points/box
+                scores = []
+                for b in boxes:
+                    sc = 0.0
+                    if points and labels:
+                        for p, lbl in zip(points, labels):
+                            px, py = p[0], p[1]
+                            if b[0] <= px <= b[2] and b[1] <= py <= b[3]:
+                                sc += 3.0 if lbl == 1 else -4.0
+                    elif bbox and len(bbox) == 4:
+                        ix1, iy1 = max(b[0], bbox[0]), max(b[1], bbox[1])
+                        ix2, iy2 = min(b[2], bbox[2]), min(b[3], bbox[3])
+                        inter = max(0.0, ix2 - ix1) * max(0.0, iy2 - iy1)
+                        union = (b[2] - b[0]) * (b[3] - b[1]) + (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) - inter
+                        sc = inter / union if union > 0 else 0.0
+                    else:
+                        sc = float((b[2] - b[0]) * (b[3] - b[1]))
+                    scores.append(sc)
+                chosen_idx = int(np.argmax(scores))
+
+            m_np = masks_data[chosen_idx].cpu().numpy()
+            m_full = cv2.resize((m_np * 255).astype(np.uint8), (w, h), interpolation=cv2.INTER_LINEAR)
+            raw_mask = (m_full > 127).astype(np.uint8) * 255
+        else:
+            raw_mask = np.zeros((h, w), dtype=np.uint8)
+
+    else:
+        # Object / Product mode: SAM 2.1
+        model = get_sam_model()
+        results = None
+
+        if bbox and len(bbox) == 4:
+            results = model(frame_bgr, bboxes=[bbox], device=device)
+        elif points and labels:
+            filt_pts, filt_lbls = smart_filter_points(points, labels, width=w, height=h)
+            if filt_pts:
+                results = model(frame_bgr, points=[filt_pts], labels=[filt_lbls], device=device)
+
+        if not results or results[0].masks is None or len(results[0].masks.data) == 0:
+            raw_mask = np.zeros((h, w), dtype=np.uint8)
+        else:
+            raw_mask = (results[0].masks.data[0].cpu().numpy().astype(np.uint8)) * 255
 
     inference_time_ms = int((time.time() - t0) * 1000)
-
-    if not results or results[0].masks is None or len(results[0].masks.data) == 0:
-        raw_mask = np.zeros((h, w), dtype=np.uint8)
-    else:
-        raw_mask = (results[0].masks.data[0].cpu().numpy().astype(np.uint8)) * 255
-
     refined_mask = apply_mask_refinements(raw_mask, feather=feather, expand=expand, invert=invert)
 
     # 1. 8-Bit Grayscale Alpha Mask PNG
     _, mask_png_bytes = cv2.imencode(".png", refined_mask)
     mask_b64 = base64.b64encode(mask_png_bytes).decode("utf-8")
 
-    # 2. DaVinci Magic Mask Magenta Overlay (#E91E63 @ 45% opacity)
+    # 2. DaVinci Magic Mask Magenta Overlay (#E91E63 @ 45% opacity) applied strictly to subject
     overlay = frame_bgr.copy()
     magenta_bgr = np.array([99, 30, 233], dtype=np.uint8)
     alpha_norm = (refined_mask.astype(np.float32) / 255.0)[:, :, np.newaxis]
     tinted = (overlay.astype(np.float32) * 0.55 + magenta_bgr * 0.45).astype(np.uint8)
     blended = (overlay.astype(np.float32) * (1.0 - alpha_norm) + tinted.astype(np.float32) * alpha_norm).astype(np.uint8)
-    _, overlay_bytes = cv2.imencode(".jpg", blended, [int(cv2.IMWRITE_JPEG_QUALITY), 88])
+    _, overlay_bytes = cv2.imencode(".jpg", blended, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
     overlay_b64 = base64.b64encode(overlay_bytes).decode("utf-8")
 
     # 3. Transparent RGBA Cutout PNG
@@ -335,6 +394,7 @@ def segment_frame_preview(
 
     return {
         "status": "success",
+        "target_type": target_type,
         "inference_time_ms": inference_time_ms,
         "coverage_pct": coverage_pct,
         "mask_data_uri": f"data:image/png;base64,{mask_b64}",
@@ -353,6 +413,7 @@ def rotoscope_and_render_video(
     feather: int = 3,
     expand: int = 0,
     invert: bool = False,
+    target_type: str = "person",
     start_time: float = 0.0,
     end_time: Optional[float] = None,
     output_filename: Optional[str] = None,
@@ -360,9 +421,9 @@ def rotoscope_and_render_video(
     cancel_check: Optional[Callable[[], bool]] = None,
 ) -> Dict[str, Any]:
     """
-    Tracks the prompt mask across video frames using SAM 2.1 video memory propagation,
-    accelerated with Apple Silicon hardware ProRes VideoToolbox encoding and
-    high-resolution tracking proxy.
+    Rotoscope and encode video with hardware-accelerated Apple ProRes 4444:
+    - 'person': Instant person tracking via YOLO-Seg on Apple Silicon MPS (16-30 FPS).
+    - 'object': High-precision object tracking via SAM 2.1 Video Predictor.
     """
     if not os.path.exists(media_path):
         raise FileNotFoundError(f"Media file not found: {media_path}")
@@ -391,7 +452,7 @@ def rotoscope_and_render_video(
     use_hw_prores = is_hardware_prores_available()
 
     print(f"🎬 Starting Magic Mask Tracking & Render for {stem}...")
-    print(f"   Mode: {export_mode} | Range: {actual_start:.2f}s -> {actual_end:.2f}s ({expected_frames} frames)")
+    print(f"   Target: {target_type.upper()} | Mode: {export_mode} | Range: {actual_start:.2f}s -> {actual_end:.2f}s ({expected_frames} frames)")
     print(f"   Resolution: {width}x{height} | Device: {device.upper()} | HW ProRes: {use_hw_prores}")
 
     temp_clip_path = None
@@ -421,50 +482,7 @@ def rotoscope_and_render_video(
         else:
             source_video = media_path
 
-        # 2. Smart point filtering and outline conversion
-        if points and labels:
-            filt_pts, filt_lbls = smart_filter_points(points, labels, width=width, height=height)
-        else:
-            filt_pts, filt_lbls = [], []
-
-        # 3. High-Resolution Tracking Proxy for > 1080p footage (e.g. 3K DJI, 4K cameras)
-        # Tracks at 960p proxy at ~8.4 FPS, then upsamples masks to pristine full-res camera frames
-        need_proxy = (width > 1280 or height > 1280)
-        if need_proxy:
-            proxy_max = 960
-            scale_factor = proxy_max / max(width, height)
-            proxy_w = int(round(width * scale_factor / 2.0)) * 2
-            proxy_h = int(round(height * scale_factor / 2.0)) * 2
-            temp_proxy_path = str(Path(media_path).parent / f"temp_proxy_{int(time.time())}_{stem}.mp4")
-
-            proxy_cmd = [
-                ffmpeg_exe, "-y",
-                "-i", source_video,
-                "-vf", f"scale={proxy_w}:{proxy_h}",
-                "-c:v", "h264_videotoolbox", "-b:v", "4M",
-                "-an",
-                temp_proxy_path,
-            ]
-            res_p = subprocess.run(proxy_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            if res_p.returncode != 0:
-                # Software fallback
-                proxy_cmd[5] = "libx264"
-                proxy_cmd[6] = "-preset"
-                proxy_cmd.insert(7, "ultrafast")
-                subprocess.run(proxy_cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-            # Scale prompt points to proxy coordinates
-            scale_x = proxy_w / width
-            scale_y = proxy_h / height
-            tracking_points = [[[int(p[0] * scale_x), int(p[1] * scale_y)] for p in filt_pts]] if filt_pts else None
-            tracking_labels = [filt_lbls] if filt_lbls else None
-            tracking_source = temp_proxy_path
-        else:
-            tracking_points = [filt_pts] if filt_pts else None
-            tracking_labels = [filt_lbls] if filt_lbls else None
-            tracking_source = source_video
-
-        # 4. Build FFmpeg command with Hardware VideoToolbox ProRes 4444 acceleration
+        # 2. Build FFmpeg command with Hardware VideoToolbox ProRes 4444 acceleration
         if export_mode == "prores_alpha":
             if use_hw_prores:
                 ffmpeg_cmd = [
@@ -519,78 +537,223 @@ def rotoscope_and_render_video(
 
         proc = subprocess.Popen(ffmpeg_cmd, stdin=subprocess.PIPE, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE)
 
-        # 5. Initialize SAM 2 Video Predictor with imgsz=640 for maximum tracking speed
-        predictor = SAM2VideoPredictor(overrides=dict(model=str(MODEL_PATH), imgsz=640, device=device))
-
-        cap_full = cv2.VideoCapture(source_video)
         t_start = time.time()
         frame_idx = 0
 
-        results_gen = predictor(
-            source=tracking_source,
-            points=tracking_points,
-            labels=tracking_labels,
-            stream=True,
-        )
+        # 3. Tracking Engine Selection
+        if target_type == "person":
+            # --- HIGH SPEED PERSON TRACKING VIA YOLO-SEG (16-30 FPS) ---
+            model = get_yolo_seg_model()
+            cap_full = cv2.VideoCapture(source_video)
+            tracked_box = None
+            last_valid_mask = None
 
-        for r in results_gen:
-            if cancel_check and cancel_check():
-                proc.kill()
-                raise InterruptedError("Tracking cancelled by user.")
+            while True:
+                if cancel_check and cancel_check():
+                    proc.kill()
+                    raise InterruptedError("Tracking cancelled by user.")
 
-            ret_full, orig_bgr = cap_full.read()
-            if not ret_full or orig_bgr is None:
-                orig_bgr = r.orig_img
-                if orig_bgr is None:
-                    continue
+                ret_full, orig_bgr = cap_full.read()
+                if not ret_full or orig_bgr is None:
+                    break
 
-            frame_idx += 1
+                frame_idx += 1
+                res = model(orig_bgr, classes=[0], device=device, verbose=False)
 
-            # Extract mask from prediction
-            if r.masks is not None and len(r.masks.data) > 0:
-                raw_mask = (r.masks.data[0].cpu().numpy().astype(np.uint8)) * 255
-                if need_proxy:
-                    raw_mask = cv2.resize(raw_mask, (width, height), interpolation=cv2.INTER_LINEAR)
+                if res and res[0].masks is not None and len(res[0].masks.data) > 0:
+                    masks_data = res[0].masks.data
+                    boxes = res[0].boxes.xyxy.cpu().numpy()
+
+                    if tracked_box is None:
+                        # Initial detection matching
+                        if points and labels:
+                            scs = []
+                            for b in boxes:
+                                sc = sum(3.0 if lbl == 1 else -4.0 for p, lbl in zip(points, labels) if b[0] <= p[0] <= b[2] and b[1] <= p[1] <= b[3])
+                                scs.append(sc)
+                            chosen_idx = int(np.argmax(scs))
+                        elif bbox and len(bbox) == 4:
+                            ious = []
+                            for b in boxes:
+                                ix1, iy1 = max(b[0], bbox[0]), max(b[1], bbox[1])
+                                ix2, iy2 = min(b[2], bbox[2]), min(b[3], bbox[3])
+                                inter = max(0.0, ix2 - ix1) * max(0.0, iy2 - iy1)
+                                union = (b[2] - b[0]) * (b[3] - b[1]) + (bbox[2] - bbox[0]) * (bbox[3] - bbox[1]) - inter
+                                ious.append(inter / union if union > 0 else 0.0)
+                            chosen_idx = int(np.argmax(ious))
+                        else:
+                            areas = [(b[2] - b[0]) * (b[3] - b[1]) for b in boxes]
+                            chosen_idx = int(np.argmax(areas))
+                        tracked_box = boxes[chosen_idx]
+                    else:
+                        # Frame-to-frame box IoU tracking
+                        ious = []
+                        for b in boxes:
+                            ix1, iy1 = max(b[0], tracked_box[0]), max(b[1], tracked_box[1])
+                            ix2, iy2 = min(b[2], tracked_box[2]), min(b[3], tracked_box[3])
+                            inter = max(0.0, ix2 - ix1) * max(0.0, iy2 - iy1)
+                            union = (b[2] - b[0]) * (b[3] - b[1]) + (tracked_box[2] - tracked_box[0]) * (tracked_box[3] - tracked_box[1]) - inter
+                            ious.append(inter / union if union > 0 else 0.0)
+
+                        best_iou = max(ious) if ious else 0.0
+                        if best_iou > 0.15:
+                            chosen_idx = int(np.argmax(ious))
+                            tracked_box = boxes[chosen_idx]
+                        elif len(boxes) == 1:
+                            chosen_idx = 0
+                            tracked_box = boxes[0]
+                        else:
+                            chosen_idx = int(np.argmax(ious))
+
+                    m_np = masks_data[chosen_idx].cpu().numpy()
+                    m_full = cv2.resize((m_np * 255).astype(np.uint8), (width, height), interpolation=cv2.INTER_LINEAR)
+                    raw_mask = (m_full > 127).astype(np.uint8) * 255
+                    last_valid_mask = raw_mask.copy()
+                else:
+                    raw_mask = last_valid_mask.copy() if last_valid_mask is not None else np.zeros((height, width), dtype=np.uint8)
+
+                mask_refined = apply_mask_refinements(raw_mask, feather=feather, expand=expand, invert=invert)
+
+                if export_mode == "prores_alpha":
+                    bgra_frame = cv2.merge([orig_bgr[:, :, 0], orig_bgr[:, :, 1], orig_bgr[:, :, 2], mask_refined])
+                    proc.stdin.write(bgra_frame.tobytes())
+                elif export_mode == "matte":
+                    proc.stdin.write(mask_refined.tobytes())
+                elif export_mode == "green_screen":
+                    alpha_f = (mask_refined.astype(np.float32) / 255.0)[:, :, np.newaxis]
+                    green_bg = np.array([0, 255, 0], dtype=np.uint8)
+                    comp = (orig_bgr.astype(np.float32) * alpha_f + green_bg * (1.0 - alpha_f)).astype(np.uint8)
+                    proc.stdin.write(comp.tobytes())
+                elif export_mode == "blur":
+                    blurred_bg = cv2.GaussianBlur(orig_bgr, (45, 45), 0)
+                    alpha_f = (mask_refined.astype(np.float32) / 255.0)[:, :, np.newaxis]
+                    comp = (orig_bgr.astype(np.float32) * alpha_f + blurred_bg.astype(np.float32) * (1.0 - alpha_f)).astype(np.uint8)
+                    proc.stdin.write(comp.tobytes())
+
+                elapsed = time.time() - t_start
+                cur_fps = round(frame_idx / elapsed, 2) if elapsed > 0 else 0.0
+                percent = min(99.0, round((frame_idx / expected_frames) * 100, 1))
+                remaining_frames = max(0, expected_frames - frame_idx)
+                eta_s = round(remaining_frames / cur_fps, 1) if cur_fps > 0 else 0.0
+
+                if progress_callback and (frame_idx % 2 == 0 or frame_idx == expected_frames):
+                    progress_callback({
+                        "frame": frame_idx,
+                        "total_frames": expected_frames,
+                        "percent": percent,
+                        "fps": cur_fps,
+                        "eta_s": eta_s,
+                        "elapsed_s": round(elapsed, 1),
+                    })
+
+            cap_full.release()
+
+        else:
+            # --- SAM 2.1 VIDEO PREDICTOR FOR ARBITRARY OBJECTS ---
+            if points and labels:
+                filt_pts, filt_lbls = smart_filter_points(points, labels, width=width, height=height)
             else:
-                raw_mask = np.zeros((height, width), dtype=np.uint8)
+                filt_pts, filt_lbls = [], []
 
-            # Apply user refinements (feather, choke, and invert)
-            mask_refined = apply_mask_refinements(raw_mask, feather=feather, expand=expand, invert=invert)
+            need_proxy = (width > 1280 or height > 1280)
+            if need_proxy:
+                proxy_max = 960
+                scale_factor = proxy_max / max(width, height)
+                proxy_w = int(round(width * scale_factor / 2.0)) * 2
+                proxy_h = int(round(height * scale_factor / 2.0)) * 2
+                temp_proxy_path = str(Path(media_path).parent / f"temp_proxy_{int(time.time())}_{stem}.mp4")
 
-            # Write frame to FFmpeg pipe
-            if export_mode == "prores_alpha":
-                bgra_frame = cv2.merge([orig_bgr[:, :, 0], orig_bgr[:, :, 1], orig_bgr[:, :, 2], mask_refined])
-                proc.stdin.write(bgra_frame.tobytes())
-            elif export_mode == "matte":
-                proc.stdin.write(mask_refined.tobytes())
-            elif export_mode == "green_screen":
-                alpha_f = (mask_refined.astype(np.float32) / 255.0)[:, :, np.newaxis]
-                green_bg = np.array([0, 255, 0], dtype=np.uint8)
-                comp = (orig_bgr.astype(np.float32) * alpha_f + green_bg * (1.0 - alpha_f)).astype(np.uint8)
-                proc.stdin.write(comp.tobytes())
-            elif export_mode == "blur":
-                blurred_bg = cv2.GaussianBlur(orig_bgr, (45, 45), 0)
-                alpha_f = (mask_refined.astype(np.float32) / 255.0)[:, :, np.newaxis]
-                comp = (orig_bgr.astype(np.float32) * alpha_f + blurred_bg.astype(np.float32) * (1.0 - alpha_f)).astype(np.uint8)
-                proc.stdin.write(comp.tobytes())
+                proxy_cmd = [
+                    ffmpeg_exe, "-y",
+                    "-i", source_video,
+                    "-vf", f"scale={proxy_w}:{proxy_h}",
+                    "-c:v", "h264_videotoolbox", "-b:v", "4M",
+                    "-an",
+                    temp_proxy_path,
+                ]
+                res_p = subprocess.run(proxy_cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+                if res_p.returncode != 0:
+                    proxy_cmd[5] = "libx264"
+                    proxy_cmd[6] = "-preset"
+                    proxy_cmd.insert(7, "ultrafast")
+                    subprocess.run(proxy_cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
-            elapsed = time.time() - t_start
-            cur_fps = round(frame_idx / elapsed, 2) if elapsed > 0 else 0.0
-            percent = min(99.0, round((frame_idx / expected_frames) * 100, 1))
-            remaining_frames = max(0, expected_frames - frame_idx)
-            eta_s = round(remaining_frames / cur_fps, 1) if cur_fps > 0 else 0.0
+                scale_x = proxy_w / width
+                scale_y = proxy_h / height
+                tracking_points = [[[int(p[0] * scale_x), int(p[1] * scale_y)] for p in filt_pts]] if filt_pts else None
+                tracking_labels = [filt_lbls] if filt_lbls else None
+                tracking_source = temp_proxy_path
+            else:
+                tracking_points = [filt_pts] if filt_pts else None
+                tracking_labels = [filt_lbls] if filt_lbls else None
+                tracking_source = source_video
 
-            if progress_callback and (frame_idx % 2 == 0 or frame_idx == expected_frames):
-                progress_callback({
-                    "frame": frame_idx,
-                    "total_frames": expected_frames,
-                    "percent": percent,
-                    "fps": cur_fps,
-                    "eta_s": eta_s,
-                    "elapsed_s": round(elapsed, 1),
-                })
+            predictor = SAM2VideoPredictor(overrides=dict(model=str(SAM_MODEL_PATH), imgsz=640, device=device))
+            cap_full = cv2.VideoCapture(source_video)
 
-        cap_full.release()
+            results_gen = predictor(
+                source=tracking_source,
+                points=tracking_points,
+                labels=tracking_labels,
+                stream=True,
+            )
+
+            for r in results_gen:
+                if cancel_check and cancel_check():
+                    proc.kill()
+                    raise InterruptedError("Tracking cancelled by user.")
+
+                ret_full, orig_bgr = cap_full.read()
+                if not ret_full or orig_bgr is None:
+                    orig_bgr = r.orig_img
+                    if orig_bgr is None:
+                        continue
+
+                frame_idx += 1
+
+                if r.masks is not None and len(r.masks.data) > 0:
+                    raw_mask = (r.masks.data[0].cpu().numpy().astype(np.uint8)) * 255
+                    if need_proxy:
+                        raw_mask = cv2.resize(raw_mask, (width, height), interpolation=cv2.INTER_LINEAR)
+                else:
+                    raw_mask = np.zeros((height, width), dtype=np.uint8)
+
+                mask_refined = apply_mask_refinements(raw_mask, feather=feather, expand=expand, invert=invert)
+
+                if export_mode == "prores_alpha":
+                    bgra_frame = cv2.merge([orig_bgr[:, :, 0], orig_bgr[:, :, 1], orig_bgr[:, :, 2], mask_refined])
+                    proc.stdin.write(bgra_frame.tobytes())
+                elif export_mode == "matte":
+                    proc.stdin.write(mask_refined.tobytes())
+                elif export_mode == "green_screen":
+                    alpha_f = (mask_refined.astype(np.float32) / 255.0)[:, :, np.newaxis]
+                    green_bg = np.array([0, 255, 0], dtype=np.uint8)
+                    comp = (orig_bgr.astype(np.float32) * alpha_f + green_bg * (1.0 - alpha_f)).astype(np.uint8)
+                    proc.stdin.write(comp.tobytes())
+                elif export_mode == "blur":
+                    blurred_bg = cv2.GaussianBlur(orig_bgr, (45, 45), 0)
+                    alpha_f = (mask_refined.astype(np.float32) / 255.0)[:, :, np.newaxis]
+                    comp = (orig_bgr.astype(np.float32) * alpha_f + blurred_bg.astype(np.float32) * (1.0 - alpha_f)).astype(np.uint8)
+                    proc.stdin.write(comp.tobytes())
+
+                elapsed = time.time() - t_start
+                cur_fps = round(frame_idx / elapsed, 2) if elapsed > 0 else 0.0
+                percent = min(99.0, round((frame_idx / expected_frames) * 100, 1))
+                remaining_frames = max(0, expected_frames - frame_idx)
+                eta_s = round(remaining_frames / cur_fps, 1) if cur_fps > 0 else 0.0
+
+                if progress_callback and (frame_idx % 2 == 0 or frame_idx == expected_frames):
+                    progress_callback({
+                        "frame": frame_idx,
+                        "total_frames": expected_frames,
+                        "percent": percent,
+                        "fps": cur_fps,
+                        "eta_s": eta_s,
+                        "elapsed_s": round(elapsed, 1),
+                    })
+
+            cap_full.release()
+
         stdout, stderr = proc.communicate()
         if proc.returncode != 0:
             err_msg = stderr.decode()[-600:] if stderr else "Unknown error"

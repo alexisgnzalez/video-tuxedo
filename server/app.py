@@ -133,6 +133,7 @@ class MagicMaskPreviewRequest(BaseModel):
     feather: Optional[int] = 3
     expand: Optional[int] = 0
     invert: Optional[bool] = False
+    target_type: Optional[str] = "person"
 
 
 class MagicMaskTrackRenderRequest(BaseModel):
@@ -144,6 +145,7 @@ class MagicMaskTrackRenderRequest(BaseModel):
     feather: Optional[int] = 3
     expand: Optional[int] = 0
     invert: Optional[bool] = False
+    target_type: Optional[str] = "person"
     start_time: Optional[float] = 0.0
     end_time: Optional[float] = None
     filename: Optional[str] = None
@@ -684,6 +686,7 @@ def segment_preview_endpoint(req: MagicMaskPreviewRequest):
             feather=req.feather or 3,
             expand=req.expand or 0,
             invert=req.invert or False,
+            target_type=req.target_type or "person",
         )
         return res
     except Exception as e:
@@ -733,6 +736,7 @@ def track_and_render_endpoint(req: MagicMaskTrackRenderRequest):
                 feather=req.feather or 3,
                 expand=req.expand or 0,
                 invert=req.invert or False,
+                target_type=req.target_type or "person",
                 start_time=req.start_time or 0.0,
                 end_time=req.end_time,
                 output_filename=req.filename,
