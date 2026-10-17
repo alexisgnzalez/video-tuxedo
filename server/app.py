@@ -127,19 +127,23 @@ class MagicMaskExtractFrameRequest(BaseModel):
 class MagicMaskPreviewRequest(BaseModel):
     media_path: str
     timestamp_s: float
-    points: List[List[float]]
-    labels: List[int]
+    points: Optional[List[List[float]]] = None
+    labels: Optional[List[int]] = None
+    bbox: Optional[List[float]] = None
     feather: Optional[int] = 3
     expand: Optional[int] = 0
+    invert: Optional[bool] = False
 
 
 class MagicMaskTrackRenderRequest(BaseModel):
     media_path: str
-    points: List[List[float]]
-    labels: List[int]
+    points: Optional[List[List[float]]] = None
+    labels: Optional[List[int]] = None
+    bbox: Optional[List[float]] = None
     export_mode: Optional[str] = "prores_alpha"
     feather: Optional[int] = 3
     expand: Optional[int] = 0
+    invert: Optional[bool] = False
     start_time: Optional[float] = 0.0
     end_time: Optional[float] = None
     filename: Optional[str] = None
@@ -676,8 +680,10 @@ def segment_preview_endpoint(req: MagicMaskPreviewRequest):
             timestamp_s=req.timestamp_s,
             points=req.points,
             labels=req.labels,
+            bbox=req.bbox,
             feather=req.feather or 3,
             expand=req.expand or 0,
+            invert=req.invert or False,
         )
         return res
     except Exception as e:
@@ -722,9 +728,11 @@ def track_and_render_endpoint(req: MagicMaskTrackRenderRequest):
                 media_path=path,
                 points=req.points,
                 labels=req.labels,
+                bbox=req.bbox,
                 export_mode=req.export_mode or "prores_alpha",
                 feather=req.feather or 3,
                 expand=req.expand or 0,
+                invert=req.invert or False,
                 start_time=req.start_time or 0.0,
                 end_time=req.end_time,
                 output_filename=req.filename,

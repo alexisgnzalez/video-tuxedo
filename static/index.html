@@ -902,24 +902,43 @@
           <!-- LEFT COLUMN: Interactive Drawing Viewport -->
           <div class="glass-panel" style="padding: 1.25rem;">
 
-            <!-- Brush Toolbar -->
+            <!-- Pro Tip Guidance Banner -->
+            <div style="background: rgba(217, 119, 87, 0.08); border: 1px solid rgba(217, 119, 87, 0.22); border-radius: var(--radius-xs); padding: 0.55rem 0.85rem; font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.85rem; display: flex; align-items: center; gap: 0.5rem;">
+              <span style="font-size: 1.1rem;">💡</span>
+              <span><strong>Pro Tip:</strong> Draw a single stroke down the <em>center</em> of your subject (face, body, or product), or drag a box over it. You do not need to trace edges!</span>
+            </div>
+
+            <!-- Brush & Tool Toolbar -->
             <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 0.75rem; margin-bottom: 1rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border-subtle);">
               
-              <!-- Brush Type Selector -->
-              <div style="display: flex; gap: 0.5rem;">
+              <!-- Mode: Brush vs Box vs Lasso -->
+              <div style="display: flex; gap: 0.4rem;">
+                <button class="btn-brush active" id="mmToolBrushBtn" title="Brush / Scribble Tool">
+                  🖌️ Brush
+                </button>
+                <button class="btn-brush" id="mmToolBoxBtn" title="Drag a rectangle around your subject">
+                  ⬚ Box Select
+                </button>
+                <button class="btn-brush" id="mmToolLassoBtn" title="Draw a loop around your subject">
+                  ⭕ Lasso Loop
+                </button>
+              </div>
+
+              <!-- Foreground / Background Color Toggle -->
+              <div style="display: flex; gap: 0.4rem;">
                 <button class="btn-brush active" id="mmBrushKeepBtn" title="Stroke on subject to KEEP (Foreground)">
                   <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #10b981; margin-right: 0.35rem;"></span>
-                  Keep Subject
+                  Keep
                 </button>
                 <button class="btn-brush" id="mmBrushExcludeBtn" title="Stroke on background to EXCLUDE">
                   <span style="display: inline-block; width: 10px; height: 10px; border-radius: 50%; background: #ef4444; margin-right: 0.35rem;"></span>
-                  Exclude Background
+                  Exclude
                 </button>
               </div>
 
               <!-- Brush Size Selector -->
-              <div style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--text-secondary);">
-                <span>Brush:</span>
+              <div id="mmBrushSizeContainer" style="display: flex; align-items: center; gap: 0.4rem; font-size: 0.8rem; color: var(--text-secondary);">
+                <span>Size:</span>
                 <button class="btn-size" data-size="8" id="mmSizeSmallBtn">8px</button>
                 <button class="btn-size active" data-size="20" id="mmSizeMedBtn">20px</button>
                 <button class="btn-size" data-size="45" id="mmSizeLargeBtn">45px</button>
@@ -936,14 +955,14 @@
               </div>
             </div>
 
-            <!-- Canvas Viewport Box -->
-            <div class="mm-canvas-container" id="mmCanvasContainer" style="position: relative; width: 100%; aspect-ratio: 16/9; background: #0c0c0b; border-radius: var(--radius-sm); overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: crosshair;">
+            <!-- Canvas Viewport Box (Aspect ratio adjusts to loaded video) -->
+            <div class="mm-canvas-container" id="mmCanvasContainer" style="position: relative; width: 100%; max-height: 72vh; min-height: 380px; background: #0c0c0b; border-radius: var(--radius-sm); overflow: hidden; display: flex; align-items: center; justify-content: center; cursor: crosshair;">
               
               <!-- Hidden Video Element for seeking frames -->
               <video id="mmVideo" preload="auto" playsinline style="display: none;"></video>
               
               <!-- Interactive Drawing Canvas -->
-              <canvas id="mmCanvas" style="max-width: 100%; max-height: 100%; display: block; object-fit: contain;"></canvas>
+              <canvas id="mmCanvas" style="max-width: 100%; max-height: 72vh; display: block; object-fit: contain;"></canvas>
 
               <!-- Loading / Segmenting Spinner Overlay -->
               <div id="mmSegmentLoading" style="position: absolute; top: 1rem; right: 1rem; background: rgba(20, 20, 19, 0.85); backdrop-filter: blur(8px); padding: 0.4rem 0.75rem; border-radius: var(--radius-full); font-size: 0.78rem; color: var(--text-light); display: none; align-items: center; gap: 0.5rem; border: 1px solid var(--border-dark);">
@@ -956,7 +975,7 @@
                 <div style="font-size: 2rem; margin-bottom: 0.5rem;">🪄</div>
                 <h3 style="font-size: 1.05rem; font-weight: 700; margin-bottom: 0.25rem; color: #FAF9F5;">Draw a Stroke on Your Subject</h3>
                 <p style="font-size: 0.85rem; color: var(--text-light-muted); max-width: 320px;">
-                  Drag your mouse over the person or product you want to isolate. Green adds foreground; red excludes background.
+                  Paint down the center of the person or drag a box. Green keeps foreground, red removes background.
                 </p>
               </div>
 
@@ -1016,6 +1035,18 @@
                 <p style="font-size: 0.72rem; color: var(--text-muted); margin-top: 0.2rem;">
                   Negative values choke the mask inwards to remove halo fringes; positive values expand it.
                 </p>
+              </div>
+
+              <!-- Invert Mask Polarity Toggle -->
+              <div style="margin-top: 1rem; padding-top: 0.85rem; border-top: 1px solid var(--border-subtle); display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                  <span style="font-size: 0.82rem; font-weight: 600; display: block;">Invert Alpha</span>
+                  <span style="font-size: 0.72rem; color: var(--text-muted);">Swap subject & background</span>
+                </div>
+                <button class="btn-secondary" id="mmInvertMaskBtn" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; display: flex; align-items: center; gap: 0.35rem;" title="Invert mask polarity">
+                  <span>⇄</span>
+                  <span id="mmInvertStatus">Invert</span>
+                </button>
               </div>
             </div>
 
