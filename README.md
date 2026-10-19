@@ -99,11 +99,63 @@ Point-and-click AI rotoscoper inspired by DaVinci Resolve Studio's Magic Mask. P
 
 ---
 
+### 4. 📐 Motion Graphics Studio (Remotion + DaVinci Resolve Free) *(New!)*
+A procedural motion graphics engine and interactive web studio inspired by **1950s Caracas Mid-Century Modern Travel Posters** (*"El Ávila y su cinetismo"*, *"Petare y su modernismo"*), **Venezuelan Kinetic Art** (Cruz-Diez, Soto, Gego), and **Tropical Brutalism** (Villanueva). Engineered specifically for **9:16 vertical short-form video** (TikTok, Reels, Shorts) to frame and complement talking-head creators.
+
+- **Subject-Respecting Safe Zones**:
+  - Dynamically respects the speaker's face, eyes, and chest using an Exclusion Zone (`X: 180–900, Y: 420–1420`).
+  - Active graphic placement across designated zones: **Zone T** (Canopy/Header), **Zone L** (Left Shoulder Flank), **Zone R** (Right Shoulder Flank), **Zone B** (Lower Third / Captions), and **Zone FULL** (Full-bleed poster plate).
+  - Platform margin presets for **TikTok / Reels** (clearing UI buttons & captions) or **Clean / Raw**.
+  - Optional YOLOv8 AI subject tracking to dynamically adapt zones across movement.
+- **13 Modular Kinetic Components**:
+  - `PosterTitleCard`: Iconic mid-century travel poster header on skyTeal with Soto vibration lines and cream clouds.
+  - `AvilaFacetCard`: Brutalist mountain-top information card with staggered bullet points.
+  - `BrutalistLowerThird`: Heavy concrete and terracotta lower-third slab with animated optical stripe spine.
+  - `CruzDiezBadge`: Rotating circular/octagonal moiré stripe badge with Physichromie color cycling.
+  - `ViaductProgress`: Elevated concrete viaduct highway tracking video chapters with an animated marker node.
+  - `GegoMeshPointer`: Parabolic ruled-surface wireframe mesh connecting speaker shoulder to callout cards.
+  - `CruzDiezWall`: Architectural Physichromie wall with vertical columns and a 45° diagonal slice.
+  - `AvilaPeak`: Faceted mountain summit with Hotel Humboldt monument tower and stepped 12fps entrance.
+  - `PetareHill`: Procedural hillside community of modular cubic homes with dark windows and zig-zag staircases.
+  - `ViaductSweep`: Sweeping elevated concrete viaduct with pillars, Gego hanging nets, vintage car, and cyclist.
+  - `HyparNet`: Hyperbolic paraboloid ruled wire mesh or rotating wireframe polyhedron.
+  - `ForegroundFrame`: Stone masonry wall and tropical foliage framing the lower chest and shoulders.
+  - `KineticCaption`: Brutalist word-by-word active highlighted captions synced with speech timecodes.
+- **Offline Spanish Speech-to-Visual Rule Engine**:
+  - Automatically drafts a complete Scene Plan JSON from subtitles (`.srt`) or auto-transcribes via local Whisper.
+  - Spanish lexicon triggers appropriate visual metaphors (e.g., "crecimiento / comunidad / modular" → `PetareHill`; "conectar / camino / progreso" → `ViaductSweep` or `ViaductProgress`; "cinético / arte / color" → `CruzDiezWall`; "clave / primero" → `AvilaFacetCard`).
+- **Physical Modeling SFX Synthesis**:
+  - 20 synthesized `.wav` audio files (4 round-robin acoustic variants per instrument) generated with zero cloud dependencies:
+    - `SFX_PAPER_SNAP`: Crisp vintage cardstock snap & card flip.
+    - `SFX_BRUTAL_THUD`: Heavy low-end mechanical architectural stamp.
+    - `SFX_WIRE_SWISH`: Metallic springy ruled-surface whoosh.
+    - `SFX_TYPE_CLACK`: Mechanical letterpress typewriter clack.
+    - `SFX_KINETIC_HUM`: Warm analog synth optical shimmer.
+  - Drop-in custom foley slot (`public/sfx/user_foley_*.wav`) for user field recordings.
+- **Interactive In-Browser Studio UI**:
+  - Live preview powered by bundled `@remotion/player`.
+  - Multi-lane interactive timeline (Track 1 Headers, Track 2 Left Flank, Track 3 Right Flank, Track 4 Lower Thirds, Track 5 Audio SFX).
+  - Component Inspector: live edit props, titles, subtitles, bullets, colors, and SFX triggers.
+  - Asset Library sidebar: one-click preview and insertion of any component from the registry.
+- **⚡ Apple ProRes 4444 (.MOV) with 10-Bit Alpha**:
+  - Headless Remotion rendering engine exports QuickTime ProRes 4444 (`yuva444p10le`) with synchronized SFX audio.
+  - Zero green screen, zero keying, and 100% native transparency.
+  - Rendered files save automatically directly to your macOS `~/Downloads/` directory.
+
+#### 💡 How to Use Motion Overlays in DaVinci Resolve Free:
+1. Drag the exported `*_motion_overlay.mov` into your **Media Pool**.
+2. Place your talking head video clip on **Video Track 1 (V1)** and its audio on **Audio Track 1 (A1)**.
+3. Drag the motion overlay clip onto **Video Track 2 (V2)** directly above your footage. Its synchronized sound effects will automatically populate **Audio Track 2 (A2)**.
+4. The graphics, posters, and animations appear with 100% native transparency over your video with no keying or paid Studio license required!
+
+---
+
 ### 🔮 Roadmap & Upcoming Tools
 
 - [x] **Auto Subtitles for DaVinci Resolve Free** (Waveform-aligned Whisper AI speech-to-text)
 - [x] **Silence Cutter & Jump Cuts** (100% Lossless DaVinci FCPXML/EDL, Single/Multipart MP4, Synced SRT)
 - [x] **Magic Mask & AI Rotoscoper** (Apple ProRes 4444 10-bit Alpha, B&W Matte, Green Screen, Blur)
+- [x] **Motion Graphics Studio** (Caracas Mid-Century Kinetic Poster, 9:16 Vertical, Remotion, ProRes 4444 Alpha)
 - [ ] **AI Video Eye Contact Fix**: Local gaze redirection for talking head videos.
 
 ---

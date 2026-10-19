@@ -182,6 +182,48 @@
           </button>
         </article>
 
+        <!-- Tool 4: Motion Graphics Studio (NEW) -->
+        <article class="tool-card active-feature" id="toolCardMotion">
+          <div class="tool-header">
+            <div class="tool-icon-wrapper">
+              <!-- Film / Kinetic Poster Icon -->
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="2" width="20" height="20" rx="2.18" ry="2.18"></rect>
+                <line x1="7" y1="2" x2="7" y2="22"></line>
+                <line x1="17" y1="2" x2="17" y2="22"></line>
+                <line x1="2" y1="12" x2="22" y2="12"></line>
+                <line x1="2" y1="7" x2="7" y2="7"></line>
+                <line x1="2" y1="17" x2="7" y2="17"></line>
+                <line x1="17" y1="17" x2="22" y2="17"></line>
+                <line x1="17" y1="7" x2="22" y2="7"></line>
+              </svg>
+            </div>
+            <span class="badge-status badge-ready">● New Feature</span>
+          </div>
+
+          <div class="tool-body">
+            <span class="tool-category">Motion Graphics & VFX</span>
+            <h2 class="tool-name">Motion Graphics Studio</h2>
+            <p class="tool-desc">
+              Procedural Mid-Century Kinetic Poster motion graphics (Remotion). Generates El Ávila mountains, Petare houses, Cruz-Diez moiré stripes and Spanish SRT triggers exported to ProRes 4444 Alpha.
+            </p>
+            <div class="tool-feature-pills">
+              <span class="feature-pill">🇻🇪 Venezuelan Cinetismo</span>
+              <span class="feature-pill">📱 9:16 Vertical Safe Zones</span>
+              <span class="feature-pill">⚡ Remotion Live Player</span>
+              <span class="feature-pill">🎬 ProRes 4444 Alpha</span>
+            </div>
+          </div>
+
+          <button class="tool-action-btn btn-primary" id="launchMotionBtn">
+            Open Motion Studio
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="5" y1="12" x2="19" y2="12"></line>
+              <polyline points="12 5 19 12 12 19"></polyline>
+            </svg>
+          </button>
+        </article>
+
 
       </div>
     </section>
@@ -1382,15 +1424,273 @@
     </div>
   </div>
 
+    <!-- VIEW 5: MOTION GRAPHICS STUDIO (NEW) -->
+    <section class="view-container" id="motionToolView">
+      <div class="tool-view-header">
+        <div class="tool-view-title-group">
+          <h1>
+            <span>🎞️</span> Motion Graphics Studio
+          </h1>
+          <p class="tool-view-subtitle">
+            Venezuelan Mid-Century Kinetic Poster motion graphics with subject-respecting 9:16 safe zones and Apple ProRes 4444 Alpha export.
+          </p>
+        </div>
+        <div class="tool-view-actions">
+          <button class="btn-ghost" id="backFromMotionToLauncherBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <line x1="19" y1="12" x2="5" y2="12"></line>
+              <polyline points="12 19 5 12 12 5"></polyline>
+            </svg>
+            Back to Launcher
+          </button>
+        </div>
+      </div>
+
+      <!-- LOAD STEP -->
+      <div id="motionLoadStep" class="motion-load-card">
+        <div class="motion-load-header">
+          <h3>1. Load Talking-Head Video & Subtitles</h3>
+          <p>Provide a vertical (9:16) video from your Mac. If no .SRT subtitle file is supplied, local Whisper will transcribe it automatically.</p>
+        </div>
+
+        <div class="path-input-group" style="margin-bottom: 1.25rem;">
+          <input
+            type="text"
+            id="motionPathInput"
+            class="input-text"
+            placeholder="e.g. /Users/alexisgonzalez/Downloads/talking_head.mp4"
+          />
+          <button class="btn-primary" id="motionLoadPathBtn">Load & Track Subject</button>
+        </div>
+
+        <div class="path-input-group" style="margin-bottom: 1.5rem;">
+          <input
+            type="text"
+            id="motionSrtPathInput"
+            class="input-text"
+            placeholder="Optional .SRT file path (e.g. /Users/alexisgonzalez/Downloads/subtitles.srt)"
+          />
+        </div>
+
+        <div class="dropzone" id="motionDropzone" style="padding: 2rem 1.5rem;">
+          <div class="dropzone-icon">📹</div>
+          <h4>Drag & Drop your video file here</h4>
+          <p class="dropzone-hint">Supports .mp4, .mov, .webm, .mkv</p>
+          <input type="file" id="motionFileInput" accept="video/*" style="display: none;" />
+        </div>
+      </div>
+
+      <!-- WORKSPACE STEP (Grid Layout) -->
+      <div id="motionWorkspaceStep" class="motion-workspace-layout" style="display: none;">
+        <!-- Top Control Bar -->
+        <div class="motion-top-bar">
+          <div class="motion-info-group">
+            <span class="motion-badge" id="motionSlugText">Project</span>
+            <span class="motion-badge motion-badge-accent" id="motionFpsBadge">30 FPS</span>
+            <span class="motion-badge" id="motionDurationBadge">0s</span>
+          </div>
+
+          <div class="motion-config-group">
+            <label class="motion-config-label">Mode:</label>
+            <select id="motionDepthModeSelect" class="motion-select">
+              <option value="z-foreground">Mode 1: Transparent Overlay (V2)</option>
+              <option value="z-frame">Mode 2: Kinetic Cutout Frame</option>
+              <option value="z-background">Mode 3: Background Poster Plate</option>
+            </select>
+
+            <label class="motion-config-label">Safe Margin:</label>
+            <select id="motionPlatformSelect" class="motion-select">
+              <option value="tiktok_reels">TikTok / Reels (9:16)</option>
+              <option value="linkedin_youtube">YouTube / LinkedIn (9:16)</option>
+              <option value="clean_9_16">Clean Master (9:16)</option>
+            </select>
+
+            <label class="motion-checkbox-label">
+              <input type="checkbox" id="motionSafeZoneToggle" checked />
+              Safe Zones
+            </label>
+
+            <label class="motion-checkbox-label">
+              <input type="checkbox" id="motionShowVideoToggle" checked />
+              Source Video
+            </label>
+          </div>
+
+          <div class="motion-action-group">
+            <button class="btn-ghost" id="motionRedraftBtn" title="Re-analyze transcript and refresh visual triggers">
+              🔄 Re-draft from SRT
+            </button>
+            <button class="btn-primary" id="motionRenderBtn">
+              🎬 Render ProRes 4444 Alpha
+            </button>
+          </div>
+        </div>
+
+        <!-- Main Body: Player Column (Left) + Sidebar (Right) -->
+        <div class="motion-main-body">
+          <!-- Left: 9:16 Remotion Player -->
+          <div class="motion-player-column">
+            <div class="motion-player-frame" id="motionPlayerContainer">
+              <!-- Remotion Player mounts here -->
+            </div>
+
+            <!-- Player Transport Controls -->
+            <div class="motion-player-controls">
+              <button class="btn-ghost" id="motionStepBackBtn" title="Step Back 1 frame (Left Arrow)">◀</button>
+              <button class="btn-primary" id="motionPlayBtn" style="min-width: 110px;">▶ Play</button>
+              <button class="btn-ghost" id="motionStepFwdBtn" title="Step Forward 1 frame (Right Arrow)">▶</button>
+              <span class="motion-timecode" id="motionTimecodeText">00:00:00.00</span>
+              <span class="motion-frame-counter" id="motionFrameText">F: 0</span>
+            </div>
+          </div>
+
+          <!-- Right: Inspector & Asset Library Sidebar -->
+          <div class="motion-sidebar-column">
+            <div class="motion-tabs-header">
+              <button class="motion-tab-btn active" id="motionInspectorTabBtn">Inspector</button>
+              <button class="motion-tab-btn" id="motionLibraryTabBtn">Asset Library</button>
+            </div>
+
+            <!-- Inspector Pane -->
+            <div id="motionInspectorPane" class="motion-tab-pane">
+              <div class="motion-field-row">
+                <label class="motion-field-label">Component</label>
+                <select id="motionActiveComponentSelect" class="motion-select" style="width: 100%;">
+                  <option value="PosterTitleCard">PosterTitleCard (Zone T)</option>
+                  <option value="AvilaFacetCard">AvilaFacetCard (Zone T)</option>
+                  <option value="CruzDiezBadge">CruzDiezBadge (Zone R)</option>
+                  <option value="BrutalistLowerThird">BrutalistLowerThird (Zone B)</option>
+                  <option value="ViaductProgress">ViaductProgress (Zone T)</option>
+                  <option value="GegoMeshPointer">GegoMeshPointer (Zone L)</option>
+                  <option value="CruzDiezWall">CruzDiezWall (Zone B)</option>
+                  <option value="AvilaPeak">AvilaPeak (Zone L)</option>
+                  <option value="PetareHill">PetareHill (Zone L)</option>
+                  <option value="ViaductSweep">ViaductSweep (Zone FULL)</option>
+                  <option value="HyparNet">HyparNet (Zone R)</option>
+                  <option value="ForegroundFrame">ForegroundFrame (Zone B)</option>
+                </select>
+              </div>
+
+              <div class="motion-field-row">
+                <label class="motion-field-label">Zone</label>
+                <select id="motionActiveZoneSelect" class="motion-select">
+                  <option value="T">Zone T (Canopy / Header)</option>
+                  <option value="L">Zone L (Left Shoulder)</option>
+                  <option value="R">Zone R (Right Shoulder)</option>
+                  <option value="B">Zone B (Lower Third)</option>
+                  <option value="FULL">Zone FULL (Full Canvas)</option>
+                </select>
+              </div>
+
+              <div class="motion-field-row-split">
+                <div>
+                  <label class="motion-field-label">Start Frame</label>
+                  <input type="number" id="motionActiveStartInput" class="input-text" />
+                </div>
+                <div>
+                  <label class="motion-field-label">Duration (frames)</label>
+                  <input type="number" id="motionActiveDurInput" class="input-text" />
+                </div>
+              </div>
+
+              <!-- Component Dynamic Props -->
+              <div class="motion-section-header">Component Properties</div>
+              <div id="motionActivePropsContainer"></div>
+
+              <!-- Sound Effect -->
+              <div class="motion-section-header">Attached Sound Effect (SFX)</div>
+              <div class="motion-field-row-split">
+                <div>
+                  <label class="motion-field-label">Instrument</label>
+                  <select id="motionActiveSfxSelect" class="motion-select">
+                    <option value="none">None</option>
+                    <option value="SFX_PAPER_SNAP">SFX Paper Snap</option>
+                    <option value="SFX_BRUTAL_THUD">SFX Brutal Thud</option>
+                    <option value="SFX_WIRE_SWISH">SFX Wire Swish</option>
+                    <option value="SFX_TYPE_CLACK">SFX Type Clack</option>
+                    <option value="SFX_KINETIC_HUM">SFX Kinetic Hum</option>
+                  </select>
+                </div>
+                <div>
+                  <label class="motion-field-label">Variant</label>
+                  <select id="motionActiveSfxVariantSelect" class="motion-select">
+                    <option value="1">Variant 1</option>
+                    <option value="2">Variant 2</option>
+                    <option value="3">Variant 3</option>
+                    <option value="4">Variant 4</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Scene Actions -->
+              <div class="motion-button-row">
+                <button class="btn-ghost" id="motionDuplicateSceneBtn">Duplicate Block</button>
+                <button class="btn-ghost" id="motionDeleteSceneBtn" style="color: var(--color-terracotta);">Delete Block</button>
+              </div>
+            </div>
+
+            <!-- Asset Library Pane -->
+            <div id="motionLibraryPane" class="motion-tab-pane" style="display: none;">
+              <div class="motion-hint-text">Click any component below to drop it at the current timeline playhead:</div>
+              <div class="motion-asset-grid" id="motionAssetLibraryGrid"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom: Interactive Multi-Lane Timeline -->
+        <div class="motion-timeline-section">
+          <div class="motion-timeline-toolbar">
+            <span class="motion-timeline-title">Kinetic Timeline (Spatial Lanes)</span>
+            <button class="btn-ghost" id="motionAddSceneBtn">+ Add Graphic Block</button>
+          </div>
+
+          <div class="motion-timeline-scroll" id="motionTimelineContainer">
+            <div class="motion-timeline-playhead" id="motionTimelinePlayhead"></div>
+            <div class="motion-timeline-tracks" id="motionTimelineTracks"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RENDER PROGRESS MODAL -->
+    <div class="modal-overlay" id="motionRenderModal">
+      <div class="modal-dialog" style="max-width: 520px; text-align: center;">
+        <h3>Rendering Apple ProRes 4444 Alpha</h3>
+        <p style="color: var(--color-stone-muted); margin-bottom: 1.5rem;">
+          Rendering 1080x1920 frames with transparent alpha channel and synced sound effects...
+        </p>
+
+        <div class="progress-bar-container" style="margin-bottom: 1rem;">
+          <div class="progress-bar-fill" id="motionRenderProgressBar" style="width: 0%;"></div>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem;">
+          <span id="motionRenderFrameText">Starting Remotion engine...</span>
+          <span id="motionRenderPercentText">0%</span>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--color-stone-muted); margin-bottom: 1.5rem;">
+          <span id="motionRenderFpsText">0 FPS</span>
+          <span id="motionRenderEtaText">ETA: --</span>
+        </div>
+
+        <button class="btn-ghost" id="motionRenderCancelBtn" style="color: var(--color-terracotta);">
+          Cancel Render
+        </button>
+      </div>
+    </div>
+
   <!-- Toast Notification Container -->
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Scripts -->
-  <script src="/static/js/visualizer.js?v=0.3.1"></script>
-  <script src="/static/js/subtitles.js?v=0.3.1"></script>
-  <script src="/static/js/silence_cutter.js?v=0.3.1"></script>
-  <script src="/static/js/magic_mask.js?v=0.3.1"></script>
-  <script src="/static/js/app.js?v=0.3.1"></script>
+  <script src="/static/js/visualizer.js?v=0.4.0"></script>
+  <script src="/static/js/subtitles.js?v=0.4.0"></script>
+  <script src="/static/js/silence_cutter.js?v=0.4.0"></script>
+  <script src="/static/js/magic_mask.js?v=0.4.0"></script>
+  <script src="/static/motion/player.bundle.js?v=0.4.0"></script>
+  <script src="/static/js/motion_graphics.js?v=0.4.0"></script>
+  <script src="/static/js/app.js?v=0.4.0"></script>
 </body>
 </html>
 

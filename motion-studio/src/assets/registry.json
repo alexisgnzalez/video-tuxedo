@@ -1,0 +1,228 @@
+{
+  "version": "1.0.0",
+  "components": [
+    {
+      "id": "PosterTitleCard",
+      "name": "Poster Title Card",
+      "category": "Header / Title",
+      "defaultZone": "T",
+      "componentPath": "src/assets/components/PosterTitleCard.tsx",
+      "description": "Iconic Caracas mid-century travel poster header on skyTeal with Soto vibration lines and scalloped clouds.",
+      "propsSchema": {
+        "title": { "type": "string", "default": "CARACAS" },
+        "subtitle": { "type": "string", "default": "EL ÁVILA Y SU CINETISMO" },
+        "width": { "type": "number", "default": 960 },
+        "height": { "type": "number", "default": 320 }
+      },
+      "sfxTrigger": "SFX_PAPER_SNAP"
+    },
+    {
+      "id": "AvilaFacetCard",
+      "name": "Ávila Facet Card",
+      "category": "Information Card",
+      "defaultZone": "T",
+      "componentPath": "src/assets/components/AvilaFacetCard.tsx",
+      "description": "Faceted mountain-topped brutalist card containing staggered bullet points with typewriter clack sync.",
+      "propsSchema": {
+        "heading": { "type": "string", "default": "PUNTOS CLAVE" },
+        "subheading": { "type": "string", "default": "RESUMEN" },
+        "bullets": { "type": "array", "default": ["Punto 1", "Punto 2", "Punto 3"] },
+        "width": { "type": "number", "default": 520 }
+      },
+      "sfxTrigger": "SFX_PAPER_SNAP"
+    },
+    {
+      "id": "BrutalistLowerThird",
+      "name": "Brutalist Lower Third",
+      "category": "Typography / Identity",
+      "defaultZone": "B",
+      "componentPath": "src/assets/components/BrutalistLowerThird.tsx",
+      "description": "Heavy concrete and terracotta lower third slab with vertical optical stripe accent spine.",
+      "propsSchema": {
+        "text": { "type": "string", "default": "ALEXIS GONZÁLEZ" },
+        "subtext": { "type": "string", "default": "VIDEO TUXEDO" },
+        "category": { "type": "string", "default": "EDICIÓN" },
+        "width": { "type": "number", "default": 720 }
+      },
+      "sfxTrigger": "SFX_BRUTAL_THUD"
+    },
+    {
+      "id": "CruzDiezBadge",
+      "name": "Cruz-Diez Badge",
+      "category": "Kinetic Accent",
+      "defaultZone": "R",
+      "componentPath": "src/assets/components/CruzDiezBadge.tsx",
+      "description": "Octagonal or circular moiré optical stripe badge with rotating Physichromie bands and title tag.",
+      "propsSchema": {
+        "title": { "type": "string", "default": "KINETIC" },
+        "subtitle": { "type": "string", "default": "CINETISMO" },
+        "size": { "type": "number", "default": 280 }
+      },
+      "sfxTrigger": "SFX_PAPER_SNAP"
+    },
+    {
+      "id": "ViaductProgress",
+      "name": "Viaduct Chapter Progress",
+      "category": "Header / Timeline",
+      "defaultZone": "T",
+      "componentPath": "src/assets/components/ViaductProgress.tsx",
+      "description": "Elevated concrete viaduct highway tracking video chapters with an animated marker node.",
+      "propsSchema": {
+        "progress": { "type": "number", "default": 0.5 },
+        "chapters": { "type": "array", "default": ["INTRO", "DESARROLLO", "CLAVE", "CIERRE"] },
+        "activeChapterIndex": { "type": "number", "default": 1 },
+        "width": { "type": "number", "default": 960 }
+      },
+      "sfxTrigger": "SFX_WIRE_SWISH"
+    },
+    {
+      "id": "GegoMeshPointer",
+      "name": "Gego Mesh Pointer",
+      "category": "Connector / Pointer",
+      "defaultZone": "L",
+      "componentPath": "src/assets/components/GegoMeshPointer.tsx",
+      "description": "Parabolic ruled-surface wireframe mesh connecting speaker shoulder to callout card.",
+      "propsSchema": {
+        "start": { "type": "array", "default": [150, 400] },
+        "end": { "type": "array", "default": [420, 220] },
+        "lineCount": { "type": "number", "default": 12 }
+      },
+      "sfxTrigger": "SFX_WIRE_SWISH"
+    },
+    {
+      "id": "CruzDiezWall",
+      "name": "Cruz-Diez Stripe Wall",
+      "category": "Divider / Accent",
+      "defaultZone": "B",
+      "componentPath": "src/assets/components/CruzDiezWall.tsx",
+      "description": "Architectural Physichromie stripe wall with vertical columns and a 45° diagonal center slice.",
+      "propsSchema": {
+        "width": { "type": "number", "default": 640 },
+        "height": { "type": "number", "default": 180 },
+        "speed": { "type": "number", "default": 18 }
+      },
+      "sfxTrigger": "SFX_KINETIC_HUM"
+    },
+    {
+      "id": "AvilaPeak",
+      "name": "Ávila Peak Monument",
+      "category": "Monument / Badge",
+      "defaultZone": "L",
+      "componentPath": "src/assets/components/AvilaPeak.tsx",
+      "description": "Faceted mountain summit with Hotel Humboldt monument tower and stepped 12fps entrance.",
+      "propsSchema": {
+        "label": { "type": "string", "default": "EL ÁVILA" },
+        "sublabel": { "type": "string", "default": "WARAIRA REPANO" },
+        "width": { "type": "number", "default": 380 },
+        "height": { "type": "number", "default": 320 }
+      },
+      "sfxTrigger": "SFX_BRUTAL_THUD"
+    },
+    {
+      "id": "PetareHill",
+      "name": "Petare Modular Hill",
+      "category": "Illustration / Structure",
+      "defaultZone": "L",
+      "componentPath": "src/assets/components/PetareHill.tsx",
+      "description": "Procedural hillside community of modular cubic houses with dark windows and zig-zag stairs.",
+      "propsSchema": {
+        "width": { "type": "number", "default": 460 },
+        "height": { "type": "number", "default": 360 },
+        "seed": { "type": "number", "default": 1957 }
+      },
+      "sfxTrigger": "SFX_BRUTAL_THUD"
+    },
+    {
+      "id": "ViaductSweep",
+      "name": "Viaduct Highway Sweep",
+      "category": "Illustration / Movement",
+      "defaultZone": "FULL",
+      "componentPath": "src/assets/components/ViaductSweep.tsx",
+      "description": "Curving elevated concrete viaduct with pillars, Gego hanging nets, vintage car and cyclist.",
+      "propsSchema": {
+        "width": { "type": "number", "default": 720 },
+        "height": { "type": "number", "default": 420 },
+        "showCyclist": { "type": "boolean", "default": true }
+      },
+      "sfxTrigger": "SFX_WIRE_SWISH"
+    },
+    {
+      "id": "HyparNet",
+      "name": "Hypar Tensile Net",
+      "category": "Sculpture / Accent",
+      "defaultZone": "R",
+      "componentPath": "src/assets/components/HyparNet.tsx",
+      "description": "Hyperbolic paraboloid ruled wire mesh on concrete poles or rotating wireframe polyhedron.",
+      "propsSchema": {
+        "width": { "type": "number", "default": 240 },
+        "height": { "type": "number", "default": 240 },
+        "variant": { "type": "string", "default": "hypar" }
+      },
+      "sfxTrigger": "SFX_WIRE_SWISH"
+    },
+    {
+      "id": "ForegroundFrame",
+      "name": "Foreground Stone & Foliage",
+      "category": "Framing",
+      "defaultZone": "B",
+      "componentPath": "src/assets/components/ForegroundFrame.tsx",
+      "description": "Stone masonry wall and lush tropical foliage framing the lower chest and shoulders.",
+      "propsSchema": {
+        "width": { "type": "number", "default": 1080 },
+        "height": { "type": "number", "default": 400 },
+        "showStoneWall": { "type": "boolean", "default": true },
+        "showFoliage": { "type": "boolean", "default": true }
+      },
+      "sfxTrigger": "SFX_PAPER_SNAP"
+    },
+    {
+      "id": "KineticCaption",
+      "name": "Kinetic Captions",
+      "category": "Captions",
+      "defaultZone": "B",
+      "componentPath": "src/assets/components/KineticCaption.tsx",
+      "description": "Brutalist word-by-word active highlighted captions synced with speech timecodes.",
+      "propsSchema": {
+        "width": { "type": "number", "default": 820 }
+      },
+      "sfxTrigger": "SFX_TYPE_CLACK"
+    }
+  ],
+  "sfx": [
+    {
+      "id": "SFX_PAPER_SNAP",
+      "character": "Crisp vintage cardstock snap",
+      "defaultVolume": 0.35,
+      "variants": 4,
+      "rule": "Trigger on frame 0 of Zone L/R card entrances."
+    },
+    {
+      "id": "SFX_BRUTAL_THUD",
+      "character": "Low-end mechanical architectural stamp",
+      "defaultVolume": 0.40,
+      "variants": 4,
+      "rule": "Trigger when BrutalistLowerThird or heavy architecture locks in."
+    },
+    {
+      "id": "SFX_WIRE_SWISH",
+      "character": "Metallic springy ruled-surface whoosh",
+      "defaultVolume": 0.30,
+      "variants": 4,
+      "rule": "Trigger when GegoMeshPointer, HyparNet, or Viaduct lines draw on."
+    },
+    {
+      "id": "SFX_TYPE_CLACK",
+      "character": "Mechanical letterpress clack",
+      "defaultVolume": 0.25,
+      "variants": 4,
+      "rule": "Trigger per word or bullet reveal on kinetic emphasis."
+    },
+    {
+      "id": "SFX_KINETIC_HUM",
+      "character": "Warm analog synth optical shimmer",
+      "defaultVolume": 0.20,
+      "variants": 4,
+      "rule": "Trigger during continuous Cruz-Diez / Soto moiré shifts."
+    }
+  ]
+}

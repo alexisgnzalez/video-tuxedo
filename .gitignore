@@ -25,6 +25,7 @@
 node_modules/
 dist/
 build/
+.remotion/
 
 # Python
 __pycache__/

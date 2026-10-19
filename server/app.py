@@ -1,8 +1,7 @@
-"""
-Video Tuxedo - FastAPI Backend Server
-"""
+from __future__ import annotations
 
 import os
+import json
 import time
 import shutil
 import tempfile
@@ -36,11 +35,20 @@ from server.magic_mask import (
     rotoscope_and_render_video,
     get_video_info,
 )
+from server.motion_graphics import (
+    parse_srt_file,
+    track_subject_motion,
+    draft_scene_plan_from_srt,
+    run_remotion_render,
+    REGISTRY_JSON_PATH,
+    PLANS_DIR,
+    _MOTION_TASKS,
+)
 
 app = FastAPI(
     title="Video Tuxedo",
     description="Video editing productivity tools suite",
-    version="0.3.0"
+    version="0.4.0"
 )
 
 
@@ -151,6 +159,28 @@ class MagicMaskTrackRenderRequest(BaseModel):
     filename: Optional[str] = None
 
 
+class MotionLoadMediaRequest(BaseModel):
+    file_path: str
+    srt_path: Optional[str] = None
+
+
+class MotionDraftPlanRequest(BaseModel):
+    media_path: Optional[str] = None
+    srt_content: Optional[str] = None
+    platform: Optional[str] = "tiktok_reels"
+    subject_override: Optional[str] = "auto"
+    seed: Optional[int] = 1957
+
+
+class MotionSavePlanRequest(BaseModel):
+    plan: Dict[str, Any]
+
+
+class MotionRenderRequest(BaseModel):
+    plan: Dict[str, Any]
+    filename: Optional[str] = None
+
+
 # In-memory tracking tasks
 _MAGIC_MASK_TASKS: Dict[str, Dict[str, Any]] = {}
 
@@ -165,7 +195,8 @@ def health_check():
             "subtitles_davinci": True,
             "waveform_alignment": True,
             "silence_cutter": True,
-            "magic_mask_rotoscoper": True
+            "magic_mask_rotoscoper": True,
+            "motion_graphics_studio": True,
         }
     }
 
@@ -203,6 +234,16 @@ def get_tools_list():
             "icon": "wand",
             "active": True,
             "category": "VFX & Compositing"
+        },
+        {
+            "id": "motion-graphics",
+            "name": "Motion Graphics Studio",
+            "badge": "New!",
+            "badgeType": "success",
+            "description": "Mid-Century Kinetic Poster motion graphics (Remotion). Procedural El Ávila mountains, Petare hills, Cruz-Diez moiré stripes and Spanish SRT triggers exported to ProRes 4444 Alpha.",
+            "icon": "film",
+            "active": True,
+            "category": "Motion Graphics & VFX"
         }
     ]
 
@@ -784,6 +825,223 @@ def get_task_progress(task_id: str):
 def cancel_task_endpoint(task_id: str):
     """Cancels an in-progress video tracking task."""
     task = _MAGIC_MASK_TASKS.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    task["cancelled"] = True
+    return {"status": "cancelling", "task_id": task_id}
+
+
+# ==========================================
+# MOTION GRAPHICS STUDIO ENDPOINTS
+# ==========================================
+
+@app.get("/api/motion/registry")
+def get_motion_registry():
+    """Returns visual components and sound effects registry schema."""
+    if not REGISTRY_JSON_PATH.exists():
+        raise HTTPException(status_code=404, detail="Registry json not found")
+    with open(REGISTRY_JSON_PATH, "r", encoding="utf-8") as f:
+        data = json.load(f)
+    return data
+
+
+@app.post("/api/motion/load-path")
+def load_motion_media_path(req: MotionLoadMediaRequest):
+    """Loads a media file by macOS path, inspects fps/duration, and tracks subject."""
+    path = os.path.expanduser(req.file_path.strip())
+    if not os.path.exists(path):
+        raise HTTPException(status_code=404, detail=f"File not found: {path}")
+
+    props = get_media_properties(path)
+    fps = props.get("fps", 30.0)
+    duration = props.get("duration", 0.0)
+    total_frames = int(round(duration * fps))
+
+    # Optional SRT loading
+    cues = []
+    if req.srt_path:
+        srt_p = os.path.expanduser(req.srt_path.strip())
+        if os.path.exists(srt_p):
+            with open(srt_p, "r", encoding="utf-8", errors="replace") as sf:
+                cues = parse_srt_file(sf.read(), fps=fps)
+
+    # If no SRT provided, attempt Whisper transcription automatically
+    if not cues:
+        try:
+            print("🎙️ No SRT supplied for Motion Studio, running local Whisper transcription...")
+            tx = transcribe_media(file_path=path, model_size="base", pacing="natural")
+            cues = tx.get("segments", [])
+            for c in cues:
+                c["startFrame"] = int(round(c["start"] * fps))
+                c["endFrame"] = max(c["startFrame"] + 1, int(round(c["end"] * fps)))
+                c["durationInFrames"] = c["endFrame"] - c["startFrame"]
+        except Exception as e:
+            print(f"⚠️ Auto transcription warning: {e}")
+
+    # Track subject boxes across video duration
+    subject_track = track_subject_motion(path, sample_interval_s=1.0)
+
+    # Draft initial scene plan
+    draft_plan = draft_scene_plan_from_srt(
+        cues=cues,
+        fps=fps,
+        duration_frames=total_frames,
+        platform="tiktok_reels",
+        subject_track=subject_track,
+    )
+    draft_plan["source"] = {
+        "path": path,
+        "filename": os.path.basename(path),
+        "url": f"/api/media-stream?path={urllib.parse.quote(str(path))}",
+    }
+
+    return {
+        "status": "success",
+        "media_path": path,
+        "filename": os.path.basename(path),
+        "fps": fps,
+        "duration": duration,
+        "total_frames": total_frames,
+        "cues_count": len(cues),
+        "subject_samples": len(subject_track),
+        "plan": draft_plan,
+    }
+
+
+@app.post("/api/motion/draft-plan")
+def draft_plan_endpoint(req: MotionDraftPlanRequest):
+    """Drafts a fresh scene plan from provided SRT content and video parameters."""
+    media_path = os.path.expanduser((req.media_path or "").strip()) if req.media_path else None
+    fps = 30.0
+    duration_frames = 300
+    subject_track = []
+
+    if media_path and os.path.exists(media_path):
+        props = get_media_properties(media_path)
+        fps = props.get("fps", 30.0)
+        dur = props.get("duration", 0.0)
+        duration_frames = int(round(dur * fps))
+        subject_track = track_subject_motion(media_path, sample_interval_s=1.0)
+
+    cues = []
+    if req.srt_content:
+        cues = parse_srt_file(req.srt_content, fps=fps)
+
+    plan = draft_scene_plan_from_srt(
+        cues=cues,
+        fps=fps,
+        duration_frames=duration_frames,
+        platform=req.platform or "tiktok_reels",
+        subject_track=subject_track,
+        seed=req.seed or 1957,
+    )
+
+    if media_path:
+        plan["source"] = {
+            "path": media_path,
+            "filename": os.path.basename(media_path),
+            "url": f"/api/media-stream?path={urllib.parse.quote(str(media_path))}",
+        }
+
+    return {"status": "success", "plan": plan}
+
+
+@app.get("/api/motion/plan/{slug}")
+def get_saved_plan(slug: str):
+    """Retrieves saved plan JSON for a video project."""
+    plan_file = PLANS_DIR / f"{slug}_plan.json"
+    if not plan_file.exists():
+        raise HTTPException(status_code=404, detail="Plan not found")
+    with open(plan_file, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+@app.post("/api/motion/plan/{slug}")
+def save_plan_endpoint(slug: str, req: MotionSavePlanRequest):
+    """Saves updated plan JSON from the in-browser timeline editor."""
+    plan_file = PLANS_DIR / f"{slug}_plan.json"
+    with open(plan_file, "w", encoding="utf-8") as f:
+        json.dump(req.plan, f, indent=2, ensure_ascii=False)
+    return {"status": "success", "saved_path": str(plan_file)}
+
+
+@app.post("/api/motion/render")
+def render_motion_endpoint(req: MotionRenderRequest):
+    """Spawns background Remotion render task with progress tracking."""
+    task_id = str(uuid.uuid4())[:8]
+    _MOTION_TASKS[task_id] = {
+        "task_id": task_id,
+        "status": "starting",
+        "percent": 0.0,
+        "frame": 0,
+        "total_frames": req.plan.get("durationInFrames", 300),
+        "fps": 0.0,
+        "eta_s": 0.0,
+        "elapsed_s": 0.0,
+        "result": None,
+        "error": None,
+    }
+
+    def _worker():
+        try:
+            def _on_prog(p):
+                _MOTION_TASKS[task_id].update({
+                    "status": "rendering",
+                    "percent": p.get("percent", 0.0),
+                    "frame": p.get("frame", 0),
+                    "total_frames": p.get("total_frames", 0),
+                    "fps": p.get("fps", 0.0),
+                    "eta_s": p.get("eta_s", 0.0),
+                    "elapsed_s": p.get("elapsed_s", 0.0),
+                })
+
+            result = run_remotion_render(
+                plan=req.plan,
+                output_filename=req.filename,
+                progress_callback=_on_prog,
+                cancel_check=lambda: _MOTION_TASKS.get(task_id, {}).get("cancelled", False),
+            )
+            _MOTION_TASKS[task_id].update({
+                "status": "completed",
+                "percent": 100.0,
+                "result": result,
+            })
+        except InterruptedError:
+            _MOTION_TASKS[task_id].update({
+                "status": "cancelled",
+                "error": "Render cancelled by user",
+            })
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            _MOTION_TASKS[task_id].update({
+                "status": "error",
+                "error": str(e),
+            })
+
+    t = Thread(target=_worker, daemon=True)
+    t.start()
+
+    return {
+        "status": "accepted",
+        "task_id": task_id,
+        "plan_slug": req.plan.get("slug"),
+    }
+
+
+@app.get("/api/motion/progress/{task_id}")
+def get_motion_progress(task_id: str):
+    """Returns current progress of background motion graphics render task."""
+    task = _MOTION_TASKS.get(task_id)
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return task
+
+
+@app.post("/api/motion/cancel/{task_id}")
+def cancel_motion_task(task_id: str):
+    """Cancels an in-progress motion graphics render task."""
+    task = _MOTION_TASKS.get(task_id)
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
     task["cancelled"] = True
