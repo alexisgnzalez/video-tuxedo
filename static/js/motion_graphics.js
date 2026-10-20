@@ -21,7 +21,28 @@ class MotionGraphicsStudio {
   initElements() {
     // Step views
     this.loadStep = document.getElementById('motionLoadStep');
+    this.subtitlesStep = document.getElementById('motionSubtitlesStep');
     this.workspaceStep = document.getElementById('motionWorkspaceStep');
+
+    // Subtitle review elements
+    this.subtitlesVideo = document.getElementById('motionSubtitlesVideo');
+    this.subtitlesOverlay = document.getElementById('motionSubtitlesOverlay');
+    this.subVideoPlayBtn = document.getElementById('motionSubVideoPlayBtn');
+    this.subVideoPlayIcon = document.getElementById('motionSubVideoPlayIcon');
+    this.subVideoTime = document.getElementById('motionSubVideoTime');
+    this.subVideoFpsBadge = document.getElementById('motionSubVideoFpsBadge');
+    this.subtitlesList = document.getElementById('motionSubtitlesList');
+    this.subtitlesCountBadge = document.getElementById('motionSubtitlesCountBadge');
+    this.addSubCueBtn = document.getElementById('motionAddSubCueBtn');
+    this.subtitlesBackBtn = document.getElementById('motionSubtitlesBackBtn');
+    this.subtitlesSkipBtn = document.getElementById('motionSubtitlesSkipBtn');
+    this.subtitlesConfirmBtn = document.getElementById('motionSubtitlesConfirmBtn');
+    this.confirmSpinner = document.getElementById('motionConfirmSpinner');
+    this.confirmBtnText = document.getElementById('motionConfirmBtnText');
+    this.editSubtitlesFromStudioBtn = document.getElementById('motionEditSubtitlesFromStudioBtn');
+
+    this.currentCues = [];
+    this.loadedMediaData = null;
 
     // Load inputs & progress elements
     this.pathInput = document.getElementById('motionPathInput');
@@ -312,6 +333,35 @@ class MotionGraphicsStudio {
     if (this.renderCancelBtn) {
       this.renderCancelBtn.addEventListener('click', () => this.cancelRender());
     }
+
+    // Subtitle Review Step events
+    if (this.subVideoPlayBtn) {
+      this.subVideoPlayBtn.addEventListener('click', () => this.toggleSubVideoPlayback());
+    }
+    if (this.subtitlesVideo) {
+      this.subtitlesVideo.addEventListener('timeupdate', () => this.onSubVideoTimeUpdate());
+      this.subtitlesVideo.addEventListener('play', () => {
+        if (this.subVideoPlayIcon) this.subVideoPlayIcon.textContent = '⏸';
+      });
+      this.subtitlesVideo.addEventListener('pause', () => {
+        if (this.subVideoPlayIcon) this.subVideoPlayIcon.textContent = '▶';
+      });
+    }
+    if (this.subtitlesBackBtn) {
+      this.subtitlesBackBtn.addEventListener('click', () => this.backToLoadStep());
+    }
+    if (this.subtitlesSkipBtn) {
+      this.subtitlesSkipBtn.addEventListener('click', () => this.skipSubtitlesToStudio());
+    }
+    if (this.subtitlesConfirmBtn) {
+      this.subtitlesConfirmBtn.addEventListener('click', () => this.confirmSubtitlesAndProceed());
+    }
+    if (this.addSubCueBtn) {
+      this.addSubCueBtn.addEventListener('click', () => this.addNewSubtitleCue());
+    }
+    if (this.editSubtitlesFromStudioBtn) {
+      this.editSubtitlesFromStudioBtn.addEventListener('click', () => this.openSubtitlesReviewStep());
+    }
   }
 
   async loadRegistry() {
@@ -448,12 +498,17 @@ class MotionGraphicsStudio {
       const data = await res.json();
 
       // Mark all completed
-      this.setLoadProgress(5, 'Ready!', 'Studio workspace loaded successfully.');
+      this.setLoadProgress(5, 'Ready!', 'Subtitles extracted and ready for verification.');
 
+      this.loadedMediaData = data;
       this.currentPlan = data.plan;
-      this.initWorkspace();
+      this.currentCues = (data.cues && data.cues.length > 0) ? data.cues : (data.plan?.cues || []);
+
+      // Transition to Subtitle Review Step first
+      this.openSubtitlesReviewStep();
+
       if (window.showToast) {
-        window.showToast(`Loaded ${data.filename} (${data.fps} FPS, ${data.duration}s)`, 'success');
+        window.showToast(`Transcribed ${data.filename}! Review and edit your subtitles below.`, 'success');
       }
     } catch (err) {
       if (window.showToast) window.showToast(err.message, 'error');
@@ -524,8 +579,10 @@ class MotionGraphicsStudio {
       }));
     }
 
-    this.loadStep.style.display = 'none';
-    this.workspaceStep.style.display = 'grid';
+    if (this.subtitlesVideo) this.subtitlesVideo.pause();
+    if (this.loadStep) this.loadStep.style.display = 'none';
+    if (this.subtitlesStep) this.subtitlesStep.style.display = 'none';
+    if (this.workspaceStep) this.workspaceStep.style.display = 'grid';
 
     // Set preview defaults: show source video & enable audio
     this.currentPlan.preview = this.currentPlan.preview || {};
@@ -1095,6 +1152,314 @@ class MotionGraphicsStudio {
     } catch (err) {
       console.warn('Cancel error:', err);
     }
+  }
+
+  // -------------------------------------------------------------
+  // Subtitle Review & Editing Methods
+  // -------------------------------------------------------------
+
+  openSubtitlesReviewStep() {
+    if (this.loadStep) this.loadStep.style.display = 'none';
+    if (this.workspaceStep) this.workspaceStep.style.display = 'none';
+    if (this.subtitlesStep) this.subtitlesStep.style.display = 'block';
+
+    // Pause studio Remotion player if playing
+    if (this.isPlaying) {
+      this.togglePlayback();
+    }
+
+    // Set video source in preview player
+    const filename = this.loadedMediaData?.filename || this.currentPlan?.videoFileName || '';
+    const videoUrl = this.currentPlan?.source?.url || (filename ? `/public/${filename}` : '');
+    if (this.subtitlesVideo && videoUrl && (!this.subtitlesVideo.src || !this.subtitlesVideo.src.includes(filename))) {
+      this.subtitlesVideo.src = videoUrl;
+      this.subtitlesVideo.load();
+    }
+
+    const fps = Math.round(this.loadedMediaData?.fps || this.currentPlan?.fps || 30);
+    if (this.subVideoFpsBadge) {
+      this.subVideoFpsBadge.textContent = `${fps} FPS`;
+    }
+
+    // Ensure cues are available
+    if (!this.currentCues || this.currentCues.length === 0) {
+      if (this.currentPlan?.cues && this.currentPlan.cues.length > 0) {
+        this.currentCues = this.currentPlan.cues;
+      }
+    }
+
+    this.renderSubtitlesList();
+
+    if (this.subtitlesList) this.subtitlesList.scrollTop = 0;
+  }
+
+  renderSubtitlesList() {
+    if (!this.subtitlesList) return;
+    this.subtitlesList.innerHTML = '';
+
+    if (this.subtitlesCountBadge) {
+      const count = this.currentCues ? this.currentCues.length : 0;
+      this.subtitlesCountBadge.textContent = `${count} ${count === 1 ? 'cue' : 'cues'}`;
+    }
+
+    if (!this.currentCues || this.currentCues.length === 0) {
+      this.subtitlesList.innerHTML = `
+        <div style="padding: 2.5rem 1rem; text-align: center; color: var(--text-muted);">
+          <div style="font-size: 2rem; margin-bottom: 0.5rem;">📝</div>
+          <p style="margin: 0; font-size: 0.95rem;">No subtitles detected yet.</p>
+          <p style="margin: 0.4rem 0 1rem; font-size: 0.82rem;">Click <strong>+ Add Cue</strong> to write subtitles manually.</p>
+        </div>
+      `;
+      return;
+    }
+
+    this.currentCues.forEach((cue, idx) => {
+      const cueItem = document.createElement('div');
+      cueItem.className = 'motion-cue-item';
+      cueItem.id = `motionCueItem_${idx}`;
+
+      const cueStart = typeof cue.start === 'number' ? cue.start : 0;
+      const cueEnd = typeof cue.end === 'number' ? cue.end : cueStart + 1.5;
+
+      cueItem.innerHTML = `
+        <div class="motion-cue-top">
+          <span class="motion-cue-num">#${idx + 1}</span>
+          <button type="button" class="motion-cue-time-badge" title="Click to listen to this phrase">
+            ▶ <span>${this.formatSeconds(cueStart)} ➔ ${this.formatSeconds(cueEnd)}</span>
+          </button>
+          <div class="motion-cue-time-inputs">
+            <span>In:</span>
+            <input type="number" step="0.05" min="0" class="motion-cue-time-input in-input" value="${cueStart.toFixed(2)}" title="Start time (seconds)">
+            <span>Out:</span>
+            <input type="number" step="0.05" min="0" class="motion-cue-time-input out-input" value="${cueEnd.toFixed(2)}" title="End time (seconds)">
+          </div>
+          <button type="button" class="motion-cue-delete-btn" title="Delete this cue">✕</button>
+        </div>
+        <textarea class="motion-cue-textarea" placeholder="Enter dialogue text...">${cue.text || ''}</textarea>
+      `;
+
+      // Click timecode badge to seek and play audio
+      const timeBadge = cueItem.querySelector('.motion-cue-time-badge');
+      timeBadge?.addEventListener('click', () => {
+        if (this.subtitlesVideo) {
+          this.subtitlesVideo.currentTime = Math.max(0, cue.start - 0.05);
+          this.subtitlesVideo.play();
+        }
+      });
+
+      // Text input changes
+      const textarea = cueItem.querySelector('.motion-cue-textarea');
+      textarea?.addEventListener('input', (e) => {
+        cue.text = e.target.value;
+        const curTime = this.subtitlesVideo ? this.subtitlesVideo.currentTime : 0;
+        if (curTime >= cue.start && curTime <= cue.end && this.subtitlesOverlay) {
+          this.subtitlesOverlay.textContent = cue.text;
+        }
+      });
+
+      // In time input
+      const inInput = cueItem.querySelector('.in-input');
+      inInput?.addEventListener('change', (e) => {
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val) && val >= 0) {
+          cue.start = val;
+          const span = timeBadge ? timeBadge.querySelector('span') : null;
+          if (span) span.textContent = `${this.formatSeconds(cue.start)} ➔ ${this.formatSeconds(cue.end)}`;
+        }
+      });
+
+      // Out time input
+      const outInput = cueItem.querySelector('.out-input');
+      outInput?.addEventListener('change', (e) => {
+        const val = parseFloat(e.target.value);
+        if (!isNaN(val) && val > cue.start) {
+          cue.end = val;
+          const span = timeBadge ? timeBadge.querySelector('span') : null;
+          if (span) span.textContent = `${this.formatSeconds(cue.start)} ➔ ${this.formatSeconds(cue.end)}`;
+        }
+      });
+
+      // Delete cue
+      const delBtn = cueItem.querySelector('.motion-cue-delete-btn');
+      delBtn?.addEventListener('click', () => {
+        this.currentCues.splice(idx, 1);
+        this.renderSubtitlesList();
+      });
+
+      this.subtitlesList.appendChild(cueItem);
+    });
+  }
+
+  onSubVideoTimeUpdate() {
+    if (!this.subtitlesVideo) return;
+    const cur = this.subtitlesVideo.currentTime;
+    const dur = this.subtitlesVideo.duration || this.loadedMediaData?.duration || 0;
+
+    if (this.subVideoTime) {
+      this.subVideoTime.textContent = `${this.formatSeconds(cur)} / ${this.formatSeconds(dur)}`;
+    }
+
+    // Find active cue
+    let activeCue = null;
+    let activeIdx = -1;
+    if (this.currentCues) {
+      for (let i = 0; i < this.currentCues.length; i++) {
+        const c = this.currentCues[i];
+        if (cur >= c.start && cur <= c.end) {
+          activeCue = c;
+          activeIdx = i;
+          break;
+        }
+      }
+    }
+
+    // Update overlay text
+    if (this.subtitlesOverlay) {
+      if (activeCue && activeCue.text) {
+        this.subtitlesOverlay.textContent = activeCue.text;
+        this.subtitlesOverlay.classList.add('visible');
+      } else {
+        this.subtitlesOverlay.textContent = '';
+        this.subtitlesOverlay.classList.remove('visible');
+      }
+    }
+
+    // Highlight active cue in list
+    if (this.subtitlesList) {
+      const items = this.subtitlesList.querySelectorAll('.motion-cue-item');
+      items.forEach((item, idx) => {
+        if (idx === activeIdx) {
+          item.classList.add('active');
+          if (!item.matches(':hover')) {
+            item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          }
+        } else {
+          item.classList.remove('active');
+        }
+      });
+    }
+  }
+
+  toggleSubVideoPlayback() {
+    if (!this.subtitlesVideo) return;
+    if (this.subtitlesVideo.paused) {
+      this.subtitlesVideo.play();
+    } else {
+      this.subtitlesVideo.pause();
+    }
+  }
+
+  backToLoadStep() {
+    if (this.subtitlesVideo) this.subtitlesVideo.pause();
+    if (this.subtitlesStep) this.subtitlesStep.style.display = 'none';
+    if (this.loadStep) this.loadStep.style.display = 'block';
+  }
+
+  skipSubtitlesToStudio() {
+    if (this.subtitlesVideo) this.subtitlesVideo.pause();
+    this.initWorkspace();
+    if (window.showToast) {
+      window.showToast('Opened Studio with current transcript.', 'info');
+    }
+  }
+
+  async confirmSubtitlesAndProceed() {
+    if (this.subtitlesVideo) this.subtitlesVideo.pause();
+
+    const mediaPath = this.loadedMediaData?.media_path || this.currentPlan?.source?.path || (this.pathInput?.value || '').trim();
+    if (!mediaPath) {
+      if (window.showToast) window.showToast('Media path not found. Please reload video.', 'error');
+      return;
+    }
+
+    try {
+      if (this.subtitlesConfirmBtn) {
+        this.subtitlesConfirmBtn.disabled = true;
+        if (this.confirmSpinner) this.confirmSpinner.style.display = 'inline-block';
+        if (this.confirmBtnText) this.confirmBtnText.textContent = 'Directing Motion with AI...';
+      }
+
+      const directorStyle = document.getElementById('motionDirectorStyleSelect')?.value || 'story_tuxedo';
+      const renderMode = document.getElementById('motionRenderModeSelect')?.value || 'overlays_only_for_davinci';
+
+      const res = await fetch('/api/motion/draft-plan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          media_path: mediaPath,
+          cues: this.currentCues,
+          director_style: directorStyle,
+          render_mode: renderMode,
+          mask_video_filename: this.loadedMediaData?.mask_video_filename || null,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.detail || 'Failed to update motion plan with edited subtitles');
+      }
+
+      const data = await res.json();
+      if (data.plan) {
+        this.currentPlan = data.plan;
+      }
+
+      // Transition to Studio workspace
+      this.initWorkspace();
+
+      if (window.showToast) {
+        window.showToast('✨ Motion graphics generated with your verified subtitles!', 'success');
+      }
+    } catch (err) {
+      if (window.showToast) window.showToast(err.message, 'error');
+    } finally {
+      if (this.subtitlesConfirmBtn) {
+        this.subtitlesConfirmBtn.disabled = false;
+        if (this.confirmSpinner) this.confirmSpinner.style.display = 'none';
+        if (this.confirmBtnText) this.confirmBtnText.textContent = '✨ Confirm Subtitles & Open Studio ➔';
+      }
+    }
+  }
+
+  addNewSubtitleCue() {
+    let newStart = 0;
+    let newEnd = 2.0;
+
+    if (this.currentCues && this.currentCues.length > 0) {
+      const lastCue = this.currentCues[this.currentCues.length - 1];
+      newStart = Math.round(((lastCue.end || 0) + 0.1) * 100) / 100;
+      newEnd = Math.round((newStart + 2.0) * 100) / 100;
+    } else if (this.subtitlesVideo) {
+      newStart = Math.round(this.subtitlesVideo.currentTime * 100) / 100;
+      newEnd = Math.round((newStart + 2.0) * 100) / 100;
+    }
+
+    const newCue = {
+      id: `cue_${Date.now()}`,
+      start: newStart,
+      end: newEnd,
+      text: 'Nueva frase...',
+      words: [
+        { word: 'Nueva', start: newStart, end: Math.round((newStart + 1.0) * 100) / 100 },
+        { word: 'frase...', start: Math.round((newStart + 1.0) * 100) / 100, end: newEnd },
+      ],
+    };
+
+    if (!this.currentCues) this.currentCues = [];
+    this.currentCues.push(newCue);
+    this.renderSubtitlesList();
+
+    if (this.subtitlesList) {
+      this.subtitlesList.scrollTop = this.subtitlesList.scrollHeight;
+    }
+  }
+
+  formatSeconds(sec) {
+    if (isNaN(sec) || sec < 0) sec = 0;
+    const m = Math.floor(sec / 60);
+    const s = Math.floor(sec % 60);
+    const ms = Math.floor((sec % 1) * 100);
+    return `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}.${String(ms).padStart(2, '0')}`;
   }
 }
 

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import json
 import time
 import shutil
@@ -194,6 +195,7 @@ class MotionLoadMediaRequest(BaseModel):
 class MotionDraftPlanRequest(BaseModel):
     media_path: Optional[str] = None
     srt_content: Optional[str] = None
+    cues: Optional[List[Dict[str, Any]]] = None
     platform: Optional[str] = "tiktok_reels"
     subject_override: Optional[str] = "auto"
     seed: Optional[int] = 1957
@@ -1002,6 +1004,7 @@ def load_motion_media_path(req: MotionLoadMediaRequest):
         "duration": duration,
         "total_frames": total_frames,
         "cues_count": len(cues),
+        "cues": cues,
         "subject_samples": len(subject_track),
         "plan": draft_plan,
     }
@@ -1009,7 +1012,7 @@ def load_motion_media_path(req: MotionLoadMediaRequest):
 
 @app.post("/api/motion/draft-plan")
 def draft_plan_endpoint(req: MotionDraftPlanRequest):
-    """Drafts a fresh scene plan from provided SRT content and video parameters."""
+    """Drafts a fresh scene plan from provided SRT content or edited cues."""
     media_path = os.path.expanduser((req.media_path or "").strip()) if req.media_path else None
     fps = 30.0
     duration_frames = 300
@@ -1023,7 +1026,9 @@ def draft_plan_endpoint(req: MotionDraftPlanRequest):
         subject_track = track_subject_motion(media_path, sample_interval_s=1.0)
 
     cues = []
-    if req.srt_content:
+    if req.cues:
+        cues = req.cues
+    elif req.srt_content:
         cues = parse_srt_file(req.srt_content, fps=fps)
 
     v_name = "chopped_video.mp4"
@@ -1035,11 +1040,31 @@ def draft_plan_endpoint(req: MotionDraftPlanRequest):
         words_list = []
         if cues:
             for c in cues:
-                for w in c.get("words", []):
+                clean_text = c.get("text", "").strip()
+                existing_words = c.get("words", [])
+                
+                # Check if words match current text; if not, re-align proportionally
+                words_text = " ".join(w.get("text", w.get("word", "")) for w in existing_words)
+                if not existing_words or words_text != clean_text:
+                    raw_words = clean_text.split()
+                    c_start = float(c.get("start", 0.0))
+                    c_end = float(c.get("end", c_start + 1.5))
+                    c_dur = max(0.1, c_end - c_start)
+                    w_dur = c_dur / max(1, len(raw_words))
+                    existing_words = [
+                        {
+                            "word": rw,
+                            "start": round(c_start + w_idx * w_dur, 3),
+                            "end": round(c_start + (w_idx + 1) * w_dur, 3),
+                        }
+                        for w_idx, rw in enumerate(raw_words)
+                    ]
+
+                for w in existing_words:
                     words_list.append({
                         "word": w.get("text", w.get("word", "")),
-                        "start": w.get("start", 0.0),
-                        "end": w.get("end", 0.0),
+                        "start": float(w.get("start", 0.0)),
+                        "end": float(w.get("end", 0.0)),
                     })
         elif media_path and os.path.exists(media_path):
             try:

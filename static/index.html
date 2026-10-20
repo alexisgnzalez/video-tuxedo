@@ -1535,6 +1535,80 @@
         </div>
       </div>
 
+      <!-- STEP 2: SUBTITLE REVIEW & EDIT STEP -->
+      <div id="motionSubtitlesStep" class="motion-subtitles-card" style="display: none;">
+        <div class="motion-subtitles-header">
+          <div class="motion-subtitles-title-group">
+            <div style="display: flex; align-items: center; gap: 0.6rem; margin-bottom: 0.35rem;">
+              <span class="motion-step-pill">Step 2: Subtitle Review</span>
+              <span class="motion-badge" id="motionSubtitlesCountBadge">0 cues</span>
+            </div>
+            <h3 class="motion-section-header" style="margin: 0 0 0.35rem 0; font-size: 1.45rem;">
+              Review & Refine Dialogue Subtitles
+            </h3>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;">
+              Click any timecode to listen to that exact line. Correct spelling, Venezuelan slang, or punchlines to ensure 100% accuracy before generating motion graphics.
+            </p>
+          </div>
+
+          <div class="motion-subtitles-actions">
+            <button class="btn-ghost" id="motionSubtitlesBackBtn">
+              ← Change Video
+            </button>
+            <button class="btn-ghost" id="motionSubtitlesSkipBtn" title="Proceed immediately with current transcript">
+              Skip to Studio ➔
+            </button>
+            <button class="btn-primary" id="motionSubtitlesConfirmBtn">
+              <span class="btn-spinner" id="motionConfirmSpinner" style="display: none;"></span>
+              <span id="motionConfirmBtnText">✨ Confirm Subtitles & Open Studio ➔</span>
+            </button>
+          </div>
+        </div>
+
+        <div class="motion-subtitles-grid">
+          <!-- Left Column: Video Preview with Synced Audio & Floating Subtitles -->
+          <div class="motion-subtitles-preview-col">
+            <div class="motion-preview-video-container">
+              <video id="motionSubtitlesVideo" playsinline preload="auto"></video>
+              <div id="motionSubtitlesOverlay" class="motion-subtitles-overlay">
+                Subtitle preview will appear here
+              </div>
+            </div>
+            <!-- Video Controls Bar -->
+            <div class="motion-preview-controls">
+              <button class="btn-icon-warm" id="motionSubVideoPlayBtn" title="Play / Pause video">
+                <span id="motionSubVideoPlayIcon">▶</span>
+              </button>
+              <span id="motionSubVideoTime" class="motion-time-readout">00:00.00 / 00:00.00</span>
+              <div style="flex: 1;"></div>
+              <span class="motion-badge" id="motionSubVideoFpsBadge">30 FPS</span>
+            </div>
+            <p class="motion-preview-hint">
+              💡 Tip: Click any cue timecode on the right to jump directly to that phrase and preview audio.
+            </p>
+          </div>
+
+          <!-- Right Column: Interactive Subtitles List -->
+          <div class="motion-subtitles-editor-col">
+            <div class="motion-cues-toolbar">
+              <div class="motion-cues-count">
+                <span style="font-weight: 600; font-size: 0.92rem; color: var(--text-primary);">Dialogue Segments</span>
+              </div>
+              <div class="motion-cues-tools" style="display: flex; gap: 0.5rem; align-items: center;">
+                <button class="btn-secondary-sm" id="motionAddSubCueBtn">
+                  + Add Cue
+                </button>
+              </div>
+            </div>
+
+            <!-- Scrollable list of editable subtitle items -->
+            <div class="motion-subtitles-scroll" id="motionSubtitlesList">
+              <!-- Rendered dynamically -->
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- WORKSPACE STEP (Grid Layout) -->
       <div id="motionWorkspaceStep" class="motion-workspace-layout" style="display: none;">
         <!-- Top Control Bar -->
@@ -1577,6 +1651,9 @@
           </div>
 
           <div class="motion-action-group">
+            <button class="btn-ghost" id="motionEditSubtitlesFromStudioBtn" title="Review & edit subtitle transcript words">
+              📝 Edit Subtitles
+            </button>
             <button class="btn-ghost" id="motionRedraftBtn" title="Re-analyze transcript and refresh visual triggers">
               🔄 Re-draft from SRT
             </button>
@@ -1766,7 +1843,7 @@
   <script src="/static/js/silence_cutter.js?v=0.4.0"></script>
   <script src="/static/js/magic_mask.js?v=0.4.0"></script>
   <script src="/static/motion/player.bundle.js?v=0.4.0"></script>
-  <script src="/static/js/motion_graphics.js?v=0.4.0"></script>
+  <script src="/static/js/motion_graphics.js?v=0.5.0"></script>
   <script src="/static/js/app.js?v=0.4.0"></script>
 </body>
 </html>

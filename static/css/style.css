@@ -1803,6 +1803,326 @@ input[type="checkbox"]:focus {
   color: #FFFFFF;
 }
 
+/* Motion Subtitles Review & Edit Step (Anthropic Style) */
+.motion-subtitles-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 1.75rem 2rem;
+  box-shadow: var(--shadow-sm);
+  max-width: 1200px;
+  margin: 0 auto;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.motion-subtitles-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 1.5rem;
+}
+
+.motion-subtitles-title-group {
+  flex: 1;
+  min-width: 280px;
+}
+
+.motion-step-pill {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--accent-coral-subtle);
+  color: var(--accent-coral);
+  border: 1px solid rgba(217, 119, 87, 0.3);
+}
+
+.motion-subtitles-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.motion-subtitles-grid {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 1.75rem;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .motion-subtitles-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.motion-subtitles-preview-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  position: sticky;
+  top: 1rem;
+}
+
+.motion-preview-video-container {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 9 / 16;
+  max-height: 480px;
+  background: #0C141C;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.motion-preview-video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.motion-subtitles-overlay {
+  position: absolute;
+  bottom: 24px;
+  left: 16px;
+  right: 16px;
+  background: rgba(20, 20, 19, 0.88);
+  backdrop-filter: blur(8px);
+  color: #FAF9F5;
+  padding: 0.5rem 0.85rem;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.35;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  pointer-events: none;
+  min-height: 1.8rem;
+}
+
+.motion-preview-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  background: var(--bg-surface-warm);
+  border: 1px solid var(--border-subtle);
+  border-radius: 10px;
+  padding: 0.5rem 0.85rem;
+}
+
+.btn-icon-warm {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: #FFFFFF;
+  border: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: var(--transition);
+  font-size: 0.82rem;
+}
+
+.btn-icon-warm:hover {
+  border-color: var(--accent-coral);
+  color: var(--accent-coral);
+  transform: translateY(-1px);
+}
+
+.motion-time-readout {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+}
+
+.motion-preview-hint {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+  margin: 0;
+}
+
+.motion-subtitles-editor-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+  background: var(--bg-surface-warm);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 1.15rem 1.35rem;
+}
+
+.motion-cues-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.btn-secondary-sm {
+  background: #FFFFFF;
+  color: var(--text-primary);
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  padding: 0.35rem 0.75rem;
+  font-size: 0.8rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.btn-secondary-sm:hover {
+  border-color: var(--accent-coral);
+  color: var(--accent-coral);
+}
+
+.motion-subtitles-scroll {
+  max-height: 540px;
+  overflow-y: auto;
+  padding-right: 0.4rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.motion-cue-item {
+  background: var(--bg-surface-warm);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  transition: var(--transition);
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+}
+
+.motion-cue-item:hover {
+  border-color: var(--border-strong);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+}
+
+.motion-cue-item.active {
+  background: #FFFDF9;
+  border-color: var(--accent-coral);
+  box-shadow: 0 0 0 1px var(--accent-coral), 0 4px 12px rgba(217, 119, 87, 0.08);
+}
+
+.motion-cue-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.motion-cue-num {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  font-weight: 600;
+  min-width: 24px;
+}
+
+.motion-cue-time-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--accent-coral);
+  background: var(--accent-coral-subtle);
+  border: 1px solid rgba(217, 119, 87, 0.2);
+  padding: 0.25rem 0.6rem;
+  border-radius: var(--radius-full);
+  cursor: pointer;
+  transition: var(--transition);
+}
+
+.motion-cue-time-badge:hover {
+  background: rgba(217, 119, 87, 0.2);
+  transform: translateY(-1px);
+}
+
+.motion-cue-time-inputs {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.motion-cue-time-input {
+  width: 58px;
+  padding: 0.18rem 0.35rem;
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.motion-cue-time-input:focus {
+  outline: none;
+  border-color: var(--accent-coral);
+}
+
+.motion-cue-delete-btn {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 0.2rem 0.4rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  line-height: 1;
+  transition: var(--transition);
+}
+
+.motion-cue-delete-btn:hover {
+  color: #C0392B;
+  background: rgba(192, 57, 43, 0.08);
+}
+
+.motion-cue-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+  font-size: 0.92rem;
+  line-height: 1.45;
+  color: var(--text-primary);
+  background: var(--bg-surface);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-sm);
+  padding: 0.55rem 0.75rem;
+  resize: vertical;
+  min-height: 52px;
+  transition: var(--transition);
+}
+
+.motion-cue-textarea:focus {
+  outline: none;
+  border-color: var(--accent-coral);
+  box-shadow: 0 0 0 2px var(--accent-coral-subtle);
+  background: #FFF;
+}
+
 .motion-workspace-layout {
   display: flex;
   flex-direction: column;
