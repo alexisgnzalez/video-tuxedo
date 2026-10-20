@@ -2,9 +2,8 @@ import React from 'react';
 import {
   AbsoluteFill,
   Sequence,
-  OffthreadVideo,
+  Video,
   Audio,
-  staticFile,
   useVideoConfig,
 } from 'remotion';
 import { MainVideoProps, VisualCue } from './schema';
@@ -13,6 +12,14 @@ import { PunchlinePopup } from './components/PunchlinePopup';
 import { FloatingEmojiCluster } from './components/FloatingEmojiCluster';
 import { ComicAlertBanner } from './components/ComicAlertBanner';
 import { TikTokCaptions } from './components/TikTokCaptions';
+
+const resolveMediaSrc = (fn?: string) => {
+  if (!fn) return '';
+  if (fn.startsWith('http://') || fn.startsWith('https://') || fn.startsWith('/')) {
+    return fn;
+  }
+  return `/public/${fn}`;
+};
 
 const renderCueComponent = (cue: VisualCue) => {
   switch (cue.component) {
@@ -28,31 +35,56 @@ const renderCueComponent = (cue: VisualCue) => {
   }
 };
 
-export const MainVideo: React.FC<MainVideoProps> = ({
+export interface ExtendedMainVideoProps extends MainVideoProps {
+  previewMode?: boolean;
+  showVideo?: boolean;
+  volume?: number;
+  muteAudio?: boolean;
+  sourceUrl?: string;
+}
+
+export const MainVideo: React.FC<ExtendedMainVideoProps> = ({
   videoFileName,
   maskVideoFileName,
   renderMode = 'full_composite',
   cues = [],
   words = [],
+  previewMode = true,
+  showVideo = true,
+  volume = 1,
+  muteAudio = false,
+  sourceUrl,
 }) => {
   const { fps } = useVideoConfig();
 
   const behindCues = cues.filter((c) => c.layer === 'behind_subject');
   const frontCues = cues.filter((c) => c.layer === 'in_front_of_subject');
 
-  const isTransparent = renderMode === 'overlays_only_for_davinci';
+  // In DaVinci alpha export, Layer 1 is omitted only if renderMode === 'overlays_only_for_davinci' and NOT in preview mode.
+  // In the browser preview player, the creator MUST see the video and hear audio to review motion graphics.
+  const isTransparentExport = !previewMode && renderMode === 'overlays_only_for_davinci';
+  const shouldRenderVideo = showVideo && !isTransparentExport;
+  const resolvedVideoSrc = sourceUrl || resolveMediaSrc(videoFileName);
 
   return (
     <AbsoluteFill
       style={{
-        backgroundColor: isTransparent ? 'transparent' : '#000000',
+        backgroundColor: isTransparentExport ? 'transparent' : '#000000',
         overflow: 'hidden',
       }}
     >
-      {/* LAYER 1: Base Talking Head Video (Skipped if exporting transparent overlays for DaVinci) */}
-      {!isTransparent && videoFileName && (
+      {/* LAYER 1: Base Talking Head Video with Synced In-Browser Audio */}
+      {shouldRenderVideo && resolvedVideoSrc && (
         <AbsoluteFill>
-          <OffthreadVideo src={staticFile(videoFileName)} />
+          <Video
+            src={resolvedVideoSrc}
+            volume={muteAudio ? 0 : volume}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
         </AbsoluteFill>
       )}
 
@@ -65,7 +97,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({
           return (
             <Sequence key={cue.id} from={fromFrame} durationInFrames={durationInFrames} name={`${cue.component} (behind)`}>
               {cue.sfxFile && cue.sfxFile !== 'none' && (
-                <Audio src={staticFile(`sfx/${cue.sfxFile}`)} volume={0.4} />
+                <Audio src={resolveMediaSrc(`sfx/${cue.sfxFile}`)} volume={0.4} />
               )}
               {renderCueComponent(cue)}
             </Sequence>
@@ -74,9 +106,16 @@ export const MainVideo: React.FC<MainVideoProps> = ({
       </AbsoluteFill>
 
       {/* LAYER 3: Isolated Subject Cutout (Sits in front of Layer 2 graphics!) */}
-      {!isTransparent && maskVideoFileName && maskVideoFileName.trim() !== '' && (
+      {maskVideoFileName && maskVideoFileName.trim() !== '' && (
         <AbsoluteFill>
-          <OffthreadVideo src={staticFile(maskVideoFileName)} transparent />
+          <Video
+            src={resolveMediaSrc(maskVideoFileName)}
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+            }}
+          />
         </AbsoluteFill>
       )}
 
@@ -89,7 +128,7 @@ export const MainVideo: React.FC<MainVideoProps> = ({
           return (
             <Sequence key={cue.id} from={fromFrame} durationInFrames={durationInFrames} name={`${cue.component} (front)`}>
               {cue.sfxFile && cue.sfxFile !== 'none' && (
-                <Audio src={staticFile(`sfx/${cue.sfxFile}`)} volume={0.5} />
+                <Audio src={resolveMediaSrc(`sfx/${cue.sfxFile}`)} volume={0.5} />
               )}
               {renderCueComponent(cue)}
             </Sequence>

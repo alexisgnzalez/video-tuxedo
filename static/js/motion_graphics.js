@@ -38,6 +38,7 @@ class MotionGraphicsStudio {
     this.platformSelect = document.getElementById('motionPlatformSelect');
     this.safeZoneToggle = document.getElementById('motionSafeZoneToggle');
     this.showVideoToggle = document.getElementById('motionShowVideoToggle');
+    this.audioToggle = document.getElementById('motionAudioToggle');
     this.redraftBtn = document.getElementById('motionRedraftBtn');
     this.renderBtn = document.getElementById('motionRenderBtn');
 
@@ -46,6 +47,7 @@ class MotionGraphicsStudio {
     this.playBtn = document.getElementById('motionPlayBtn');
     this.stepBackBtn = document.getElementById('motionStepBackBtn');
     this.stepFwdBtn = document.getElementById('motionStepFwdBtn');
+    this.muteToggleBtn = document.getElementById('motionMuteToggleBtn');
     this.timecodeText = document.getElementById('motionTimecodeText');
     this.frameText = document.getElementById('motionFrameText');
 
@@ -195,6 +197,27 @@ class MotionGraphicsStudio {
         if (!this.currentPlan) return;
         this.currentPlan.preview = this.currentPlan.preview || {};
         this.currentPlan.preview.showSourceVideo = this.showVideoToggle.checked;
+        this.updatePlayer();
+      });
+    }
+
+    if (this.audioToggle) {
+      this.audioToggle.addEventListener('change', () => {
+        if (!this.currentPlan) return;
+        this.currentPlan.preview = this.currentPlan.preview || {};
+        this.currentPlan.preview.muteSource = !this.audioToggle.checked;
+        this.updateAudioButtonState();
+        this.updatePlayer();
+      });
+    }
+
+    if (this.muteToggleBtn) {
+      this.muteToggleBtn.addEventListener('click', () => {
+        if (!this.currentPlan) return;
+        this.currentPlan.preview = this.currentPlan.preview || {};
+        this.currentPlan.preview.muteSource = !this.currentPlan.preview.muteSource;
+        if (this.audioToggle) this.audioToggle.checked = !this.currentPlan.preview.muteSource;
+        this.updateAudioButtonState();
         this.updatePlayer();
       });
     }
@@ -428,6 +451,18 @@ class MotionGraphicsStudio {
     this.loadStep.style.display = 'none';
     this.workspaceStep.style.display = 'grid';
 
+    // Set preview defaults: show source video & enable audio
+    this.currentPlan.preview = this.currentPlan.preview || {};
+    if (this.currentPlan.preview.showSourceVideo === undefined) {
+      this.currentPlan.preview.showSourceVideo = true;
+    }
+    if (this.currentPlan.preview.muteSource === undefined) {
+      this.currentPlan.preview.muteSource = false;
+    }
+    if (this.showVideoToggle) this.showVideoToggle.checked = this.currentPlan.preview.showSourceVideo;
+    if (this.audioToggle) this.audioToggle.checked = !this.currentPlan.preview.muteSource;
+    this.updateAudioButtonState();
+
     // Update header badges
     if (this.slugText) this.slugText.textContent = this.currentPlan.slug;
     if (this.fpsBadge) this.fpsBadge.textContent = `${this.currentPlan.fps} FPS`;
@@ -646,19 +681,134 @@ class MotionGraphicsStudio {
     this.buildPropsEditor(sc);
   }
 
+  updateAudioButtonState() {
+    if (!this.muteToggleBtn) return;
+    const isMuted = Boolean(this.currentPlan?.preview?.muteSource);
+    if (isMuted) {
+      this.muteToggleBtn.textContent = '🔇 Muted';
+      this.muteToggleBtn.classList.add('muted');
+    } else {
+      this.muteToggleBtn.textContent = '🔊 Audio On';
+      this.muteToggleBtn.classList.remove('muted');
+    }
+  }
+
   buildPropsEditor(scene) {
     if (!this.activePropsContainer) return;
     this.activePropsContainer.innerHTML = '';
 
     const props = scene.props || {};
 
-    // Common editable text props based on component
+    const labelMap = {
+      headlineText: 'Headline text',
+      subText: 'Secondary text / subtext',
+      emojiOrIcon: 'Emoji or icon',
+      accentColor: 'Brand accent color',
+      position: 'Screen position',
+      sfxFile: 'Sound effect',
+      title: 'Title',
+      subtitle: 'Subtitle',
+      heading: 'Heading',
+      text: 'Body text',
+      bullets: 'Bullet list items',
+      category: 'Category tag',
+    };
+
+    const card = document.createElement('div');
+    card.className = 'motion-props-card';
+
     for (const [key, val] of Object.entries(props)) {
-      if (typeof val === 'string' || typeof val === 'number') {
-        const field = document.createElement('div');
-        field.className = 'motion-field-row';
+      const field = document.createElement('div');
+      field.className = 'motion-field-row';
+      const labelText = labelMap[key] || key.replace(/([A-Z])/g, ' $1').replace(/^./, (s) => s.toUpperCase());
+
+      if (key === 'accentColor') {
+        const brandColors = [
+          { color: '#FACC15', label: 'Gold' },
+          { color: '#38BDF8', label: 'Sky' },
+          { color: '#F43F5E', label: 'Rose' },
+          { color: '#4ADE80', label: 'Emerald' },
+          { color: '#A855F7', label: 'Purple' },
+          { color: '#D97757', label: 'Terracotta' },
+        ];
         field.innerHTML = `
-          <label class="motion-field-label">${key}</label>
+          <label class="motion-field-label">${labelText}</label>
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <input type="text" class="input-text motion-prop-input" value="${val}" data-prop="${key}" style="max-width: 130px; font-family: var(--font-mono); font-size: 0.85rem;" />
+            <div class="motion-color-swatches"></div>
+          </div>
+        `;
+        const swatchesContainer = field.querySelector('.motion-color-swatches');
+        const inp = field.querySelector('.motion-prop-input');
+        brandColors.forEach((bc) => {
+          const chip = document.createElement('div');
+          chip.className = `motion-color-chip ${val.toUpperCase() === bc.color.toUpperCase() ? 'active' : ''}`;
+          chip.style.backgroundColor = bc.color;
+          chip.title = `${bc.label} (${bc.color})`;
+          chip.addEventListener('click', () => {
+            scene.props[key] = bc.color;
+            inp.value = bc.color;
+            swatchesContainer.querySelectorAll('.motion-color-chip').forEach((c) => c.classList.remove('active'));
+            chip.classList.add('active');
+            this.updatePlayer();
+          });
+          swatchesContainer.appendChild(chip);
+        });
+        inp.addEventListener('input', (e) => {
+          scene.props[key] = e.target.value;
+          swatchesContainer.querySelectorAll('.motion-color-chip').forEach((c) => {
+            c.classList.toggle('active', c.style.backgroundColor.toUpperCase() === e.target.value.toUpperCase());
+          });
+          this.updatePlayer();
+        });
+        card.appendChild(field);
+      } else if (key === 'emojiOrIcon') {
+        const popularEmojis = ['🔥', '💀', '👀', '⚡', '😂', '🚨', '🎯', '💡', '✨'];
+        field.innerHTML = `
+          <label class="motion-field-label">${labelText}</label>
+          <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+            <input type="text" class="input-text motion-prop-input" value="${val}" data-prop="${key}" style="max-width: 90px; font-size: 1.25rem; text-align: center;" />
+            <div class="motion-emoji-swatches"></div>
+          </div>
+        `;
+        const emojiContainer = field.querySelector('.motion-emoji-swatches');
+        const inp = field.querySelector('.motion-prop-input');
+        popularEmojis.forEach((em) => {
+          const chip = document.createElement('button');
+          chip.type = 'button';
+          chip.className = 'motion-emoji-chip';
+          chip.textContent = em;
+          chip.addEventListener('click', () => {
+            scene.props[key] = em;
+            inp.value = em;
+            this.updatePlayer();
+          });
+          emojiContainer.appendChild(chip);
+        });
+        inp.addEventListener('input', (e) => {
+          scene.props[key] = e.target.value;
+          this.updatePlayer();
+        });
+        card.appendChild(field);
+      } else if (key === 'position') {
+        field.innerHTML = `
+          <label class="motion-field-label">${labelText}</label>
+          <select class="motion-select motion-prop-input" data-prop="${key}">
+            <option value="bottom-right" ${val === 'bottom-right' ? 'selected' : ''}>Bottom Right (Subtle corner)</option>
+            <option value="bottom-left" ${val === 'bottom-left' ? 'selected' : ''}>Bottom Left</option>
+            <option value="center" ${val === 'center' ? 'selected' : ''}>Center (Maximum impact)</option>
+            <option value="top" ${val === 'top' ? 'selected' : ''}>Top Canopy</option>
+          </select>
+        `;
+        const sel = field.querySelector('.motion-prop-input');
+        sel.addEventListener('change', (e) => {
+          scene.props[key] = e.target.value;
+          this.updatePlayer();
+        });
+        card.appendChild(field);
+      } else if (typeof val === 'string' || typeof val === 'number') {
+        field.innerHTML = `
+          <label class="motion-field-label">${labelText}</label>
           <input type="${typeof val === 'number' ? 'number' : 'text'}" class="input-text motion-prop-input" value="${val}" data-prop="${key}" />
         `;
         const inp = field.querySelector('.motion-prop-input');
@@ -666,12 +816,9 @@ class MotionGraphicsStudio {
           scene.props[key] = typeof val === 'number' ? parseFloat(e.target.value) || 0 : e.target.value;
           this.updatePlayer();
         });
-        this.activePropsContainer.appendChild(field);
+        card.appendChild(field);
       } else if (Array.isArray(val) && val.length > 0 && typeof val[0] === 'string') {
-        // Bullet points / lists
-        const field = document.createElement('div');
-        field.className = 'motion-field-group';
-        field.innerHTML = `<label class="motion-field-label">${key} (items)</label>`;
+        field.innerHTML = `<label class="motion-field-label">${labelText}</label>`;
         val.forEach((item, bIdx) => {
           const bRow = document.createElement('input');
           bRow.type = 'text';
@@ -684,9 +831,11 @@ class MotionGraphicsStudio {
           });
           field.appendChild(bRow);
         });
-        this.activePropsContainer.appendChild(field);
+        card.appendChild(field);
       }
     }
+
+    this.activePropsContainer.appendChild(card);
   }
 
   addNewSceneAtPlayhead(componentId, defaultZone) {

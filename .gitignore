@@ -38,3 +38,5 @@ exports/
 runs/
 *.pt
 motion-studio/src/videos/
+motion-studio/public/*.mov
+motion-studio/public/*_web.mp4

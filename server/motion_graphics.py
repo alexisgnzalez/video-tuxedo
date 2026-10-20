@@ -34,27 +34,64 @@ def stage_media_for_remotion(media_path: str, target_name: Optional[str] = None)
     """
     Stages media file in motion-studio/public/ via symlink or copy
     so Chromium sandbox can load it via staticFile() without 404 or path errors.
+    If the file is a QuickTime .mov or has PCM audio unplayable in Chrome,
+    creates a web-friendly stream-copied .mp4 with AAC audio so both video & audio play smoothly.
     """
     if not media_path:
         return ""
     src = Path(os.path.expanduser(media_path)).resolve()
     if not src.exists():
         return ""
-    filename = target_name or src.name
+
     public_dir = MOTION_STUDIO_DIR / "public"
     public_dir.mkdir(parents=True, exist_ok=True)
+
+    # 1. If QuickTime .mov, prepare a stream-copied web-compatible .mp4 with AAC audio
+    web_src = src
+    if src.suffix.lower() == ".mov":
+        web_mp4_path = src.parent / f"{src.stem}_web.mp4"
+        if not web_mp4_path.exists() or web_mp4_path.stat().st_mtime < src.stat().st_mtime:
+            try:
+                import imageio_ffmpeg
+                ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+                print(f"🎬 Creating web-compatible MP4 proxy with AAC audio: {web_mp4_path.name}...")
+                cmd = [
+                    ffmpeg, "-y", "-i", str(src),
+                    "-c:v", "copy",
+                    "-c:a", "aac", "-b:a", "192k",
+                    "-movflags", "+faststart",
+                    str(web_mp4_path),
+                ]
+                subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=True)
+                print(f"✅ Web MP4 preview ready: {web_mp4_path.name}")
+            except Exception as e:
+                print(f"⚠️ Web MP4 preview generation warning: {e}")
+        if web_mp4_path.exists():
+            web_src = web_mp4_path
+
+    filename = target_name or web_src.name
     dest = public_dir / filename
     try:
         if dest.exists() or dest.is_symlink():
-            if dest.resolve() == src:
+            if dest.resolve() == web_src.resolve():
                 return filename
             dest.unlink()
-        os.symlink(src, dest)
+        os.symlink(web_src, dest)
     except Exception:
         try:
-            shutil.copyfile(src, dest)
+            shutil.copyfile(web_src, dest)
         except Exception as e:
-            print(f"⚠️ Media staging warning for {src}: {e}")
+            print(f"⚠️ Media staging warning for {web_src}: {e}")
+
+    # Also symlink original if different
+    if web_src != src:
+        orig_dest = public_dir / src.name
+        try:
+            if not orig_dest.exists() and not orig_dest.is_symlink():
+                os.symlink(src, orig_dest)
+        except Exception:
+            pass
+
     return filename
 
 

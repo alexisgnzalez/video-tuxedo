@@ -69,9 +69,30 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 STATIC_DIR = BASE_DIR / "static"
 UPLOAD_DIR = BASE_DIR / "temp_media"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+MOTION_PUBLIC_DIR = BASE_DIR / "motion-studio" / "public"
+MOTION_PUBLIC_DIR.mkdir(parents=True, exist_ok=True)
+SFX_DIR = MOTION_PUBLIC_DIR / "sfx"
+SFX_DIR.mkdir(parents=True, exist_ok=True)
 
-# Mount static files
-app.mount("/static", StaticFiles(directory=str(STATIC_DIR)), name="static")
+# Auto-load .env into environment
+env_file = BASE_DIR / ".env"
+if env_file.exists():
+    try:
+        with open(env_file, "r", encoding="utf-8") as ef:
+            for line in ef:
+                line = line.strip()
+                if line and not line.startswith("#") and "=" in line:
+                    k, v = line.split("=", 1)
+                    os.environ[k.strip()] = v.strip().strip('"').strip("'")
+    except Exception as e:
+        print(f"⚠️ Error loading .env: {e}")
+
+# Mount static and public files
+app.mount("/static", StaticFiles(directory=str(STATIC_DIR), follow_symlink=True), name="static")
+app.mount("/public", StaticFiles(directory=str(MOTION_PUBLIC_DIR), follow_symlink=True), name="public")
+app.mount("/sfx", StaticFiles(directory=str(SFX_DIR), follow_symlink=True), name="sfx")
+app.mount("/temp_media", StaticFiles(directory=str(UPLOAD_DIR), follow_symlink=True), name="temp_media")
+
 
 
 class SegmentsExportRequest(BaseModel):
@@ -891,6 +912,9 @@ def load_motion_media_path(req: MotionLoadMediaRequest):
     # Track subject boxes across video duration
     subject_track = track_subject_motion(path, sample_interval_s=1.0)
 
+    # Stage video media for Remotion preview & rendering
+    v_name = stage_media_for_remotion(path)
+
     # Draft initial scene plan
     if req.director_style == "story_tuxedo":
         words_list = []
@@ -902,8 +926,6 @@ def load_motion_media_path(req: MotionLoadMediaRequest):
                         "start": w.get("start", 0.0),
                         "end": w.get("end", 0.0),
                     })
-        v_name = os.path.basename(path)
-        stage_media_for_remotion(path, v_name)
         draft_plan = generate_director_plan(
             words_list=words_list,
             video_file_name=v_name,
@@ -926,17 +948,22 @@ def load_motion_media_path(req: MotionLoadMediaRequest):
         draft_plan["directorStyle"] = "caracas"
         draft_plan["composition"] = "TalkingHeadOverlay"
 
+    draft_plan["videoFileName"] = v_name
     draft_plan["source"] = {
         "path": path,
-        "filename": os.path.basename(path),
-        "url": f"/api/media-stream?path={urllib.parse.quote(str(path))}",
+        "filename": v_name,
+        "url": f"/public/{v_name}",
     }
-
+    draft_plan["preview"] = {
+        "showSourceVideo": True,
+        "showSafeZones": True,
+        "muteSource": False,
+    }
 
     return {
         "status": "success",
         "media_path": path,
-        "filename": os.path.basename(path),
+        "filename": v_name,
         "fps": fps,
         "duration": duration,
         "total_frames": total_frames,
@@ -965,6 +992,10 @@ def draft_plan_endpoint(req: MotionDraftPlanRequest):
     if req.srt_content:
         cues = parse_srt_file(req.srt_content, fps=fps)
 
+    v_name = "chopped_video.mp4"
+    if media_path and os.path.exists(media_path):
+        v_name = stage_media_for_remotion(media_path)
+
     # Branch between StoryTuxedo 3-layer comedic director and Caracas Kinetic poster suite
     if req.director_style == "story_tuxedo":
         words_list = []
@@ -982,10 +1013,6 @@ def draft_plan_endpoint(req: MotionDraftPlanRequest):
                 words_list = tx.get("all_words", [])
             except Exception as e:
                 print(f"⚠️ Auto-transcription for StoryTuxedo error: {e}")
-
-        v_name = os.path.basename(media_path) if media_path else "chopped_video.mp4"
-        if media_path and os.path.exists(media_path):
-            stage_media_for_remotion(media_path, v_name)
 
         plan = generate_director_plan(
             words_list=words_list,
@@ -1011,10 +1038,16 @@ def draft_plan_endpoint(req: MotionDraftPlanRequest):
         plan["composition"] = "TalkingHeadOverlay"
 
     if media_path:
+        plan["videoFileName"] = v_name
         plan["source"] = {
             "path": media_path,
-            "filename": os.path.basename(media_path),
-            "url": f"/api/media-stream?path={urllib.parse.quote(str(media_path))}",
+            "filename": v_name,
+            "url": f"/public/{v_name}",
+        }
+        plan["preview"] = {
+            "showSourceVideo": True,
+            "showSafeZones": True,
+            "muteSource": False,
         }
 
     return {"status": "success", "plan": plan}
@@ -1128,4 +1161,14 @@ def cancel_motion_task(task_id: str):
 def serve_index():
     index_file = STATIC_DIR / "index.html"
     return FileResponse(str(index_file))
+
+
+@app.get("/{file_name:path}")
+def serve_root_public_fallback(file_name: str):
+    """Fallback to serve staged files in motion-studio/public if accessed at root without /public prefix."""
+    target = MOTION_PUBLIC_DIR / file_name
+    if target.exists() and target.is_file():
+        return FileResponse(str(target))
+    raise HTTPException(status_code=404, detail="Not Found")
+
 

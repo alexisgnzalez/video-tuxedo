@@ -3,10 +3,25 @@ from __future__ import annotations
 import os
 import json
 import logging
+from pathlib import Path
 from typing import List, Literal, Optional, Dict, Any
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger("video_tuxedo.director_agent")
+
+# Auto-load .env
+_env_file = Path(__file__).resolve().parent.parent / ".env"
+if _env_file.exists():
+    try:
+        with open(_env_file, "r", encoding="utf-8") as _ef:
+            for _line in _ef:
+                _line = _line.strip()
+                if _line and not _line.startswith("#") and "=" in _line:
+                    _k, _v = _line.split("=", 1)
+                    os.environ.setdefault(_k.strip(), _v.strip().strip('"').strip("'"))
+    except Exception:
+        pass
+
 
 
 class VisualCue(BaseModel):
@@ -196,7 +211,7 @@ WORD-LEVEL TIMESTAMPS:
 """
 
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.8-flash",
             contents=prompt,
             config=types.GenerateContentConfig(
                 response_mime_type="application/json",

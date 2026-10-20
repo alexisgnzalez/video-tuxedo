@@ -50,7 +50,16 @@ const MotionPlayerWrapper: React.FC<PlayerWrapperProps> = ({
     (plan as any)?.composition === 'StoryTuxedo' ||
     Boolean((plan as any)?.cues && (plan as any)?.words);
   const TargetComponent = isStoryTuxedo ? (MainVideo as any) : TalkingHeadOverlay;
-  const targetProps = isStoryTuxedo ? (plan as any) : { plan };
+  const targetProps = isStoryTuxedo
+    ? {
+        ...(plan as any),
+        previewMode: true,
+        showVideo: (plan as any)?.preview?.showSourceVideo ?? true,
+        muteAudio: (plan as any)?.preview?.muteSource ?? false,
+        sourceUrl: (plan as any)?.source?.url,
+        videoFileName: (plan as any)?.videoFileName || (plan as any)?.source?.filename,
+      }
+    : { plan };
 
   return (
     <div
@@ -162,4 +171,27 @@ let currentPlan: ScenePlan = DEFAULT_PLAN;
     const p = (window as any).__activePlayer as PlayerRef | undefined;
     return p ? p.getCurrentFrame() : 0;
   },
+
+  toggleMute: (): boolean => {
+    if (currentPlan) {
+      currentPlan.preview = currentPlan.preview || {};
+      currentPlan.preview.muteSource = !currentPlan.preview.muteSource;
+      (window as any).MotionPlayer.update(currentPlan);
+      return currentPlan.preview.muteSource;
+    }
+    return false;
+  },
+
+  setMuted: (muted: boolean) => {
+    if (currentPlan) {
+      currentPlan.preview = currentPlan.preview || {};
+      currentPlan.preview.muteSource = muted;
+      (window as any).MotionPlayer.update(currentPlan);
+    }
+  },
+
+  isMuted: (): boolean => {
+    return Boolean(currentPlan?.preview?.muteSource);
+  },
 };
+

@@ -1530,7 +1530,12 @@
 
             <label class="motion-checkbox-label">
               <input type="checkbox" id="motionShowVideoToggle" checked />
-              Source Video
+              Original Video
+            </label>
+
+            <label class="motion-checkbox-label">
+              <input type="checkbox" id="motionAudioToggle" checked />
+              Audio
             </label>
           </div>
 
@@ -1557,6 +1562,7 @@
               <button class="btn-ghost" id="motionStepBackBtn" title="Step Back 1 frame (Left Arrow)">◀</button>
               <button class="btn-primary" id="motionPlayBtn" style="min-width: 110px;">▶ Play</button>
               <button class="btn-ghost" id="motionStepFwdBtn" title="Step Forward 1 frame (Right Arrow)">▶</button>
+              <button class="btn-mute-toggle" id="motionMuteToggleBtn" title="Toggle Audio Mute">🔊 Audio On</button>
               <span class="motion-timecode" id="motionTimecodeText">00:00:00.00</span>
               <span class="motion-frame-counter" id="motionFrameText">F: 0</span>
             </div>
@@ -1574,25 +1580,33 @@
               <div class="motion-field-row">
                 <label class="motion-field-label">Component</label>
                 <select id="motionActiveComponentSelect" class="motion-select" style="width: 100%;">
-                  <option value="PosterTitleCard">PosterTitleCard (Zone T)</option>
-                  <option value="AvilaFacetCard">AvilaFacetCard (Zone T)</option>
-                  <option value="CruzDiezBadge">CruzDiezBadge (Zone R)</option>
-                  <option value="BrutalistLowerThird">BrutalistLowerThird (Zone B)</option>
-                  <option value="ViaductProgress">ViaductProgress (Zone T)</option>
-                  <option value="GegoMeshPointer">GegoMeshPointer (Zone L)</option>
-                  <option value="CruzDiezWall">CruzDiezWall (Zone B)</option>
-                  <option value="AvilaPeak">AvilaPeak (Zone L)</option>
-                  <option value="PetareHill">PetareHill (Zone L)</option>
-                  <option value="ViaductSweep">ViaductSweep (Zone FULL)</option>
-                  <option value="HyparNet">HyparNet (Zone R)</option>
-                  <option value="ForegroundFrame">ForegroundFrame (Zone B)</option>
+                  <optgroup label="StoryTuxedo (Viral Comedic Overlays)">
+                    <option value="KineticTitleBehind">KineticTitleBehind (Behind Speaker)</option>
+                    <option value="PunchlinePopup">PunchlinePopup (Comedic Sticker)</option>
+                    <option value="FloatingEmojiCluster">FloatingEmojiCluster (Particle Burst)</option>
+                    <option value="ComicAlertBanner">ComicAlertBanner (Punchy Alert)</option>
+                  </optgroup>
+                  <optgroup label="Caracas Kinetic Poster Suite">
+                    <option value="PosterTitleCard">PosterTitleCard (Zone T)</option>
+                    <option value="AvilaFacetCard">AvilaFacetCard (Zone T)</option>
+                    <option value="CruzDiezBadge">CruzDiezBadge (Zone R)</option>
+                    <option value="BrutalistLowerThird">BrutalistLowerThird (Zone B)</option>
+                    <option value="ViaductProgress">ViaductProgress (Zone T)</option>
+                    <option value="GegoMeshPointer">GegoMeshPointer (Zone L)</option>
+                    <option value="CruzDiezWall">CruzDiezWall (Zone B)</option>
+                    <option value="AvilaPeak">AvilaPeak (Zone L)</option>
+                    <option value="PetareHill">PetareHill (Zone L)</option>
+                    <option value="ViaductSweep">ViaductSweep (Zone FULL)</option>
+                    <option value="HyparNet">HyparNet (Zone R)</option>
+                    <option value="ForegroundFrame">ForegroundFrame (Zone B)</option>
+                  </optgroup>
                 </select>
               </div>
 
               <div class="motion-field-row">
-                <label class="motion-field-label">Zone</label>
+                <label class="motion-field-label">Screen Zone / Layer</label>
                 <select id="motionActiveZoneSelect" class="motion-select">
-                  <option value="T">Zone T (Canopy / Header)</option>
+                  <option value="T">Zone T (Canopy / Header / Behind)</option>
                   <option value="L">Zone L (Left Shoulder)</option>
                   <option value="R">Zone R (Right Shoulder)</option>
                   <option value="B">Zone B (Lower Third)</option>
@@ -1602,7 +1616,7 @@
 
               <div class="motion-field-row-split">
                 <div>
-                  <label class="motion-field-label">Start Frame</label>
+                  <label class="motion-field-label">Start frame</label>
                   <input type="number" id="motionActiveStartInput" class="input-text" />
                 </div>
                 <div>
@@ -1619,9 +1633,13 @@
               <div class="motion-section-header">Attached Sound Effect (SFX)</div>
               <div class="motion-field-row-split">
                 <div>
-                  <label class="motion-field-label">Instrument</label>
+                  <label class="motion-field-label">Sound effect</label>
                   <select id="motionActiveSfxSelect" class="motion-select">
                     <option value="none">None</option>
+                    <option value="pop.mp3">Pop (Punchline)</option>
+                    <option value="whoosh.mp3">Whoosh (Title In)</option>
+                    <option value="vine_boom.mp3">Vine Boom (Dramatic / Irony)</option>
+                    <option value="ding.mp3">Ding (Idea / Spark)</option>
                     <option value="SFX_PAPER_SNAP">SFX Paper Snap</option>
                     <option value="SFX_BRUTAL_THUD">SFX Brutal Thud</option>
                     <option value="SFX_WIRE_SWISH">SFX Wire Swish</option>
@@ -1642,8 +1660,12 @@
 
               <!-- Scene Actions -->
               <div class="motion-button-row">
-                <button class="btn-ghost" id="motionDuplicateSceneBtn">Duplicate Block</button>
-                <button class="btn-ghost" id="motionDeleteSceneBtn" style="color: var(--color-terracotta);">Delete Block</button>
+                <button class="btn-secondary" id="motionDuplicateSceneBtn" style="font-size: 0.86rem; padding: 0.55rem 1rem;">
+                  📋 Duplicate block
+                </button>
+                <button class="btn-ghost" id="motionDeleteSceneBtn" style="color: var(--accent-coral); font-size: 0.86rem; padding: 0.55rem 1rem;">
+                  🗑 Delete block
+                </button>
               </div>
             </div>
 

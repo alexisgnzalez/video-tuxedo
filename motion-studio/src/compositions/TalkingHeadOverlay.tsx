@@ -1,5 +1,5 @@
 import React from 'react';
-import { AbsoluteFill, Audio, Sequence, staticFile, useVideoConfig } from 'remotion';
+import { AbsoluteFill, Audio, Sequence, Video, staticFile, useVideoConfig } from 'remotion';
 import { ComponentId, DEFAULT_PLAN, Scene, ScenePlan, SfxCue, ZoneId } from '../types';
 import { resolveSceneZones } from '../styles/safeZones';
 import { FontLoader } from '../styles/typography';
@@ -66,7 +66,19 @@ export const TalkingHeadOverlay: React.FC<TalkingHeadOverlayProps> = ({
 
   const isBackgroundMode = plan.mode === 'z-background';
   const showSafeZones = plan.preview?.showSafeZones ?? false;
-  const showSourceVideo = plan.preview?.showSourceVideo ?? false;
+  const showSourceVideo = plan.preview?.showSourceVideo ?? true;
+
+  const resolveVideoUrl = () => {
+    if (plan.source?.url) return plan.source.url;
+    if (plan.source?.filename) {
+      if (plan.source.filename.startsWith('http://') || plan.source.filename.startsWith('/')) {
+        return plan.source.filename;
+      }
+      return `/public/${plan.source.filename}`;
+    }
+    return '';
+  };
+  const videoSrc = resolveVideoUrl();
 
   return (
     <AbsoluteFill
@@ -81,11 +93,11 @@ export const TalkingHeadOverlay: React.FC<TalkingHeadOverlayProps> = ({
     >
       <FontLoader />
 
-      {/* 1. Optional Preview Source Video Underneath (Preview Only) */}
-      {showSourceVideo && plan.source?.url && (
-        <video
-          src={plan.source.url}
-          muted={plan.preview?.muteSource ?? true}
+      {/* 1. Preview Source Video Underneath with Synced Audio */}
+      {showSourceVideo && videoSrc && (
+        <Video
+          src={videoSrc}
+          volume={plan.preview?.muteSource ? 0 : 1}
           style={{
             position: 'absolute',
             top: 0,
