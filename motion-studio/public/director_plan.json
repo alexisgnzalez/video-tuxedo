@@ -1,42 +1,595 @@
 {
-  "videoFileName": "chopped_video.mp4",
+  "videoFileName": "1792535183_NoTeRindas_web.mp4",
   "maskVideoFileName": "",
-  "renderMode": "full_composite",
+  "renderMode": "overlays_only_for_davinci",
   "cues": [
     {
-      "id": "cue_hook",
-      "startTime": 0.2,
-      "endTime": 2.5,
+      "id": "cue_1",
+      "startTime": 1.54,
+      "endTime": 3.8,
       "layer": "behind_subject",
       "component": "KineticTitleBehind",
-      "headlineText": "WAIT FOR IT",
-      "subText": "",
-      "emojiOrIcon": "👀",
+      "headlineText": "MODO POETA",
+      "subText": "Benedetti activado",
+      "emojiOrIcon": "📜",
       "accentColor": "#FACC15",
-      "position": "top",
+      "position": "center",
       "sfxFile": "whoosh.mp3"
     },
     {
-      "id": "cue_punch",
-      "startTime": 3.8,
-      "endTime": 5.8,
+      "id": "cue_2",
+      "startTime": 6.06,
+      "endTime": 8.3,
       "layer": "in_front_of_subject",
       "component": "PunchlinePopup",
-      "headlineText": "NO WAY 💀",
-      "subText": "",
-      "emojiOrIcon": "💀",
-      "accentColor": "#F43F5E",
-      "position": "bottom-right",
+      "headlineText": "RESETEO TOTAL",
+      "subText": "Borrón y cuenta nueva",
+      "emojiOrIcon": "🔄",
+      "accentColor": "#38BDF8",
+      "position": "bottom-left",
       "sfxFile": "pop.mp3"
+    },
+    {
+      "id": "cue_3",
+      "startTime": 11.5,
+      "endTime": 13.8,
+      "layer": "behind_subject",
+      "component": "KineticTitleBehind",
+      "headlineText": "CHAO PESO",
+      "subText": "Soltando el lastre",
+      "emojiOrIcon": "🎈",
+      "accentColor": "#A855F7",
+      "position": "center",
+      "sfxFile": "whoosh.mp3"
+    },
+    {
+      "id": "cue_4",
+      "startTime": 16.38,
+      "endTime": 18.8,
+      "layer": "in_front_of_subject",
+      "component": "ComicAlertBanner",
+      "headlineText": "ASÍ ES ESTO",
+      "subText": "Lección de vida",
+      "emojiOrIcon": "✨",
+      "accentColor": "#4ADE80",
+      "position": "top",
+      "sfxFile": "ding.mp3"
+    },
+    {
+      "id": "cue_5",
+      "startTime": 21.74,
+      "endTime": 24.1,
+      "layer": "behind_subject",
+      "component": "KineticTitleBehind",
+      "headlineText": "SIN FRENOS",
+      "subText": null,
+      "emojiOrIcon": "⏳",
+      "accentColor": "#F43F5E",
+      "position": "center",
+      "sfxFile": "whoosh.mp3"
+    },
+    {
+      "id": "cue_6",
+      "startTime": 27.65,
+      "endTime": 30.1,
+      "layer": "in_front_of_subject",
+      "component": "PunchlinePopup",
+      "headlineText": "¡AGUANTA MANO!",
+      "subText": "Prohibido rajarse",
+      "emojiOrIcon": "🛡️",
+      "accentColor": "#FACC15",
+      "position": "bottom-right",
+      "sfxFile": "vine_boom.mp3"
+    },
+    {
+      "id": "cue_7",
+      "startTime": 32.5,
+      "endTime": 35.0,
+      "layer": "behind_subject",
+      "component": "KineticTitleBehind",
+      "headlineText": "CERO MIEDO",
+      "subText": null,
+      "emojiOrIcon": "🥶",
+      "accentColor": "#38BDF8",
+      "position": "center",
+      "sfxFile": "whoosh.mp3"
+    },
+    {
+      "id": "cue_8",
+      "startTime": 38.22,
+      "endTime": 40.8,
+      "layer": "in_front_of_subject",
+      "component": "PunchlinePopup",
+      "headlineText": "PURA CANDELA",
+      "subText": "Aún hay fuego",
+      "emojiOrIcon": "🔥",
+      "accentColor": "#F43F5E",
+      "position": "bottom-left",
+      "sfxFile": "ding.mp3"
     }
   ],
   "words": [
-    { "word": "Wait", "start": 0.2, "end": 0.6 },
-    { "word": "for", "start": 0.65, "end": 0.9 },
-    { "word": "it...", "start": 0.95, "end": 1.4 },
-    { "word": "you", "start": 3.4, "end": 3.7 },
-    { "word": "won't", "start": 3.75, "end": 4.1 },
-    { "word": "believe", "start": 4.15, "end": 4.6 },
-    { "word": "this", "start": 4.65, "end": 5.0 }
-  ]
+    {
+      "word": "No",
+      "start": 0.0,
+      "end": 0.16
+    },
+    {
+      "word": "te",
+      "start": 0.16,
+      "end": 0.3
+    },
+    {
+      "word": "rindas,",
+      "start": 0.3,
+      "end": 0.88
+    },
+    {
+      "word": "de",
+      "start": 1.3,
+      "end": 1.54
+    },
+    {
+      "word": "Mario",
+      "start": 1.54,
+      "end": 1.8
+    },
+    {
+      "word": "Benedetti,",
+      "start": 1.8,
+      "end": 2.36
+    },
+    {
+      "word": "no",
+      "start": 2.76,
+      "end": 2.84
+    },
+    {
+      "word": "te",
+      "start": 2.84,
+      "end": 2.98
+    },
+    {
+      "word": "rindas.",
+      "start": 2.98,
+      "end": 3.5
+    },
+    {
+      "word": "Aún",
+      "start": 4.04,
+      "end": 4.32
+    },
+    {
+      "word": "estás",
+      "start": 4.32,
+      "end": 4.54
+    },
+    {
+      "word": "a",
+      "start": 4.54,
+      "end": 4.7
+    },
+    {
+      "word": "tiempo",
+      "start": 4.7,
+      "end": 5.0
+    },
+    {
+      "word": "de",
+      "start": 5.0,
+      "end": 5.14
+    },
+    {
+      "word": "alcanzar",
+      "start": 5.14,
+      "end": 5.74
+    },
+    {
+      "word": "y",
+      "start": 5.74,
+      "end": 6.06
+    },
+    {
+      "word": "comenzar",
+      "start": 6.06,
+      "end": 6.6
+    },
+    {
+      "word": "de",
+      "start": 6.6,
+      "end": 6.7
+    },
+    {
+      "word": "nuevo.",
+      "start": 6.7,
+      "end": 7.0
+    },
+    {
+      "word": "Asectar",
+      "start": 7.86,
+      "end": 8.36
+    },
+    {
+      "word": "tus",
+      "start": 8.36,
+      "end": 8.64
+    },
+    {
+      "word": "sombras,",
+      "start": 8.64,
+      "end": 9.06
+    },
+    {
+      "word": "enterrar",
+      "start": 9.68,
+      "end": 10.06
+    },
+    {
+      "word": "tus",
+      "start": 10.06,
+      "end": 10.34
+    },
+    {
+      "word": "miedos,",
+      "start": 10.34,
+      "end": 10.82
+    },
+    {
+      "word": "liberar",
+      "start": 11.5,
+      "end": 11.86
+    },
+    {
+      "word": "el",
+      "start": 11.86,
+      "end": 12.12
+    },
+    {
+      "word": "lastre,",
+      "start": 12.12,
+      "end": 12.56
+    },
+    {
+      "word": "retomar",
+      "start": 13.28,
+      "end": 13.66
+    },
+    {
+      "word": "el",
+      "start": 13.66,
+      "end": 14.06
+    },
+    {
+      "word": "vuelo.",
+      "start": 14.06,
+      "end": 14.42
+    },
+    {
+      "word": "No",
+      "start": 15.24,
+      "end": 15.34
+    },
+    {
+      "word": "te",
+      "start": 15.34,
+      "end": 15.5
+    },
+    {
+      "word": "rindas",
+      "start": 15.5,
+      "end": 16.06
+    },
+    {
+      "word": "que",
+      "start": 16.06,
+      "end": 16.26
+    },
+    {
+      "word": "la",
+      "start": 16.26,
+      "end": 16.38
+    },
+    {
+      "word": "vida",
+      "start": 16.38,
+      "end": 16.6
+    },
+    {
+      "word": "es",
+      "start": 16.6,
+      "end": 16.86
+    },
+    {
+      "word": "eso.",
+      "start": 16.86,
+      "end": 17.16
+    },
+    {
+      "word": "Continuar",
+      "start": 18.04,
+      "end": 18.56
+    },
+    {
+      "word": "el",
+      "start": 18.56,
+      "end": 18.76
+    },
+    {
+      "word": "viaje,",
+      "start": 18.76,
+      "end": 19.1
+    },
+    {
+      "word": "perseguir",
+      "start": 19.9,
+      "end": 20.38
+    },
+    {
+      "word": "tus",
+      "start": 20.38,
+      "end": 20.64
+    },
+    {
+      "word": "sueños,",
+      "start": 20.64,
+      "end": 21.04
+    },
+    {
+      "word": "destravar",
+      "start": 21.74,
+      "end": 22.16
+    },
+    {
+      "word": "el",
+      "start": 22.16,
+      "end": 22.4
+    },
+    {
+      "word": "tiempo,",
+      "start": 22.4,
+      "end": 22.84
+    },
+    {
+      "word": "correr",
+      "start": 23.54,
+      "end": 23.84
+    },
+    {
+      "word": "los",
+      "start": 23.84,
+      "end": 24.28
+    },
+    {
+      "word": "escombros",
+      "start": 24.28,
+      "end": 24.82
+    },
+    {
+      "word": "y",
+      "start": 24.82,
+      "end": 25.3
+    },
+    {
+      "word": "destapar",
+      "start": 25.3,
+      "end": 25.84
+    },
+    {
+      "word": "el",
+      "start": 25.84,
+      "end": 26.22
+    },
+    {
+      "word": "cielo.",
+      "start": 26.22,
+      "end": 26.54
+    },
+    {
+      "word": "No",
+      "start": 27.65,
+      "end": 27.92
+    },
+    {
+      "word": "te",
+      "start": 27.92,
+      "end": 28.08
+    },
+    {
+      "word": "rindas,",
+      "start": 28.08,
+      "end": 28.56
+    },
+    {
+      "word": "por",
+      "start": 28.72,
+      "end": 28.76
+    },
+    {
+      "word": "favor,",
+      "start": 28.76,
+      "end": 29.08
+    },
+    {
+      "word": "no",
+      "start": 29.26,
+      "end": 29.36
+    },
+    {
+      "word": "cedas,",
+      "start": 29.36,
+      "end": 29.84
+    },
+    {
+      "word": "aunque",
+      "start": 30.38,
+      "end": 30.62
+    },
+    {
+      "word": "el",
+      "start": 30.62,
+      "end": 30.82
+    },
+    {
+      "word": "frío",
+      "start": 30.82,
+      "end": 31.1
+    },
+    {
+      "word": "queme,",
+      "start": 31.1,
+      "end": 31.48
+    },
+    {
+      "word": "aunque",
+      "start": 32.1,
+      "end": 32.3
+    },
+    {
+      "word": "el",
+      "start": 32.3,
+      "end": 32.5
+    },
+    {
+      "word": "miedo",
+      "start": 32.5,
+      "end": 32.68
+    },
+    {
+      "word": "muerta,",
+      "start": 32.68,
+      "end": 33.14
+    },
+    {
+      "word": "aunque",
+      "start": 33.8,
+      "end": 34.0
+    },
+    {
+      "word": "el",
+      "start": 34.0,
+      "end": 34.18
+    },
+    {
+      "word": "sol",
+      "start": 34.18,
+      "end": 34.38
+    },
+    {
+      "word": "se",
+      "start": 34.38,
+      "end": 34.66
+    },
+    {
+      "word": "esconda",
+      "start": 34.66,
+      "end": 35.12
+    },
+    {
+      "word": "y",
+      "start": 35.12,
+      "end": 35.94
+    },
+    {
+      "word": "se",
+      "start": 35.94,
+      "end": 36.08
+    },
+    {
+      "word": "calle",
+      "start": 36.08,
+      "end": 36.44
+    },
+    {
+      "word": "el",
+      "start": 36.44,
+      "end": 36.82
+    },
+    {
+      "word": "viento,",
+      "start": 36.82,
+      "end": 37.26
+    },
+    {
+      "word": "aún",
+      "start": 37.8,
+      "end": 37.96
+    },
+    {
+      "word": "no",
+      "start": 37.96,
+      "end": 38.14
+    },
+    {
+      "word": "y",
+      "start": 38.14,
+      "end": 38.22
+    },
+    {
+      "word": "fuego",
+      "start": 38.22,
+      "end": 38.42
+    },
+    {
+      "word": "en",
+      "start": 38.42,
+      "end": 38.58
+    },
+    {
+      "word": "tu",
+      "start": 38.58,
+      "end": 38.72
+    },
+    {
+      "word": "alma,",
+      "start": 38.72,
+      "end": 38.98
+    },
+    {
+      "word": "aún",
+      "start": 39.7,
+      "end": 40.04
+    },
+    {
+      "word": "hay",
+      "start": 40.04,
+      "end": 40.52
+    },
+    {
+      "word": "vida",
+      "start": 40.52,
+      "end": 40.8
+    },
+    {
+      "word": "en",
+      "start": 40.8,
+      "end": 41.02
+    },
+    {
+      "word": "tus",
+      "start": 41.02,
+      "end": 41.2
+    },
+    {
+      "word": "sueños.",
+      "start": 41.2,
+      "end": 41.62
+    }
+  ],
+  "story_hook": "Alexis se pone en modo filosófico y declama con intensidad 'No te rindas' de Mario Benedetti para subirle el ánimo a cualquiera.",
+  "slug": "story_1792536898",
+  "fps": 29.97002997002997,
+  "durationInFrames": 1261,
+  "composition": "StoryTuxedo",
+  "directorStyle": "story_tuxedo",
+  "source": {
+    "path": "temp_media/1792535183_NoTeRindas.mp4",
+    "filename": "1792535183_NoTeRindas_web.mp4",
+    "url": "/public/1792535183_NoTeRindas_web.mp4"
+  },
+  "preview": {
+    "showSourceVideo": true,
+    "showSafeZones": true,
+    "muteSource": false
+  },
+  "previewMode": false
 }

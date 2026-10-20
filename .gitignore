@@ -39,4 +39,6 @@ runs/
 *.pt
 motion-studio/src/videos/
 motion-studio/public/*.mov
+motion-studio/public/*.mp4
 motion-studio/public/*_web.mp4
+motion-studio/public/public

@@ -89,7 +89,7 @@ def generate_local_fallback_director_plan(
         "endTime": round(min(total_duration, words_list[0].get("start", 0.2) + 2.4), 2),
         "layer": "behind_subject",
         "component": "KineticTitleBehind",
-        "headlineText": "WAIT FOR IT",
+        "headlineText": "OJO A ESTO",
         "subText": "",
         "emojiOrIcon": "👀",
         "accentColor": "#FACC15",
@@ -116,13 +116,13 @@ def generate_local_fallback_director_plan(
                 comp = "KineticTitleBehind"
                 layer = "behind_subject"
                 pos = "top"
-                headline = w_text.upper() if len(w_text) <= 10 else "BIG MOOD"
+                headline = w_text.upper() if len(w_text) <= 10 else "TAL CUAL"
                 emoji = "🔥"
             else:
                 comp = "PunchlinePopup" if cue_idx % 2 == 0 else "ComicAlertBanner"
                 layer = "in_front_of_subject"
                 pos = "bottom-right" if cue_idx % 2 == 0 else "bottom-left"
-                headline = f"NO WAY 💀" if cue_idx % 2 == 0 else f"{w_text.upper()}!"
+                headline = f"NO PUEDE SER 💀" if cue_idx % 2 == 0 else f"{w_text.upper()}!"
                 emoji = "💀" if cue_idx % 2 == 0 else "🚨"
 
             cues.append({
@@ -165,7 +165,7 @@ def generate_director_plan(
     api_key: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
-    Calls Gemini 2.5 Flash Free Tier using Structured Outputs (JSON Schema)
+    Calls Gemini Flash using Structured Outputs (JSON Schema)
     to draft a comedic story plan matching MainVideoSchema.
     Falls back gracefully to the offline heuristic director if API key is not set or call fails.
     """
@@ -196,9 +196,21 @@ def generate_director_plan(
 You are the Lead Editor and Comedic Art Director for Alexis's storytelling TikTok (@alexisgnzlz).
 Read his personal style guide and word-level timestamps below.
 
+CRITICAL LANGUAGE REQUIREMENT (MANDATORY):
+The video and spoken dialogue are in SPANISH.
+ALL motion graphics, headlineText, subText, punchlines, popups, and comedic labels MUST BE STRICTLY 100% IN SPANISH.
+NEVER generate English text or headlines like "POETRY MODE", "WAIT FOR IT", "RESPAWN IRL", "CANON EVENT", "DROP BAGGAGE", etc.
+Instead, use punchy, natural Venezuelan / Latin American Spanish humor, idioms, expressions, and reactions:
+Examples:
+- Talking about poetry / reading / literature -> "MODO POETA", "MOMENTO FILOSÓFICO", "LITERATURA PURA"
+- Talking about romantic drama / arguments / spouse -> "SE VIENE EL DIVORCIO 💔", "ALERTA DE DRAMA", "DÍSELO CON AMOR"
+- Self-deprecating or embarrassing beats -> "TRÁGAME TIERRA", "AURA: -9999 💀", "QUEDÉ PAYASO 🤡"
+- Shocking realizations or reactions -> "MANO QUÉ?", "NO TE CREO NADA", "EVENTO CANÓNICO", "NO HAY MANERA"
+- Narrative hooks -> "OJO A ESTO 👀", "ESPERA HASTA EL FINAL", "QUÉDATE CONMIGO"
+
 EDITORIAL RULES:
-1. DO NOT spam graphics. Place a cue every 3.5 to 6 seconds ONLY on comedic beats, plot twists, self-deprecating jokes, or key metaphors.
-2. NEVER repeat the spoken words verbatim if a funnier visual label exists (e.g., if Alexis says "I walked in confident and immediately tripped", the popup should say "AURA: -9999" with 💀).
+1. DO NOT spam graphics. Place a cue every 3.5 to 6 seconds ONLY on comedic beats, punchlines, emotional turns, self-deprecating jokes, or key metaphors.
+2. NEVER repeat the spoken words verbatim if a funnier visual label in Spanish exists.
 3. Alternate between 'behind_subject' (huge bold text behind his shoulders) and 'in_front_of_subject' (snappy lower-left/right Neo-Brutalist cards).
 4. Align 'startTime' to the exact timestamp of the trigger word. Snappy duration: 1.5s to 2.8s.
 5. Choose appropriate sound effects from ['whoosh.mp3', 'pop.mp3', 'vine_boom.mp3', 'ding.mp3', 'none'].

@@ -4,6 +4,7 @@ import {
   Sequence,
   Video,
   Audio,
+  staticFile,
   useVideoConfig,
 } from 'remotion';
 import { MainVideoProps, VisualCue } from './schema';
@@ -15,10 +16,24 @@ import { TikTokCaptions } from './components/TikTokCaptions';
 
 const resolveMediaSrc = (fn?: string) => {
   if (!fn) return '';
-  if (fn.startsWith('http://') || fn.startsWith('https://') || fn.startsWith('/')) {
+  if (fn.startsWith('http://') || fn.startsWith('https://')) {
     return fn;
   }
-  return `/public/${fn}`;
+  let clean = fn.replace(/^\/+/, '');
+  if (clean.startsWith('public/')) {
+    clean = clean.replace(/^public\//, '');
+  }
+  try {
+    const s = staticFile(clean);
+    console.log('DEBUG resolveMediaSrc:', { fn, clean, s });
+    if (typeof window !== 'undefined' && window.location && window.location.port === '8000' && !s.startsWith('/public/')) {
+      return `/public/${clean}`;
+    }
+    return s;
+  } catch (err) {
+    console.log('DEBUG resolveMediaSrc caught error:', err);
+    return `/public/${clean}`;
+  }
 };
 
 const renderCueComponent = (cue: VisualCue) => {
@@ -49,7 +64,7 @@ export const MainVideo: React.FC<ExtendedMainVideoProps> = ({
   renderMode = 'full_composite',
   cues = [],
   words = [],
-  previewMode = true,
+  previewMode = false,
   showVideo = true,
   volume = 1,
   muteAudio = false,
@@ -64,7 +79,7 @@ export const MainVideo: React.FC<ExtendedMainVideoProps> = ({
   // In the browser preview player, the creator MUST see the video and hear audio to review motion graphics.
   const isTransparentExport = !previewMode && renderMode === 'overlays_only_for_davinci';
   const shouldRenderVideo = showVideo && !isTransparentExport;
-  const resolvedVideoSrc = sourceUrl || resolveMediaSrc(videoFileName);
+  const resolvedVideoSrc = resolveMediaSrc(sourceUrl || videoFileName);
 
   return (
     <AbsoluteFill

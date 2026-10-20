@@ -46,18 +46,37 @@ def stage_media_for_remotion(media_path: str, target_name: Optional[str] = None)
     public_dir = MOTION_STUDIO_DIR / "public"
     public_dir.mkdir(parents=True, exist_ok=True)
 
-    # 1. If QuickTime .mov, prepare a stream-copied web-compatible .mp4 with AAC audio
+    # 1. If QuickTime .mov, HEVC, ProRes, or non-AAC audio, prepare a web-compatible H.264/AAC .mp4
     web_src = src
-    if src.suffix.lower() == ".mov":
+    needs_proxy = src.suffix.lower() == ".mov"
+    needs_transcode = False
+    try:
+        import av
+        container = av.open(str(src))
+        if container.streams.video:
+            v_codec = getattr(container.streams.video[0].codec_context, "name", "").lower()
+            if v_codec in ("hevc", "h265", "prores", "dnxhd"):
+                needs_proxy = True
+                needs_transcode = True
+        if container.streams.audio:
+            a_codec = getattr(container.streams.audio[0].codec_context, "name", "").lower()
+            if a_codec != "aac":
+                needs_proxy = True
+        container.close()
+    except Exception:
+        pass
+
+    if needs_proxy:
         web_mp4_path = src.parent / f"{src.stem}_web.mp4"
         if not web_mp4_path.exists() or web_mp4_path.stat().st_mtime < src.stat().st_mtime:
             try:
                 import imageio_ffmpeg
                 ffmpeg = imageio_ffmpeg.get_ffmpeg_exe()
+                v_codec_arg = ["-c:v", "libx264", "-preset", "veryfast", "-crf", "22", "-pix_fmt", "yuv420p"] if needs_transcode else ["-c:v", "copy"]
                 print(f"🎬 Creating web-compatible MP4 proxy with AAC audio: {web_mp4_path.name}...")
                 cmd = [
                     ffmpeg, "-y", "-i", str(src),
-                    "-c:v", "copy",
+                    *v_codec_arg,
                     "-c:a", "aac", "-b:a", "192k",
                     "-movflags", "+faststart",
                     str(web_mp4_path),
@@ -74,23 +93,24 @@ def stage_media_for_remotion(media_path: str, target_name: Optional[str] = None)
     try:
         if dest.exists() or dest.is_symlink():
             if dest.resolve() == web_src.resolve():
-                return filename
-            dest.unlink()
-        os.symlink(web_src, dest)
+                pass
+            else:
+                dest.unlink()
+                os.symlink(web_src, dest)
+        else:
+            os.symlink(web_src, dest)
+
+        # Also symlink original filename to web_src so any reference directly to src.name loads the H.264 proxy
+        if web_src != src:
+            orig_dest = public_dir / src.name
+            if orig_dest.exists() or orig_dest.is_symlink():
+                orig_dest.unlink()
+            os.symlink(web_src, orig_dest)
     except Exception:
         try:
             shutil.copyfile(web_src, dest)
         except Exception as e:
             print(f"⚠️ Media staging warning for {web_src}: {e}")
-
-    # Also symlink original if different
-    if web_src != src:
-        orig_dest = public_dir / src.name
-        try:
-            if not orig_dest.exists() and not orig_dest.is_symlink():
-                os.symlink(src, orig_dest)
-        except Exception:
-            pass
 
     return filename
 
@@ -499,6 +519,7 @@ def run_remotion_render(
         if "maskVideoFileName" not in plan or not plan["maskVideoFileName"]:
             plan["maskVideoFileName"] = staged_mask
 
+    plan["previewMode"] = False
     plan_file = PLANS_DIR / f"{slug}_plan.json"
     with open(plan_file, "w", encoding="utf-8") as f:
         json.dump(plan, f, indent=2, ensure_ascii=False)
@@ -554,9 +575,14 @@ def run_remotion_render(
 
     total_frames = plan.get("durationInFrames", 300)
     current_frame = 0
+    recent_lines = []
 
     if process.stdout:
         for line in process.stdout:
+            recent_lines.append(line)
+            if len(recent_lines) > 60:
+                recent_lines.pop(0)
+
             if cancel_check and cancel_check():
                 process.terminate()
                 raise InterruptedError("Render cancelled by user")
@@ -583,7 +609,8 @@ def run_remotion_render(
 
     ret_code = process.wait()
     if ret_code != 0:
-        raise RuntimeError(f"Remotion render failed with exit code {ret_code}")
+        err_msg = "".join(recent_lines)[-600:].strip()
+        raise RuntimeError(f"Remotion render failed with exit code {ret_code}: {err_msg}")
 
     # Copy to ~/Downloads
     try:

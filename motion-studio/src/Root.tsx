@@ -24,7 +24,9 @@ export const Root: React.FC = () => {
           let durationInSeconds = 10;
           try {
             if (props.videoFileName) {
-              const videoSrc = staticFile(props.videoFileName);
+              let clean = props.videoFileName.replace(/^\/+/, '');
+              if (clean.startsWith('public/')) clean = clean.replace(/^public\//, '');
+              const videoSrc = staticFile(clean);
               const metadata = await getVideoMetadata(videoSrc);
               if (metadata && metadata.durationInSeconds > 0) {
                 durationInSeconds = metadata.durationInSeconds;

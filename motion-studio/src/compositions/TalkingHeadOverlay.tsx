@@ -71,10 +71,22 @@ export const TalkingHeadOverlay: React.FC<TalkingHeadOverlayProps> = ({
   const resolveVideoUrl = () => {
     if (plan.source?.url) return plan.source.url;
     if (plan.source?.filename) {
-      if (plan.source.filename.startsWith('http://') || plan.source.filename.startsWith('/')) {
+      if (plan.source.filename.startsWith('http://') || plan.source.filename.startsWith('https://')) {
         return plan.source.filename;
       }
-      return `/public/${plan.source.filename}`;
+      let clean = plan.source.filename.replace(/^\/+/, '');
+      if (clean.startsWith('public/')) {
+        clean = clean.replace(/^public\//, '');
+      }
+      try {
+        const s = staticFile(clean);
+        if (typeof window !== 'undefined' && window.location && window.location.port === '8000' && !s.startsWith('/public/')) {
+          return `/public/${clean}`;
+        }
+        return s;
+      } catch {
+        return `/public/${clean}`;
+      }
     }
     return '';
   };
