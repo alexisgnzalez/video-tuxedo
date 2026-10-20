@@ -1657,8 +1657,11 @@
             <button class="btn-ghost" id="motionRedraftBtn" title="Re-analyze transcript and refresh visual triggers">
               🔄 Re-draft from SRT
             </button>
-            <button class="btn-primary" id="motionRenderBtn">
-              🎬 Render ProRes 4444 Alpha
+            <button class="btn-primary" id="motionRenderMp4Btn" title="Download original video + motion graphics combined into a single 1080x1920 HD MP4" style="background: linear-gradient(135deg, #059669, #10b981); border: none; font-weight: 600; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);">
+              ⚡ Download MP4 (1080x1920 HD)
+            </button>
+            <button class="btn-secondary" id="motionRenderBtn" title="Export transparent alpha overlays for DaVinci Resolve">
+              🎬 ProRes 4444 Alpha
             </button>
           </div>
         </div>
@@ -1809,9 +1812,9 @@
     <!-- RENDER PROGRESS MODAL -->
     <div class="modal-overlay" id="motionRenderModal">
       <div class="modal-dialog" style="max-width: 520px; text-align: center;">
-        <h3>Rendering Apple ProRes 4444 Alpha</h3>
-        <p style="color: var(--color-stone-muted); margin-bottom: 1.5rem;">
-          Rendering 1080x1920 frames with transparent alpha channel and synced sound effects...
+        <h3 id="motionRenderModalTitle">Rendering Video</h3>
+        <p id="motionRenderModalDesc" style="color: var(--color-stone-muted); margin-bottom: 1.5rem;">
+          Rendering 1080x1920 HD frames with motion graphics and synced sound effects...
         </p>
 
         <div class="progress-bar-container" style="margin-bottom: 1rem;">

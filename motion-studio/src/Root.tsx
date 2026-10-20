@@ -21,12 +21,21 @@ export const Root: React.FC = () => {
         height={1920}
         defaultProps={defaultDirectorPlan as MainVideoProps}
         calculateMetadata={async ({ props }) => {
+          if ((props as any).durationInFrames && (props as any).durationInFrames > 0) {
+            return {
+              durationInFrames: (props as any).durationInFrames,
+              fps: (props as any).fps || 30,
+              width: 1080,
+              height: 1920,
+              props,
+            };
+          }
           let durationInSeconds = 10;
           try {
             if (props.videoFileName) {
               let clean = props.videoFileName.replace(/^\/+/, '');
               if (clean.startsWith('public/')) clean = clean.replace(/^public\//, '');
-              const videoSrc = staticFile(clean);
+              const videoSrc = `http://127.0.0.1:8000/public/${clean}`;
               const metadata = await getVideoMetadata(videoSrc);
               if (metadata && metadata.durationInSeconds > 0) {
                 durationInSeconds = metadata.durationInSeconds;

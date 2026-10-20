@@ -69,26 +69,23 @@ export const TalkingHeadOverlay: React.FC<TalkingHeadOverlayProps> = ({
   const showSourceVideo = plan.preview?.showSourceVideo ?? true;
 
   const resolveVideoUrl = () => {
-    if (plan.source?.url) return plan.source.url;
-    if (plan.source?.filename) {
-      if (plan.source.filename.startsWith('http://') || plan.source.filename.startsWith('https://')) {
-        return plan.source.filename;
-      }
-      let clean = plan.source.filename.replace(/^\/+/, '');
-      if (clean.startsWith('public/')) {
-        clean = clean.replace(/^public\//, '');
-      }
-      try {
-        const s = staticFile(clean);
-        if (typeof window !== 'undefined' && window.location && window.location.port === '8000' && !s.startsWith('/public/')) {
-          return `/public/${clean}`;
-        }
-        return s;
-      } catch {
-        return `/public/${clean}`;
-      }
+    const raw = plan.source?.filename || plan.source?.url;
+    if (!raw) return '';
+    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+    let clean = raw.replace(/^\/+/, '');
+    if (clean.startsWith('public/')) {
+      clean = clean.replace(/^public\//, '');
     }
-    return '';
+    const isFastAPI = typeof window !== 'undefined' && window.location && window.location.port === '8000';
+    if (isFastAPI) {
+      return `/public/${clean}`;
+    }
+    try {
+      const s = staticFile(clean);
+      return s.startsWith('/public/') ? s.replace(/^\/public\//, '/') : s;
+    } catch {
+      return `/${clean}`;
+    }
   };
   const videoSrc = resolveVideoUrl();
 

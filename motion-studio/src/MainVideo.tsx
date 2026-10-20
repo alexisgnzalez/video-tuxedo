@@ -23,17 +23,7 @@ const resolveMediaSrc = (fn?: string) => {
   if (clean.startsWith('public/')) {
     clean = clean.replace(/^public\//, '');
   }
-  try {
-    const s = staticFile(clean);
-    console.log('DEBUG resolveMediaSrc:', { fn, clean, s });
-    if (typeof window !== 'undefined' && window.location && window.location.port === '8000' && !s.startsWith('/public/')) {
-      return `/public/${clean}`;
-    }
-    return s;
-  } catch (err) {
-    console.log('DEBUG resolveMediaSrc caught error:', err);
-    return `/public/${clean}`;
-  }
+  return `http://127.0.0.1:8000/public/${clean}`;
 };
 
 const renderCueComponent = (cue: VisualCue) => {

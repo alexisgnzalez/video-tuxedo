@@ -67,6 +67,10 @@ class MotionGraphicsStudio {
     this.audioToggle = document.getElementById('motionAudioToggle');
     this.redraftBtn = document.getElementById('motionRedraftBtn');
     this.renderBtn = document.getElementById('motionRenderBtn');
+    this.renderMp4Btn = document.getElementById('motionRenderMp4Btn');
+    this.renderModalTitle = document.getElementById('motionRenderModalTitle');
+    this.renderModalDesc = document.getElementById('motionRenderModalDesc');
+    this.currentRenderFormat = 'mp4';
 
     // Player controls
     this.playerContainer = document.getElementById('motionPlayerContainer');
@@ -252,8 +256,12 @@ class MotionGraphicsStudio {
       this.redraftBtn.addEventListener('click', () => this.handleRedraftPlan());
     }
 
+    if (this.renderMp4Btn) {
+      this.renderMp4Btn.addEventListener('click', () => this.startRender('mp4'));
+    }
+
     if (this.renderBtn) {
-      this.renderBtn.addEventListener('click', () => this.startRender());
+      this.renderBtn.addEventListener('click', () => this.startRender('prores'));
     }
 
     // Sidebar tab buttons
@@ -1056,17 +1064,37 @@ class MotionGraphicsStudio {
     }
   }
 
-  async startRender() {
+  async startRender(format = 'mp4') {
     if (!this.currentPlan) return;
+
+    this.currentRenderFormat = format;
 
     try {
       if (this.renderBtn) this.renderBtn.disabled = true;
+      if (this.renderMp4Btn) this.renderMp4Btn.disabled = true;
 
-      // Ensure plan preview overlays are off for rendering
       const exportPlan = JSON.parse(JSON.stringify(this.currentPlan));
-      if (exportPlan.preview) {
-        exportPlan.preview.showSourceVideo = false;
-        exportPlan.preview.showSafeZones = false;
+      let defaultFilename = '';
+
+      if (format === 'mp4') {
+        exportPlan.renderMode = 'full_composite';
+        exportPlan.previewMode = false;
+        exportPlan.showVideo = true;
+        if (exportPlan.preview) {
+          exportPlan.preview.showSourceVideo = true;
+          exportPlan.preview.showSafeZones = false;
+          exportPlan.preview.muteSource = false;
+        }
+        defaultFilename = `${exportPlan.slug}_1080x1920_composite.mp4`;
+      } else {
+        exportPlan.renderMode = 'overlays_only_for_davinci';
+        exportPlan.previewMode = false;
+        exportPlan.showVideo = false;
+        if (exportPlan.preview) {
+          exportPlan.preview.showSourceVideo = false;
+          exportPlan.preview.showSafeZones = false;
+        }
+        defaultFilename = `${exportPlan.slug}_prores4444.mov`;
       }
 
       const res = await fetch('/api/motion/render', {
@@ -1074,7 +1102,8 @@ class MotionGraphicsStudio {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           plan: exportPlan,
-          filename: `${exportPlan.slug}_prores4444.mov`,
+          filename: defaultFilename,
+          export_format: format,
         }),
       });
 
@@ -1085,15 +1114,26 @@ class MotionGraphicsStudio {
 
       const data = await res.json();
       this.renderTaskId = data.task_id;
-      this.showRenderModal();
+      this.showRenderModal(format);
       this.startProgressPolling();
     } catch (err) {
       if (window.showToast) window.showToast(err.message, 'error');
       if (this.renderBtn) this.renderBtn.disabled = false;
+      if (this.renderMp4Btn) this.renderMp4Btn.disabled = false;
     }
   }
 
-  showRenderModal() {
+  showRenderModal(format = 'mp4') {
+    if (this.renderModalTitle) {
+      this.renderModalTitle.textContent =
+        format === 'mp4' ? '⚡ Rendering 1080x1920 HD MP4 Video' : '🎬 Rendering Apple ProRes 4444 Alpha';
+    }
+    if (this.renderModalDesc) {
+      this.renderModalDesc.textContent =
+        format === 'mp4'
+          ? 'Rendering original video combined with motion graphics, subtitles, and audio in 1080x1920 HD...'
+          : 'Rendering 1080x1920 frames with transparent alpha channel and synced sound effects...';
+    }
     if (this.renderModal) this.renderModal.classList.add('open');
     if (this.renderProgressBar) this.renderProgressBar.style.width = '0%';
     if (this.renderPercentText) this.renderPercentText.textContent = '0%';
@@ -1103,6 +1143,7 @@ class MotionGraphicsStudio {
   hideRenderModal() {
     if (this.renderModal) this.renderModal.classList.remove('open');
     if (this.renderBtn) this.renderBtn.disabled = false;
+    if (this.renderMp4Btn) this.renderMp4Btn.disabled = false;
   }
 
   startProgressPolling() {
@@ -1125,12 +1166,31 @@ class MotionGraphicsStudio {
         if (task.status === 'completed') {
           clearInterval(this.pollInterval);
           this.hideRenderModal();
-          if (window.showToast) {
-            window.showToast(`ProRes 4444 saved directly to ~/Downloads/${task.result.filename}!`, 'success');
+          const outName = task.result ? task.result.filename : 'video.mp4';
+
+          if (this.currentRenderFormat === 'mp4') {
+            if (window.showToast) {
+              window.showToast(`1080x1920 HD MP4 saved to ~/Downloads/${outName}!`, 'success');
+            }
+            // Trigger automatic browser download
+            try {
+              const dlLink = document.createElement('a');
+              dlLink.href = `/api/motion/download/${encodeURIComponent(outName)}`;
+              dlLink.download = outName;
+              document.body.appendChild(dlLink);
+              dlLink.click();
+              document.body.removeChild(dlLink);
+            } catch (dlErr) {
+              console.warn('Auto download trigger error:', dlErr);
+            }
+          } else {
+            if (window.showToast) {
+              window.showToast(`ProRes 4444 saved directly to ~/Downloads/${outName}!`, 'success');
+            }
+            // Show DaVinci Resolve import guide
+            const modal = document.getElementById('davinciModalOverlay');
+            if (modal) modal.classList.add('open');
           }
-          // Show DaVinci Resolve import guide
-          const modal = document.getElementById('davinciModalOverlay');
-          if (modal) modal.classList.add('open');
         } else if (task.status === 'error' || task.status === 'cancelled') {
           clearInterval(this.pollInterval);
           this.hideRenderModal();

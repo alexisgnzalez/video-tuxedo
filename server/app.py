@@ -212,6 +212,7 @@ class MotionSavePlanRequest(BaseModel):
 class MotionRenderRequest(BaseModel):
     plan: Dict[str, Any]
     filename: Optional[str] = None
+    export_format: Optional[str] = "mp4"
 
 
 # In-memory tracking tasks
@@ -1165,6 +1166,7 @@ def render_motion_endpoint(req: MotionRenderRequest):
             result = run_remotion_render(
                 plan=req.plan,
                 output_filename=req.filename,
+                export_format=req.export_format or "mp4",
                 progress_callback=_on_prog,
                 cancel_check=lambda: _MOTION_TASKS.get(task_id, {}).get("cancelled", False),
             )
@@ -1193,6 +1195,7 @@ def render_motion_endpoint(req: MotionRenderRequest):
         "status": "accepted",
         "task_id": task_id,
         "plan_slug": req.plan.get("slug"),
+        "export_format": req.export_format or "mp4",
     }
 
 
@@ -1213,6 +1216,19 @@ def cancel_motion_task(task_id: str):
         raise HTTPException(status_code=404, detail="Task not found")
     task["cancelled"] = True
     return {"status": "cancelling", "task_id": task_id}
+
+
+@app.get("/api/motion/download/{filename}")
+def download_motion_video(filename: str):
+    """Downloads an exported motion video from exports/ or ~/Downloads/."""
+    clean = os.path.basename(filename)
+    path = BASE_DIR / "exports" / clean
+    if not path.exists():
+        path = DOWNLOADS_DIR / clean
+    if not path.exists():
+        raise HTTPException(status_code=404, detail="File not found")
+    media_type = "video/mp4" if clean.endswith(".mp4") else "video/quicktime"
+    return FileResponse(path=str(path), media_type=media_type, filename=clean)
 
 
 

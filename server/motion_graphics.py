@@ -495,11 +495,15 @@ def draft_scene_plan_from_srt(
 def run_remotion_render(
     plan: Dict[str, Any],
     output_filename: Optional[str] = None,
+    export_format: str = "mp4",
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     cancel_check: Optional[Callable[[], bool]] = None,
 ) -> Dict[str, Any]:
     """
-    Renders the composition via Remotion CLI with Apple ProRes 4444 and 10-bit Alpha.
+    Renders the composition via Remotion CLI in 1080x1920 HD vertical resolution.
+    Supports:
+    - 'mp4': H.264 / AAC 1080x1920 HD full composite with original video, sound effects & motion graphics.
+    - 'prores': Apple ProRes 4444 with 10-bit Alpha transparent overlays for DaVinci Resolve.
     Automatically stages local media into public/ to avoid filesystem sandboxing,
     sets 80% Apple Silicon concurrency, and auto-saves to ~/Downloads/.
     """
@@ -519,7 +523,24 @@ def run_remotion_render(
         if "maskVideoFileName" not in plan or not plan["maskVideoFileName"]:
             plan["maskVideoFileName"] = staged_mask
 
-    plan["previewMode"] = False
+    is_mp4 = export_format.lower() == "mp4"
+
+    if is_mp4:
+        plan["renderMode"] = "full_composite"
+        plan["previewMode"] = False
+        plan["showVideo"] = True
+        if "preview" in plan and isinstance(plan["preview"], dict):
+            plan["preview"]["showSourceVideo"] = True
+            plan["preview"]["showSafeZones"] = False
+            plan["preview"]["muteSource"] = False
+    else:
+        plan["renderMode"] = "overlays_only_for_davinci"
+        plan["previewMode"] = False
+        plan["showVideo"] = False
+        if "preview" in plan and isinstance(plan["preview"], dict):
+            plan["preview"]["showSourceVideo"] = False
+            plan["preview"]["showSafeZones"] = False
+
     plan_file = PLANS_DIR / f"{slug}_plan.json"
     with open(plan_file, "w", encoding="utf-8") as f:
         json.dump(plan, f, indent=2, ensure_ascii=False)
@@ -541,7 +562,24 @@ def run_remotion_render(
         except Exception:
             pass
 
-    clean_name = (output_filename or f"{slug}_{comp_name}_prores4444.mov").replace(".mp4", ".mov")
+    if is_mp4:
+        clean_name = (output_filename or f"{slug}_{comp_name}_1080x1920_composite.mp4")
+        if clean_name.lower().endswith(".mov"):
+            clean_name = clean_name[:-4] + ".mp4"
+        codec_flags = [
+            "--codec=h264",
+            "--pixel-format=yuv420p",
+        ]
+    else:
+        clean_name = (output_filename or f"{slug}_{comp_name}_prores4444.mov")
+        if clean_name.lower().endswith(".mp4"):
+            clean_name = clean_name[:-4] + ".mov"
+        codec_flags = [
+            "--codec=prores",
+            "--prores-profile=4444",
+            "--pixel-format=yuva444p10le",
+        ]
+
     dest_downloads = DOWNLOADS_DIR / clean_name
     dest_exports = BASE_DIR / "exports" / clean_name
     dest_exports.parent.mkdir(parents=True, exist_ok=True)
@@ -554,14 +592,12 @@ def run_remotion_render(
         comp_name,
         str(dest_exports),
         f"--props={str(plan_file)}",
-        "--codec=prores",
-        "--prores-profile=4444",
-        "--pixel-format=yuva444p10le",
+        *codec_flags,
         "--concurrency=80%",
         "--overwrite",
     ]
 
-    print(f"🚀 Running Remotion render ({comp_name}) in {MOTION_STUDIO_DIR}...")
+    print(f"🚀 Running Remotion render ({comp_name} - {export_format.upper()}) in {MOTION_STUDIO_DIR}...")
     start_time = time.time()
 
     process = subprocess.Popen(
@@ -632,6 +668,7 @@ def run_remotion_render(
         "downloads_path": str(dest_downloads),
         "exports_path": str(dest_exports),
         "filename": clean_name,
+        "export_format": export_format,
         "render_time_s": render_dur,
         "file_size_mb": file_size_mb,
         "total_frames": total_frames,
