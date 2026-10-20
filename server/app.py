@@ -888,6 +888,12 @@ def load_motion_media_path(req: MotionLoadMediaRequest):
     duration = props.get("duration", 0.0)
     total_frames = int(round(duration * fps))
 
+    # Check disk cache for transcription & tracking
+    path_obj = Path(path)
+    clean_stem = re.sub(r'^\d+_', '', path_obj.stem)
+    cache_tx_file = path_obj.parent / f"{clean_stem}_transcription.json"
+    cache_track_file = path_obj.parent / f"{clean_stem}_tracking.json"
+
     # Optional SRT loading
     cues = []
     if req.srt_path:
@@ -896,7 +902,15 @@ def load_motion_media_path(req: MotionLoadMediaRequest):
             with open(srt_p, "r", encoding="utf-8", errors="replace") as sf:
                 cues = parse_srt_file(sf.read(), fps=fps)
 
-    # If no SRT provided, attempt Whisper transcription automatically
+    # If no SRT provided, check cache or run Whisper transcription
+    if not cues and cache_tx_file.exists():
+        try:
+            with open(cache_tx_file, "r", encoding="utf-8") as f:
+                cues = json.load(f)
+            print(f"⚡ Loaded {len(cues)} cached subtitle cues for {clean_stem}")
+        except Exception:
+            pass
+
     if not cues:
         try:
             print("🎙️ No SRT supplied for Motion Studio, running local Whisper transcription...")
@@ -906,11 +920,31 @@ def load_motion_media_path(req: MotionLoadMediaRequest):
                 c["startFrame"] = int(round(c["start"] * fps))
                 c["endFrame"] = max(c["startFrame"] + 1, int(round(c["end"] * fps)))
                 c["durationInFrames"] = c["endFrame"] - c["startFrame"]
+            try:
+                with open(cache_tx_file, "w", encoding="utf-8") as f:
+                    json.dump(cues, f, indent=2, ensure_ascii=False)
+            except Exception:
+                pass
         except Exception as e:
             print(f"⚠️ Auto transcription warning: {e}")
 
-    # Track subject boxes across video duration
-    subject_track = track_subject_motion(path, sample_interval_s=1.0)
+    # Track subject boxes across video duration (with caching)
+    subject_track = []
+    if cache_track_file.exists():
+        try:
+            with open(cache_track_file, "r", encoding="utf-8") as f:
+                subject_track = json.load(f)
+            print(f"⚡ Loaded {len(subject_track)} cached subject track samples for {clean_stem}")
+        except Exception:
+            pass
+
+    if not subject_track:
+        subject_track = track_subject_motion(path, sample_interval_s=1.0)
+        try:
+            with open(cache_track_file, "w", encoding="utf-8") as f:
+                json.dump(subject_track, f, indent=2)
+        except Exception:
+            pass
 
     # Stage video media for Remotion preview & rendering
     v_name = stage_media_for_remotion(path)

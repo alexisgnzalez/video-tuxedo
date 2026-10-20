@@ -23,12 +23,17 @@ class MotionGraphicsStudio {
     this.loadStep = document.getElementById('motionLoadStep');
     this.workspaceStep = document.getElementById('motionWorkspaceStep');
 
-    // Load inputs
+    // Load inputs & progress elements
     this.pathInput = document.getElementById('motionPathInput');
     this.loadPathBtn = document.getElementById('motionLoadPathBtn');
+    this.loadSpinner = document.getElementById('motionLoadSpinner');
+    this.loadBtnText = document.getElementById('motionLoadBtnText');
     this.dropzone = document.getElementById('motionDropzone');
     this.fileInput = document.getElementById('motionFileInput');
     this.srtPathInput = document.getElementById('motionSrtPathInput');
+    this.loadProgressCard = document.getElementById('motionLoadProgressCard');
+    this.progressTitle = document.getElementById('motionProgressTitle');
+    this.progressSubtitle = document.getElementById('motionProgressSubtitle');
 
     // Header controls
     this.slugText = document.getElementById('motionSlugText');
@@ -355,8 +360,43 @@ class MotionGraphicsStudio {
     }
   }
 
+  setLoadProgress(stepIndex, title, subtitle) {
+    if (this.loadProgressCard) this.loadProgressCard.style.display = 'block';
+    if (this.progressTitle && title) this.progressTitle.textContent = title;
+    if (this.progressSubtitle && subtitle) this.progressSubtitle.textContent = subtitle;
+
+    for (let i = 1; i <= 4; i++) {
+      const chip = document.getElementById(`mStep${i}`);
+      if (!chip) continue;
+      if (i < stepIndex) {
+        chip.className = 'motion-step-chip completed';
+        const icon = chip.querySelector('.step-icon');
+        if (icon) icon.textContent = '✓';
+      } else if (i === stepIndex) {
+        chip.className = 'motion-step-chip active';
+        const icon = chip.querySelector('.step-icon');
+        if (icon) icon.textContent = String(i);
+      } else {
+        chip.className = 'motion-step-chip';
+        const icon = chip.querySelector('.step-icon');
+        if (icon) icon.textContent = String(i);
+      }
+    }
+  }
+
+  resetLoadProgress() {
+    if (this.loadProgressCard) this.loadProgressCard.style.display = 'none';
+    for (let i = 1; i <= 4; i++) {
+      const chip = document.getElementById(`mStep${i}`);
+      if (!chip) continue;
+      chip.className = i === 1 ? 'motion-step-chip active' : 'motion-step-chip';
+      const icon = chip.querySelector('.step-icon');
+      if (icon) icon.textContent = String(i);
+    }
+  }
+
   async handleLoadPath() {
-    const rawPath = (this.pathInput.value || '').trim();
+    const rawPath = (this.pathInput?.value || '').trim();
     if (!rawPath) {
       if (window.showToast) window.showToast('Please enter a video file path on your Mac', 'error');
       return;
@@ -366,11 +406,28 @@ class MotionGraphicsStudio {
     const directorStyle = document.getElementById('motionDirectorStyleSelect')?.value || 'story_tuxedo';
     const renderMode = document.getElementById('motionRenderModeSelect')?.value || 'overlays_only_for_davinci';
 
+    let progressTimer = null;
+
     try {
       if (this.loadPathBtn) {
         this.loadPathBtn.disabled = true;
-        this.loadPathBtn.textContent = 'Analyzing & Tracking Subject...';
+        if (this.loadSpinner) this.loadSpinner.style.display = 'inline-block';
+        if (this.loadBtnText) this.loadBtnText.textContent = 'Analyzing Video & Dialogue...';
       }
+
+      this.setLoadProgress(1, 'Inspecting Media File...', 'Extracting video framerate, duration, and audio stream...');
+
+      let elapsed = 0;
+      progressTimer = setInterval(() => {
+        elapsed += 1;
+        if (elapsed === 2) {
+          this.setLoadProgress(2, 'Transcribing Dialogue with Whisper...', 'Detecting speech timestamps and aligning words for kinetic typography...');
+        } else if (elapsed === 7) {
+          this.setLoadProgress(3, 'Tracking Subject Motion...', 'Calculating subject bounding boxes and 9:16 safe placement zones...');
+        } else if (elapsed === 12) {
+          this.setLoadProgress(4, 'Directing Comedic Scene Plan...', 'Prompting Gemini Flash to pick punchlines, visual metaphors, and sound effects...');
+        }
+      }, 1000);
 
       const res = await fetch('/api/motion/load-path', {
         method: 'POST',
@@ -389,6 +446,10 @@ class MotionGraphicsStudio {
       }
 
       const data = await res.json();
+
+      // Mark all completed
+      this.setLoadProgress(5, 'Ready!', 'Studio workspace loaded successfully.');
+
       this.currentPlan = data.plan;
       this.initWorkspace();
       if (window.showToast) {
@@ -396,17 +457,26 @@ class MotionGraphicsStudio {
       }
     } catch (err) {
       if (window.showToast) window.showToast(err.message, 'error');
+      this.resetLoadProgress();
     } finally {
+      if (progressTimer) clearInterval(progressTimer);
       if (this.loadPathBtn) {
         this.loadPathBtn.disabled = false;
-        this.loadPathBtn.textContent = 'Load & Inspect Video';
+        if (this.loadSpinner) this.loadSpinner.style.display = 'none';
+        if (this.loadBtnText) this.loadBtnText.textContent = 'Load Footage Into Studio';
       }
     }
   }
 
   async handleFileUpload(file) {
-    if (window.showToast) window.showToast(`Uploading ${file.name}...`, 'success');
-    // Save to temp_media and redirect to load-path
+    const sizeMb = (file.size / (1024 * 1024)).toFixed(1);
+    this.setLoadProgress(1, `Uploading ${file.name} (${sizeMb} MB)...`, 'Transferring video file to studio workspace...');
+    if (this.loadPathBtn) {
+      this.loadPathBtn.disabled = true;
+      if (this.loadSpinner) this.loadSpinner.style.display = 'inline-block';
+      if (this.loadBtnText) this.loadBtnText.textContent = `Uploading ${file.name}...`;
+    }
+
     const formData = new FormData();
     formData.append('file', file);
 
@@ -417,10 +487,16 @@ class MotionGraphicsStudio {
       });
       if (!res.ok) throw new Error('Failed to upload file');
       const data = await res.json();
-      this.pathInput.value = data.media_path;
+      if (this.pathInput) this.pathInput.value = data.media_path;
       this.handleLoadPath();
     } catch (err) {
       if (window.showToast) window.showToast(err.message, 'error');
+      this.resetLoadProgress();
+      if (this.loadPathBtn) {
+        this.loadPathBtn.disabled = false;
+        if (this.loadSpinner) this.loadSpinner.style.display = 'none';
+        if (this.loadBtnText) this.loadBtnText.textContent = 'Load Footage Into Studio';
+      }
     }
   }
 

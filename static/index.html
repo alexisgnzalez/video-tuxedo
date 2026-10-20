@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Video Tuxedo — Professional Video Editing Helper Tools</title>
   <meta name="description" content="Video Tuxedo is a suite of video editing tools built to streamline your workflow. Generate timecode-accurate subtitles for DaVinci Resolve Free using local Whisper AI.">
-  <link rel="stylesheet" href="/static/css/style.css?v=0.2.1">
+  <link rel="stylesheet" href="/static/css/style.css?v=0.2.2">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐧</text></svg>">
 </head>
 <body>
@@ -1453,21 +1453,26 @@
           <p>Provide a vertical (9:16) video from your Mac. If no .SRT subtitle file is supplied, local Whisper will transcribe it automatically.</p>
         </div>
 
-        <div class="path-input-group" style="margin-bottom: 1.25rem;">
+        <div class="motion-path-input-group" style="display: flex; gap: 0.85rem; width: 100%; margin-bottom: 1.25rem; align-items: stretch;">
           <input
             type="text"
             id="motionPathInput"
             class="input-text"
+            style="flex: 1 1 0%; min-width: 0; width: 100%; font-family: var(--font-mono); font-size: 0.88rem; padding: 0.75rem 1rem;"
             placeholder="e.g. /Users/alexisgonzalez/Downloads/talking_head.mp4"
           />
-          <button class="btn-primary" id="motionLoadPathBtn">Load & Track Subject</button>
+          <button class="btn-primary" id="motionLoadPathBtn" style="flex: 0 0 auto; white-space: nowrap; display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; padding: 0.75rem 1.4rem;">
+            <span class="btn-spinner" id="motionLoadSpinner" style="display: none;"></span>
+            <span id="motionLoadBtnText">Load Footage Into Studio</span>
+          </button>
         </div>
 
-        <div class="path-input-group" style="margin-bottom: 1.25rem;">
+        <div style="width: 100%; margin-bottom: 1.25rem;">
           <input
             type="text"
             id="motionSrtPathInput"
             class="input-text"
+            style="width: 100%; box-sizing: border-box; font-family: var(--font-mono); font-size: 0.88rem; padding: 0.75rem 1rem;"
             placeholder="Optional .SRT file path (e.g. /Users/alexisgonzalez/Downloads/subtitles.srt)"
           />
         </div>
@@ -1489,12 +1494,44 @@
           </div>
         </div>
 
-
         <div class="dropzone" id="motionDropzone" style="padding: 2rem 1.5rem;">
           <div class="dropzone-icon">📹</div>
           <h4>Drag & Drop your video file here</h4>
           <p class="dropzone-hint">Supports .mp4, .mov, .webm, .mkv</p>
           <input type="file" id="motionFileInput" accept="video/*" style="display: none;" />
+        </div>
+
+        <!-- Anthropic Live Processing Progress Card -->
+        <div id="motionLoadProgressCard" class="motion-load-progress-card" style="display: none;">
+          <div class="motion-progress-header">
+            <div class="spinner" style="margin: 0; width: 24px; height: 24px;"></div>
+            <div>
+              <h4 id="motionProgressTitle" class="motion-progress-title">
+                Analyzing Video & Preparing AI Workspace...
+              </h4>
+              <p id="motionProgressSubtitle" class="motion-progress-sub">
+                Inspecting media stream, transcribing audio with Whisper, and calculating subject safe zones.
+              </p>
+            </div>
+          </div>
+          <div class="motion-progress-steps-list">
+            <div class="motion-step-chip active" id="mStep1">
+              <span class="step-icon">1</span>
+              <span>Media Properties</span>
+            </div>
+            <div class="motion-step-chip" id="mStep2">
+              <span class="step-icon">2</span>
+              <span>Whisper Subtitles</span>
+            </div>
+            <div class="motion-step-chip" id="mStep3">
+              <span class="step-icon">3</span>
+              <span>Subject Tracking</span>
+            </div>
+            <div class="motion-step-chip" id="mStep4">
+              <span class="step-icon">4</span>
+              <span>Gemini Comedic Director</span>
+            </div>
+          </div>
         </div>
       </div>
 
