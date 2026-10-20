@@ -17,6 +17,7 @@ import numpy as np
 from server.magic_mask import get_yolo_seg_model, get_torch_device
 from server.silence_cutter import get_media_properties, get_video_rotation
 from server.subtitles import transcribe_media
+from server.director_agent import generate_director_plan
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 MOTION_STUDIO_DIR = BASE_DIR / "motion-studio"
@@ -27,6 +28,34 @@ DOWNLOADS_DIR = Path.home() / "Downloads"
 
 # In-memory background rendering tasks
 _MOTION_TASKS: Dict[str, Dict[str, Any]] = {}
+
+
+def stage_media_for_remotion(media_path: str, target_name: Optional[str] = None) -> str:
+    """
+    Stages media file in motion-studio/public/ via symlink or copy
+    so Chromium sandbox can load it via staticFile() without 404 or path errors.
+    """
+    if not media_path:
+        return ""
+    src = Path(os.path.expanduser(media_path)).resolve()
+    if not src.exists():
+        return ""
+    filename = target_name or src.name
+    public_dir = MOTION_STUDIO_DIR / "public"
+    public_dir.mkdir(parents=True, exist_ok=True)
+    dest = public_dir / filename
+    try:
+        if dest.exists() or dest.is_symlink():
+            if dest.resolve() == src:
+                return filename
+            dest.unlink()
+        os.symlink(src, dest)
+    except Exception:
+        try:
+            shutil.copyfile(src, dest)
+        except Exception as e:
+            print(f"⚠️ Media staging warning for {src}: {e}")
+    return filename
 
 
 def normalize_text_for_matching(text: str) -> str:
@@ -414,32 +443,67 @@ def run_remotion_render(
 ) -> Dict[str, Any]:
     """
     Renders the composition via Remotion CLI with Apple ProRes 4444 and 10-bit Alpha.
-    Saves automatically to ~/Downloads/.
+    Automatically stages local media into public/ to avoid filesystem sandboxing,
+    sets 80% Apple Silicon concurrency, and auto-saves to ~/Downloads/.
     """
     slug = plan.get("slug") or f"motion_{int(time.time())}"
+
+    # Stage any source video into motion-studio/public/
+    source_p = plan.get("source", {}).get("path") or plan.get("video_path")
+    if source_p and os.path.exists(source_p):
+        staged_name = stage_media_for_remotion(source_p)
+        if "videoFileName" not in plan or not plan["videoFileName"]:
+            plan["videoFileName"] = staged_name
+
+    # Stage any subject cutout mask video into motion-studio/public/
+    mask_p = plan.get("mask_video_path")
+    if mask_p and os.path.exists(mask_p):
+        staged_mask = stage_media_for_remotion(mask_p)
+        if "maskVideoFileName" not in plan or not plan["maskVideoFileName"]:
+            plan["maskVideoFileName"] = staged_mask
+
     plan_file = PLANS_DIR / f"{slug}_plan.json"
     with open(plan_file, "w", encoding="utf-8") as f:
         json.dump(plan, f, indent=2, ensure_ascii=False)
 
-    clean_name = (output_filename or f"{slug}_prores4444.mov").replace(".mp4", ".mov")
+    # Determine composition to render
+    if plan.get("composition"):
+        comp_name = plan["composition"]
+    elif "cues" in plan and "words" in plan:
+        comp_name = "StoryTuxedo"
+    else:
+        comp_name = "TalkingHeadOverlay"
+
+    # Also sync director_plan.json if rendering StoryTuxedo
+    if comp_name == "StoryTuxedo":
+        pub_plan = MOTION_STUDIO_DIR / "public" / "director_plan.json"
+        try:
+            with open(pub_plan, "w", encoding="utf-8") as pf:
+                json.dump(plan, pf, indent=2, ensure_ascii=False)
+        except Exception:
+            pass
+
+    clean_name = (output_filename or f"{slug}_{comp_name}_prores4444.mov").replace(".mp4", ".mov")
     dest_downloads = DOWNLOADS_DIR / clean_name
     dest_exports = BASE_DIR / "exports" / clean_name
+    dest_exports.parent.mkdir(parents=True, exist_ok=True)
 
     cmd = [
         "npx",
         "remotion",
         "render",
         "src/index.ts",
-        "TalkingHeadOverlay",
+        comp_name,
         str(dest_exports),
         f"--props={str(plan_file)}",
         "--codec=prores",
         "--prores-profile=4444",
         "--pixel-format=yuva444p10le",
+        "--concurrency=80%",
         "--overwrite",
     ]
 
-    print(f"🚀 Running Remotion render command in {MOTION_STUDIO_DIR}...")
+    print(f"🚀 Running Remotion render ({comp_name}) in {MOTION_STUDIO_DIR}...")
     start_time = time.time()
 
     process = subprocess.Popen(

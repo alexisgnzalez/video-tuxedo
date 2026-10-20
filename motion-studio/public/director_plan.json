@@ -1,0 +1,42 @@
+{
+  "videoFileName": "chopped_video.mp4",
+  "maskVideoFileName": "",
+  "renderMode": "full_composite",
+  "cues": [
+    {
+      "id": "cue_hook",
+      "startTime": 0.2,
+      "endTime": 2.5,
+      "layer": "behind_subject",
+      "component": "KineticTitleBehind",
+      "headlineText": "WAIT FOR IT",
+      "subText": "",
+      "emojiOrIcon": "👀",
+      "accentColor": "#FACC15",
+      "position": "top",
+      "sfxFile": "whoosh.mp3"
+    },
+    {
+      "id": "cue_punch",
+      "startTime": 3.8,
+      "endTime": 5.8,
+      "layer": "in_front_of_subject",
+      "component": "PunchlinePopup",
+      "headlineText": "NO WAY 💀",
+      "subText": "",
+      "emojiOrIcon": "💀",
+      "accentColor": "#F43F5E",
+      "position": "bottom-right",
+      "sfxFile": "pop.mp3"
+    }
+  ],
+  "words": [
+    { "word": "Wait", "start": 0.2, "end": 0.6 },
+    { "word": "for", "start": 0.65, "end": 0.9 },
+    { "word": "it...", "start": 0.95, "end": 1.4 },
+    { "word": "you", "start": 3.4, "end": 3.7 },
+    { "word": "won't", "start": 3.75, "end": 4.1 },
+    { "word": "believe", "start": 4.15, "end": 4.6 },
+    { "word": "this", "start": 4.65, "end": 5.0 }
+  ]
+}

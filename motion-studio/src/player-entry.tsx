@@ -2,6 +2,7 @@ import React, { useRef, useState, useEffect } from 'react';
 import { createRoot, Root as ReactRoot } from 'react-dom/client';
 import { Player, PlayerRef } from '@remotion/player';
 import { TalkingHeadOverlay } from './compositions/TalkingHeadOverlay';
+import { MainVideo } from './MainVideo';
 import { PosterPlate } from './compositions/PosterPlate';
 import { DEFAULT_PLAN, ScenePlan } from './types';
 
@@ -45,6 +46,12 @@ const MotionPlayerWrapper: React.FC<PlayerWrapperProps> = ({
     (window as any).__activePlayer = playerRef.current;
   }, [plan]);
 
+  const isStoryTuxedo =
+    (plan as any)?.composition === 'StoryTuxedo' ||
+    Boolean((plan as any)?.cues && (plan as any)?.words);
+  const TargetComponent = isStoryTuxedo ? (MainVideo as any) : TalkingHeadOverlay;
+  const targetProps = isStoryTuxedo ? (plan as any) : { plan };
+
   return (
     <div
       style={{
@@ -58,12 +65,12 @@ const MotionPlayerWrapper: React.FC<PlayerWrapperProps> = ({
     >
       <Player
         ref={playerRef}
-        component={TalkingHeadOverlay}
+        component={TargetComponent}
         durationInFrames={Math.max(30, plan.durationInFrames || 300)}
         compositionWidth={1080}
         compositionHeight={1920}
         fps={plan.fps || 30}
-        inputProps={{ plan }}
+        inputProps={targetProps}
         style={{
           width: '100%',
           height: '100%',

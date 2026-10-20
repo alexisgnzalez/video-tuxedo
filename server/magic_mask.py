@@ -244,23 +244,52 @@ def smart_filter_points(
     return filtered_pos + filtered_neg, [1] * len(filtered_pos) + [0] * len(filtered_neg)
 
 
+def refine_alpha_mask(raw_mask: np.ndarray) -> np.ndarray:
+    """
+    Takes a raw 0-255 alpha mask and removes jagged pixel stair-stepping and halo edges.
+    Optimized for Apple Silicon Neural Engine / CPU:
+    1. Erode 1-2px inward so background colors don't bleed onto shoulder/hair edges.
+    2. Apply Gaussian feathering to anti-alias the silhouette edge.
+    3. Crush faint noise (<18) to 0 and boost core (>230) to 255 for a solid body matte.
+    """
+    if raw_mask is None or raw_mask.size == 0:
+        return raw_mask
+
+    # 1. Erode 1-2px inward so background colors don't bleed onto shoulder/hair edges
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    eroded = cv2.erode(raw_mask, kernel, iterations=1)
+
+    # 2. Apply Gaussian feathering to anti-alias the silhouette edge
+    feathered = cv2.GaussianBlur(eroded, (5, 5), sigmaX=1.4)
+
+    # 3. Crush faint noise (<18) to 0 and boost core (>230) to 255 for a solid body matte
+    refined = np.clip((feathered.astype(np.float32) - 18.0) * (255.0 / 212.0), 0, 255).astype(np.uint8)
+    return refined
+
+
 def apply_mask_refinements(
     mask_uint8: np.ndarray,
     feather: int = 3,
     expand: int = 0,
     invert: bool = False,
+    apply_halo_removal: bool = True,
 ) -> np.ndarray:
     """
     Applies edge refinement controls:
     - invert: inverts alpha polarity if background was selected.
     - expand: positive values expand mask (dilation), negative shrink mask (choke/erosion).
     - feather: gaussian blur radius to soften hard edges (hair, silhouettes).
+    - apply_halo_removal: applies anti-halo erosion and Gaussian anti-aliasing curve.
     """
     processed = mask_uint8.copy()
 
     # Invert mask if requested
     if invert:
         processed = 255 - processed
+
+    # Anti-halo edge smoothing & core matte boost
+    if apply_halo_removal:
+        processed = refine_alpha_mask(processed)
 
     # Expand or shrink (choke)
     if expand != 0:

@@ -40,10 +40,13 @@ from server.motion_graphics import (
     track_subject_motion,
     draft_scene_plan_from_srt,
     run_remotion_render,
+    stage_media_for_remotion,
     REGISTRY_JSON_PATH,
     PLANS_DIR,
     _MOTION_TASKS,
 )
+from server.director_agent import generate_director_plan
+
 
 app = FastAPI(
     title="Video Tuxedo",
@@ -162,6 +165,9 @@ class MagicMaskTrackRenderRequest(BaseModel):
 class MotionLoadMediaRequest(BaseModel):
     file_path: str
     srt_path: Optional[str] = None
+    director_style: Optional[str] = "story_tuxedo"
+    render_mode: Optional[str] = "overlays_only_for_davinci"
+    mask_video_filename: Optional[str] = None
 
 
 class MotionDraftPlanRequest(BaseModel):
@@ -170,6 +176,10 @@ class MotionDraftPlanRequest(BaseModel):
     platform: Optional[str] = "tiktok_reels"
     subject_override: Optional[str] = "auto"
     seed: Optional[int] = 1957
+    director_style: Optional[str] = "caracas"  # "caracas" | "story_tuxedo"
+    use_gemini: Optional[bool] = False
+    render_mode: Optional[str] = "full_composite"  # "full_composite" | "overlays_only_for_davinci"
+    mask_video_filename: Optional[str] = None
 
 
 class MotionSavePlanRequest(BaseModel):
@@ -882,18 +892,46 @@ def load_motion_media_path(req: MotionLoadMediaRequest):
     subject_track = track_subject_motion(path, sample_interval_s=1.0)
 
     # Draft initial scene plan
-    draft_plan = draft_scene_plan_from_srt(
-        cues=cues,
-        fps=fps,
-        duration_frames=total_frames,
-        platform="tiktok_reels",
-        subject_track=subject_track,
-    )
+    if req.director_style == "story_tuxedo":
+        words_list = []
+        if cues:
+            for c in cues:
+                for w in c.get("words", []):
+                    words_list.append({
+                        "word": w.get("text", w.get("word", "")),
+                        "start": w.get("start", 0.0),
+                        "end": w.get("end", 0.0),
+                    })
+        v_name = os.path.basename(path)
+        stage_media_for_remotion(path, v_name)
+        draft_plan = generate_director_plan(
+            words_list=words_list,
+            video_file_name=v_name,
+            mask_video_file_name=req.mask_video_filename or "",
+            render_mode=req.render_mode or "overlays_only_for_davinci",
+        )
+        draft_plan["slug"] = f"story_{int(time.time())}"
+        draft_plan["fps"] = fps
+        draft_plan["durationInFrames"] = total_frames
+        draft_plan["composition"] = "StoryTuxedo"
+        draft_plan["directorStyle"] = "story_tuxedo"
+    else:
+        draft_plan = draft_scene_plan_from_srt(
+            cues=cues,
+            fps=fps,
+            duration_frames=total_frames,
+            platform="tiktok_reels",
+            subject_track=subject_track,
+        )
+        draft_plan["directorStyle"] = "caracas"
+        draft_plan["composition"] = "TalkingHeadOverlay"
+
     draft_plan["source"] = {
         "path": path,
         "filename": os.path.basename(path),
         "url": f"/api/media-stream?path={urllib.parse.quote(str(path))}",
     }
+
 
     return {
         "status": "success",
@@ -927,14 +965,50 @@ def draft_plan_endpoint(req: MotionDraftPlanRequest):
     if req.srt_content:
         cues = parse_srt_file(req.srt_content, fps=fps)
 
-    plan = draft_scene_plan_from_srt(
-        cues=cues,
-        fps=fps,
-        duration_frames=duration_frames,
-        platform=req.platform or "tiktok_reels",
-        subject_track=subject_track,
-        seed=req.seed or 1957,
-    )
+    # Branch between StoryTuxedo 3-layer comedic director and Caracas Kinetic poster suite
+    if req.director_style == "story_tuxedo":
+        words_list = []
+        if cues:
+            for c in cues:
+                for w in c.get("words", []):
+                    words_list.append({
+                        "word": w.get("text", w.get("word", "")),
+                        "start": w.get("start", 0.0),
+                        "end": w.get("end", 0.0),
+                    })
+        elif media_path and os.path.exists(media_path):
+            try:
+                tx = transcribe_media(file_path=media_path, model_size="base")
+                words_list = tx.get("all_words", [])
+            except Exception as e:
+                print(f"⚠️ Auto-transcription for StoryTuxedo error: {e}")
+
+        v_name = os.path.basename(media_path) if media_path else "chopped_video.mp4"
+        if media_path and os.path.exists(media_path):
+            stage_media_for_remotion(media_path, v_name)
+
+        plan = generate_director_plan(
+            words_list=words_list,
+            video_file_name=v_name,
+            mask_video_file_name=req.mask_video_filename or "",
+            render_mode=req.render_mode or "full_composite",
+        )
+        plan["slug"] = f"story_{int(time.time())}"
+        plan["fps"] = fps
+        plan["durationInFrames"] = duration_frames
+        plan["composition"] = "StoryTuxedo"
+        plan["directorStyle"] = "story_tuxedo"
+    else:
+        plan = draft_scene_plan_from_srt(
+            cues=cues,
+            fps=fps,
+            duration_frames=duration_frames,
+            platform=req.platform or "tiktok_reels",
+            subject_track=subject_track,
+            seed=req.seed or 1957,
+        )
+        plan["directorStyle"] = "caracas"
+        plan["composition"] = "TalkingHeadOverlay"
 
     if media_path:
         plan["source"] = {
@@ -944,6 +1018,7 @@ def draft_plan_endpoint(req: MotionDraftPlanRequest):
         }
 
     return {"status": "success", "plan": plan}
+
 
 
 @app.get("/api/motion/plan/{slug}")

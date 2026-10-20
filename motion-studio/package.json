@@ -14,14 +14,17 @@
   },
   "dependencies": {
     "@remotion/bundler": "4.0.536",
+    "@remotion/captions": "^4.0.536",
     "@remotion/cli": "4.0.536",
     "@remotion/fonts": "4.0.536",
+    "@remotion/media-utils": "^4.0.536",
     "@remotion/paths": "4.0.536",
     "@remotion/player": "4.0.536",
     "@remotion/renderer": "4.0.536",
     "react": "19.1.0",
     "react-dom": "19.1.0",
-    "remotion": "4.0.536"
+    "remotion": "4.0.536",
+    "zod": "^4.5.4"
   },
   "devDependencies": {
     "@fontsource/federo": "^5.0.0",

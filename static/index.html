@@ -1463,7 +1463,7 @@
           <button class="btn-primary" id="motionLoadPathBtn">Load & Track Subject</button>
         </div>
 
-        <div class="path-input-group" style="margin-bottom: 1.5rem;">
+        <div class="path-input-group" style="margin-bottom: 1.25rem;">
           <input
             type="text"
             id="motionSrtPathInput"
@@ -1471,6 +1471,24 @@
             placeholder="Optional .SRT file path (e.g. /Users/alexisgonzalez/Downloads/subtitles.srt)"
           />
         </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+          <div>
+            <label class="motion-config-label" style="display: block; margin-bottom: 0.35rem; font-weight: 600;">Creative Director Style:</label>
+            <select id="motionDirectorStyleSelect" class="motion-select" style="width: 100%; padding: 0.6rem;">
+              <option value="story_tuxedo">🔥 StoryTuxedo 3-Layer Sandwich (Gemini Comedic Director)</option>
+              <option value="caracas">🇻🇪 Caracas Mid-Century Kinetic Poster</option>
+            </select>
+          </div>
+          <div>
+            <label class="motion-config-label" style="display: block; margin-bottom: 0.35rem; font-weight: 600;">Delivery / Render Mode:</label>
+            <select id="motionRenderModeSelect" class="motion-select" style="width: 100%; padding: 0.6rem;">
+              <option value="overlays_only_for_davinci">Transparent ProRes 4444 Alpha (DaVinci Track V2)</option>
+              <option value="full_composite">Full 3-Layer Composite (Base Video + Cutout + Graphics)</option>
+            </select>
+          </div>
+        </div>
+
 
         <div class="dropzone" id="motionDropzone" style="padding: 2rem 1.5rem;">
           <div class="dropzone-icon">📹</div>

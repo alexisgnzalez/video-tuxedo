@@ -164,6 +164,64 @@ def synth_kinetic_hum(variant: int = 1) -> np.ndarray:
     return out * 0.65
 
 
+def synth_pop(variant: int = 1) -> np.ndarray:
+    """Snappy cartoon bubble / cork pop (60ms)."""
+    duration = 0.065
+    num_samples = int(duration * SAMPLE_RATE)
+    t = np.linspace(0, duration, num_samples, endpoint=False)
+    # Fast frequency drop from 1800Hz to 400Hz
+    freq = 1900.0 * np.exp(-40.0 * t) + 380.0
+    phase = 2 * np.pi * np.cumsum(freq) / SAMPLE_RATE
+    pop = np.sin(phase) * np.exp(-32.0 * t)
+    # Add click transient
+    click_len = int(0.003 * SAMPLE_RATE)
+    pop[:click_len] += np.random.uniform(0.3, 0.7, click_len)
+    out = pop / (np.max(np.abs(pop)) + 1e-6)
+    return out * 0.85
+
+
+def synth_whoosh(variant: int = 1) -> np.ndarray:
+    """Airy dynamic comedic whoosh sweep (220ms)."""
+    duration = 0.22
+    num_samples = int(duration * SAMPLE_RATE)
+    t = np.linspace(0, duration, num_samples, endpoint=False)
+    noise = np.random.uniform(-1.0, 1.0, num_samples)
+    envelope = np.sin(np.pi * (t / duration)) ** 2
+    # Modulated bandpass
+    f_center = 750.0 + 1200.0 * np.sin(np.pi * t / duration)
+    phase = 2 * np.pi * np.cumsum(f_center) / SAMPLE_RATE
+    whoosh = (noise * 0.6 + np.sin(phase) * 0.4) * envelope
+    out = whoosh / (np.max(np.abs(whoosh)) + 1e-6)
+    return out * 0.85
+
+
+def synth_ding(variant: int = 1) -> np.ndarray:
+    """High metallic comedic bell ding (350ms)."""
+    duration = 0.35
+    num_samples = int(duration * SAMPLE_RATE)
+    t = np.linspace(0, duration, num_samples, endpoint=False)
+    f1 = 2093.0  # C7
+    f2 = 4186.0  # C8
+    bell = (np.sin(2 * np.pi * f1 * t) * 0.7 + np.sin(2 * np.pi * f2 * t) * 0.3) * np.exp(-12.0 * t)
+    out = bell / (np.max(np.abs(bell)) + 1e-6)
+    return out * 0.75
+
+
+def synth_vine_boom(variant: int = 1) -> np.ndarray:
+    """Heavy low-frequency impact boom (650ms)."""
+    duration = 0.65
+    num_samples = int(duration * SAMPLE_RATE)
+    t = np.linspace(0, duration, num_samples, endpoint=False)
+    freq = 110.0 * np.exp(-14.0 * t) + 38.0
+    phase = 2 * np.pi * np.cumsum(freq) / SAMPLE_RATE
+    sub = np.sin(phase) * np.exp(-6.0 * t)
+    sub = np.tanh(sub * 2.2)  # saturated boom
+    noise = np.random.uniform(-0.5, 0.5, num_samples) * np.exp(-25.0 * t)
+    boom = (sub * 0.85) + (noise * 0.15)
+    out = boom / (np.max(np.abs(boom)) + 1e-6)
+    return out * 0.95
+
+
 SFX_GENERATORS = {
     "sfx_paper_snap": synth_paper_snap,
     "sfx_brutal_thud": synth_brutal_thud,
@@ -172,15 +230,25 @@ SFX_GENERATORS = {
     "sfx_kinetic_hum": synth_kinetic_hum,
 }
 
+COMEDY_SFX = {
+    "pop": synth_pop,
+    "whoosh": synth_whoosh,
+    "ding": synth_ding,
+    "vine_boom": synth_vine_boom,
+}
+
 
 def generate_all_sfx(force_overwrite: bool = True) -> int:
     """
     Generates all 20 SFX variant WAV files into motion-studio/public/sfx/.
-    If custom user foley exists in public/sfx/foley/<name>.wav, shifts that sample.
+    Also generates comedy story sound effects (pop, whoosh, ding, vine_boom).
     """
+    import subprocess
+    import imageio_ffmpeg
+    ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
+
     count = 0
     for base_name, gen_fn in SFX_GENERATORS.items():
-        # Check if custom user foley sample exists
         foley_sample_path = FOLEY_DIR / f"{base_name}.wav"
         has_foley = foley_sample_path.exists()
         
@@ -190,13 +258,11 @@ def generate_all_sfx(force_overwrite: bool = True) -> int:
                 continue
                 
             if has_foley:
-                # Load foley file and apply subtle pitch/eq variant
                 try:
                     with wave.open(str(foley_sample_path), "rb") as wf:
                         n_frames = wf.getnframes()
                         raw_data = wf.readframes(n_frames)
                         samples = np.frombuffer(raw_data, dtype=np.int16).astype(np.float32) / 32767.0
-                        # Slight pitch variation by resampling
                         pitch_factor = 1.0 + (v - 2.5) * 0.03
                         indices = np.arange(0, len(samples), pitch_factor)
                         indices = indices[indices < len(samples)].astype(int)
@@ -207,14 +273,35 @@ def generate_all_sfx(force_overwrite: bool = True) -> int:
                 except Exception as e:
                     print(f"⚠️ Error reading foley sample {foley_sample_path}: {e}")
             
-            # Procedural synthesis fallback
             samples = gen_fn(variant=v)
             save_wav(out_file, samples)
             count += 1
+
+    # Generate comedic SFX (.wav + .mp3)
+    for name, gen_fn in COMEDY_SFX.items():
+        wav_file = SFX_DIR / f"{name}.wav"
+        mp3_file = SFX_DIR / f"{name}.mp3"
+        samples = gen_fn()
+        save_wav(wav_file, samples)
+        count += 1
+        # Convert to mp3 via ffmpeg if available
+        try:
+            subprocess.run(
+                [ffmpeg_exe, "-y", "-i", str(wav_file), "-codec:a", "libmp3lame", "-b:a", "192k", str(mp3_file)],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                check=False,
+            )
+            count += 1
+        except Exception:
+            # Fallback: copy as mp3 or keep wav
+            shutil.copyfile(wav_file, mp3_file)
+            count += 1
             
-    print(f"✅ Generated {count} SFX variant files in {SFX_DIR}")
+    print(f"✅ Generated {count} SFX files in {SFX_DIR}")
     return count
 
 
 if __name__ == "__main__":
     generate_all_sfx(force_overwrite=True)
+

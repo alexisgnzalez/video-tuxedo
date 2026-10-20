@@ -37,3 +37,4 @@ temp_media/
 exports/
 runs/
 *.pt
+motion-studio/src/videos/

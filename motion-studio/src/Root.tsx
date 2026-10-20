@@ -1,12 +1,56 @@
 import React from 'react';
-import { Composition } from 'remotion';
-import { TalkingHeadOverlay, TalkingHeadOverlayProps } from './compositions/TalkingHeadOverlay';
+import { Composition, staticFile } from 'remotion';
+import { getVideoMetadata } from '@remotion/media-utils';
+import { TalkingHeadOverlay } from './compositions/TalkingHeadOverlay';
 import { PosterPlate } from './compositions/PosterPlate';
+import { MainVideo } from './MainVideo';
+import { MainVideoSchema, MainVideoProps } from './schema';
+import defaultDirectorPlan from '../public/director_plan.json';
 import { DEFAULT_PLAN, ScenePlan } from './types';
 
 export const Root: React.FC = () => {
   return (
     <>
+      {/* 1. Comedic Storytelling 3-Layer Sandwich Composition */}
+      <Composition
+        id="StoryTuxedo"
+        component={MainVideo as any}
+        schema={MainVideoSchema}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={defaultDirectorPlan as MainVideoProps}
+        calculateMetadata={async ({ props }) => {
+          let durationInSeconds = 10;
+          try {
+            if (props.videoFileName) {
+              const videoSrc = staticFile(props.videoFileName);
+              const metadata = await getVideoMetadata(videoSrc);
+              if (metadata && metadata.durationInSeconds > 0) {
+                durationInSeconds = metadata.durationInSeconds;
+              }
+            }
+          } catch {
+            // Fallback: estimate from cues or words timing
+            const maxCueTime = Math.max(
+              10,
+              ...(props.cues || []).map((c) => c.endTime),
+              ...(props.words || []).map((w) => w.end)
+            );
+            durationInSeconds = maxCueTime;
+          }
+
+          return {
+            durationInFrames: Math.max(30, Math.floor(durationInSeconds * 30)),
+            fps: 30,
+            width: 1080,
+            height: 1920,
+            props,
+          };
+        }}
+      />
+
+      {/* 2. Caracas Mid-Century Kinetic Poster Talking Head Overlay */}
       <Composition
         id="TalkingHeadOverlay"
         component={TalkingHeadOverlay as any}
@@ -28,6 +72,7 @@ export const Root: React.FC = () => {
         }}
       />
 
+      {/* 3. Fullscreen Cutaway Poster Plates */}
       <Composition
         id="PosterPlateAvila"
         component={PosterPlate}
@@ -62,3 +107,4 @@ export const Root: React.FC = () => {
     </>
   );
 };
+

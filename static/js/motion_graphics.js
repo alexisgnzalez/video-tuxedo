@@ -340,6 +340,8 @@ class MotionGraphicsStudio {
     }
 
     const srtPath = (this.srtPathInput ? this.srtPathInput.value : '').trim();
+    const directorStyle = document.getElementById('motionDirectorStyleSelect')?.value || 'story_tuxedo';
+    const renderMode = document.getElementById('motionRenderModeSelect')?.value || 'overlays_only_for_davinci';
 
     try {
       if (this.loadPathBtn) {
@@ -350,7 +352,12 @@ class MotionGraphicsStudio {
       const res = await fetch('/api/motion/load-path', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ file_path: rawPath, srt_path: srtPath || null }),
+        body: JSON.stringify({
+          file_path: rawPath,
+          srt_path: srtPath || null,
+          director_style: directorStyle,
+          render_mode: renderMode,
+        }),
       });
 
       if (!res.ok) {
@@ -397,6 +404,27 @@ class MotionGraphicsStudio {
   initWorkspace() {
     if (!this.currentPlan) return;
 
+    // Normalize StoryTuxedo cues into scenes if scenes not pre-populated
+    if (this.currentPlan.cues && (!this.currentPlan.scenes || this.currentPlan.scenes.length === 0)) {
+      const fps = this.currentPlan.fps || 30;
+      this.currentPlan.scenes = this.currentPlan.cues.map((c, idx) => ({
+        id: c.id || `cue_${idx + 1}`,
+        component: c.component,
+        zone: c.layer === 'behind_subject' ? 'T' : (c.position === 'bottom-left' ? 'L' : 'R'),
+        from: Math.round(c.startTime * fps),
+        durationInFrames: Math.max(15, Math.round((c.endTime - c.startTime) * fps)),
+        props: {
+          headlineText: c.headlineText,
+          subText: c.subText || '',
+          emojiOrIcon: c.emojiOrIcon || '🔥',
+          accentColor: c.accentColor || '#FACC15',
+          position: c.position || 'bottom-right',
+        },
+        sfx: [{ id: c.sfxFile || 'pop.mp3', at: 0, variant: 1, volume: 0.4 }],
+        layer: c.layer,
+      }));
+    }
+
     this.loadStep.style.display = 'none';
     this.workspaceStep.style.display = 'grid';
 
@@ -423,7 +451,7 @@ class MotionGraphicsStudio {
     }
 
     // Select first scene
-    if (this.currentPlan.scenes.length > 0) {
+    if (this.currentPlan.scenes && this.currentPlan.scenes.length > 0) {
       this.activeSceneId = this.currentPlan.scenes[0].id;
     }
 
@@ -720,6 +748,9 @@ class MotionGraphicsStudio {
     if (!this.currentPlan) return;
     try {
       if (this.redraftBtn) this.redraftBtn.disabled = true;
+      const directorStyle = document.getElementById('motionDirectorStyleSelect')?.value || this.currentPlan.directorStyle || 'story_tuxedo';
+      const renderMode = document.getElementById('motionRenderModeSelect')?.value || this.currentPlan.renderMode || 'overlays_only_for_davinci';
+
       const res = await fetch('/api/motion/draft-plan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -727,6 +758,8 @@ class MotionGraphicsStudio {
           media_path: this.currentPlan.source?.path,
           platform: this.currentPlan.platform,
           seed: this.currentPlan.seed,
+          director_style: directorStyle,
+          render_mode: renderMode,
         }),
       });
       if (!res.ok) throw new Error('Failed to redraft plan');
