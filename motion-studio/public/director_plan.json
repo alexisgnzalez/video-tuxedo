@@ -1,582 +1,1440 @@
 {
-  "videoFileName": "1792535183_NoTeRindas_web.mp4",
+  "videoFileName": "1792540214_BigotonaFinal_web.mp4",
   "maskVideoFileName": "",
-  "renderMode": "full_composite",
+  "renderMode": "overlays_only_for_davinci",
   "cues": [
     {
-      "id": "cue_hook",
-      "startTime": 0.2,
-      "endTime": 2.4,
-      "layer": "behind_subject",
-      "component": "KineticTitleBehind",
-      "headlineText": "OJO A ESTO",
-      "subText": "",
-      "emojiOrIcon": "👀",
-      "accentColor": "#FACC15",
+      "id": "cue_1",
+      "startTime": 2.54,
+      "endTime": 4.54,
+      "layer": "in_front_of_subject",
+      "component": "ComicAlertBanner",
+      "headlineText": "ALERTA DIVORCIO",
+      "subText": "El bigote era sagrado",
+      "emojiOrIcon": "💔",
+      "accentColor": "#F43F5E",
       "position": "top",
-      "sfxFile": "whoosh.mp3"
+      "sfxFile": "vine_boom.mp3"
     },
     {
       "id": "cue_2",
-      "startTime": 6.6,
-      "endTime": 8.8,
-      "layer": "in_front_of_subject",
-      "component": "PunchlinePopup",
-      "headlineText": "NO PUEDE SER 💀",
-      "subText": "",
-      "emojiOrIcon": "💀",
-      "accentColor": "#F43F5E",
-      "position": "bottom-right",
-      "sfxFile": "ding.mp3"
-    },
-    {
-      "id": "cue_3",
-      "startTime": 13.28,
-      "endTime": 15.48,
+      "startTime": 7.98,
+      "endTime": 9.98,
       "layer": "behind_subject",
       "component": "KineticTitleBehind",
-      "headlineText": "RETOMAR",
-      "subText": "",
-      "emojiOrIcon": "🔥",
-      "accentColor": "#4ADE80",
-      "position": "top",
-      "sfxFile": "vine_boom.mp3"
-    },
-    {
-      "id": "cue_4",
-      "startTime": 19.9,
-      "endTime": 22.1,
-      "layer": "in_front_of_subject",
-      "component": "PunchlinePopup",
-      "headlineText": "NO PUEDE SER 💀",
-      "subText": "",
-      "emojiOrIcon": "💀",
-      "accentColor": "#A855F7",
-      "position": "bottom-right",
-      "sfxFile": "pop.mp3"
-    },
-    {
-      "id": "cue_5",
-      "startTime": 26.22,
-      "endTime": 28.42,
-      "layer": "in_front_of_subject",
-      "component": "ComicAlertBanner",
-      "headlineText": "CIELO.!",
-      "subText": "",
-      "emojiOrIcon": "🚨",
+      "headlineText": "EVENTO CANÓNICO",
+      "subText": "Pubertad desbloqueada",
+      "emojiOrIcon": "🧔🏻‍♂️",
       "accentColor": "#FACC15",
-      "position": "bottom-left",
+      "position": "center",
       "sfxFile": "whoosh.mp3"
     },
     {
-      "id": "cue_6",
-      "startTime": 32.5,
-      "endTime": 34.7,
+      "id": "cue_3",
+      "startTime": 13.6,
+      "endTime": 15.6,
+      "layer": "in_front_of_subject",
+      "component": "PunchlinePopup",
+      "headlineText": "MODO TRAVOLTA",
+      "subText": "Pura sabrosura",
+      "emojiOrIcon": "🕺",
+      "accentColor": "#38BDF8",
+      "position": "bottom-left",
+      "sfxFile": "pop.mp3"
+    },
+    {
+      "id": "cue_4",
+      "startTime": 19.18,
+      "endTime": 21.28,
       "layer": "behind_subject",
       "component": "KineticTitleBehind",
-      "headlineText": "MIEDO",
-      "subText": "",
-      "emojiOrIcon": "🔥",
-      "accentColor": "#38BDF8",
-      "position": "top",
+      "headlineText": "EL BIGOTES",
+      "subText": "Corona asegurada",
+      "emojiOrIcon": "👑",
+      "accentColor": "#FACC15",
+      "position": "center",
       "sfxFile": "ding.mp3"
     },
     {
+      "id": "cue_5",
+      "startTime": 24.28,
+      "endTime": 26.48,
+      "layer": "in_front_of_subject",
+      "component": "PunchlinePopup",
+      "headlineText": "HAY RIVAL",
+      "subText": "Aura en peligro",
+      "emojiOrIcon": "⚔️",
+      "accentColor": "#F43F5E",
+      "position": "bottom-right",
+      "sfxFile": "vine_boom.mp3"
+    },
+    {
+      "id": "cue_6",
+      "startTime": 30.04,
+      "endTime": 32.14,
+      "layer": "behind_subject",
+      "component": "KineticTitleBehind",
+      "headlineText": "SE PUSO PEOR",
+      "subText": "No te creo nada",
+      "emojiOrIcon": "💀",
+      "accentColor": "#A855F7",
+      "position": "center",
+      "sfxFile": "whoosh.mp3"
+    },
+    {
       "id": "cue_7",
-      "startTime": 38.72,
-      "endTime": 40.92,
+      "startTime": 34.56,
+      "endTime": 36.66,
       "layer": "in_front_of_subject",
       "component": "ComicAlertBanner",
-      "headlineText": "ALMA,!",
-      "subText": "",
-      "emojiOrIcon": "🚨",
+      "headlineText": "PLOT TWIST",
+      "subText": "Era una dama",
+      "emojiOrIcon": "👀",
+      "accentColor": "#FACC15",
+      "position": "top",
+      "sfxFile": "pop.mp3"
+    },
+    {
+      "id": "cue_8",
+      "startTime": 38.59,
+      "endTime": 40.79,
+      "layer": "behind_subject",
+      "component": "KineticTitleBehind",
+      "headlineText": "LA BIGOTONA",
+      "subText": "La jefa suprema",
+      "emojiOrIcon": "🏆",
+      "accentColor": "#4ADE80",
+      "position": "center",
+      "sfxFile": "ding.mp3"
+    },
+    {
+      "id": "cue_9",
+      "startTime": 43.72,
+      "endTime": 45.92,
+      "layer": "in_front_of_subject",
+      "component": "PunchlinePopup",
+      "headlineText": "CHALEQUEO PESADO",
+      "subText": "Trágame tierra",
+      "emojiOrIcon": "🤡",
       "accentColor": "#F43F5E",
       "position": "bottom-left",
       "sfxFile": "vine_boom.mp3"
+    },
+    {
+      "id": "cue_10",
+      "startTime": 48.98,
+      "endTime": 51.18,
+      "layer": "behind_subject",
+      "component": "KineticTitleBehind",
+      "headlineText": "BODA ESCOLAR",
+      "subText": "Querían cuadre",
+      "emojiOrIcon": "💍",
+      "accentColor": "#A855F7",
+      "position": "center",
+      "sfxFile": "whoosh.mp3"
+    },
+    {
+      "id": "cue_11",
+      "startTime": 54.02,
+      "endTime": 56.42,
+      "layer": "in_front_of_subject",
+      "component": "PunchlinePopup",
+      "headlineText": "CONFIRMA ABAJO",
+      "subText": "¿Te lo dejaste?",
+      "emojiOrIcon": "👇",
+      "accentColor": "#38BDF8",
+      "position": "bottom-right",
+      "sfxFile": "pop.mp3"
     }
   ],
   "words": [
     {
-      "word": "No",
-      "start": 0.0,
-      "end": 0.16
+      "word": "Me",
+      "start": 0,
+      "end": 0.225
     },
     {
-      "word": "te",
-      "start": 0.16,
-      "end": 0.3
+      "word": "quité",
+      "start": 0.225,
+      "end": 0.45
     },
     {
-      "word": "rindas,",
-      "start": 0.3,
-      "end": 0.88
+      "word": "el",
+      "start": 0.45,
+      "end": 0.675
     },
     {
-      "word": "de",
-      "start": 1.3,
-      "end": 1.54
+      "word": "bigote!",
+      "start": 0.675,
+      "end": 0.9
     },
     {
-      "word": "Mario",
-      "start": 1.54,
-      "end": 1.8
+      "word": "Creo",
+      "start": 1.36,
+      "end": 1.56
     },
     {
-      "word": "Benedetti,",
-      "start": 1.8,
-      "end": 2.36
+      "word": "que",
+      "start": 1.56,
+      "end": 1.72
     },
     {
-      "word": "no",
-      "start": 2.76,
-      "end": 2.84
+      "word": "mi",
+      "start": 1.72,
+      "end": 1.84
     },
     {
-      "word": "te",
-      "start": 2.84,
-      "end": 2.98
+      "word": "esposa",
+      "start": 1.84,
+      "end": 2.1
     },
     {
-      "word": "rindas.",
-      "start": 2.98,
-      "end": 3.5
+      "word": "se",
+      "start": 2.1,
+      "end": 2.34
     },
     {
-      "word": "Aún",
-      "start": 4.04,
-      "end": 4.32
+      "word": "quiere",
+      "start": 2.34,
+      "end": 2.54
     },
     {
-      "word": "estás",
-      "start": 4.32,
-      "end": 4.54
+      "word": "divorciar,",
+      "start": 2.54,
+      "end": 3.12
+    },
+    {
+      "word": "pero",
+      "start": 3.18,
+      "end": 4.56
+    },
+    {
+      "word": "esa",
+      "start": 4.56,
+      "end": 4.74
+    },
+    {
+      "word": "vuelva",
+      "start": 4.74,
+      "end": 5
+    },
+    {
+      "word": "crece,",
+      "start": 5,
+      "end": 5.32
+    },
+    {
+      "word": "¿verdad?",
+      "start": 5.42,
+      "end": 5.7
+    },
+    {
+      "word": "Eso",
+      "start": 5.86,
+      "end": 6.02
+    },
+    {
+      "word": "me",
+      "start": 6.02,
+      "end": 6.2
+    },
+    {
+      "word": "hizo",
+      "start": 6.2,
+      "end": 6.36
+    },
+    {
+      "word": "recordar",
+      "start": 6.36,
+      "end": 6.84
+    },
+    {
+      "word": "la",
+      "start": 6.84,
+      "end": 7
+    },
+    {
+      "word": "primera",
+      "start": 7,
+      "end": 7.26
+    },
+    {
+      "word": "vez",
+      "start": 7.26,
+      "end": 7.54
+    },
+    {
+      "word": "que",
+      "start": 7.54,
+      "end": 7.74
     },
     {
       "word": "a",
-      "start": 4.54,
-      "end": 4.7
+      "start": 7.74,
+      "end": 7.88
     },
     {
-      "word": "tiempo",
-      "start": 4.7,
-      "end": 5.0
+      "word": "mí",
+      "start": 7.88,
+      "end": 7.88
     },
     {
-      "word": "de",
-      "start": 5.0,
-      "end": 5.14
+      "word": "me",
+      "start": 7.88,
+      "end": 7.98
     },
     {
-      "word": "alcanzar",
-      "start": 5.14,
-      "end": 5.74
-    },
-    {
-      "word": "y",
-      "start": 5.74,
-      "end": 6.06
-    },
-    {
-      "word": "comenzar",
-      "start": 6.06,
-      "end": 6.6
-    },
-    {
-      "word": "de",
-      "start": 6.6,
-      "end": 6.7
-    },
-    {
-      "word": "nuevo.",
-      "start": 6.7,
-      "end": 7.0
-    },
-    {
-      "word": "Asectar",
-      "start": 7.86,
+      "word": "creció",
+      "start": 7.98,
       "end": 8.36
     },
     {
-      "word": "tus",
+      "word": "el",
       "start": 8.36,
       "end": 8.64
     },
     {
-      "word": "sombras,",
+      "word": "bígote",
       "start": 8.64,
       "end": 9.06
     },
     {
-      "word": "enterrar",
-      "start": 9.68,
-      "end": 10.06
+      "word": "por",
+      "start": 9.06,
+      "end": 9.54
     },
     {
-      "word": "tus",
-      "start": 10.06,
-      "end": 10.34
+      "word": "allá",
+      "start": 9.54,
+      "end": 9.76
     },
     {
-      "word": "miedos,",
-      "start": 10.34,
-      "end": 10.82
+      "word": "a",
+      "start": 9.76,
+      "end": 9.84
     },
     {
-      "word": "liberar",
-      "start": 11.5,
-      "end": 11.86
+      "word": "los",
+      "start": 9.84,
+      "end": 9.94
+    },
+    {
+      "word": "16",
+      "start": 9.94,
+      "end": 10.28
+    },
+    {
+      "word": "años.",
+      "start": 10.28,
+      "end": 10.84
+    },
+    {
+      "word": "Estaba",
+      "start": 10.92,
+      "end": 11.14
+    },
+    {
+      "word": "yo",
+      "start": 11.14,
+      "end": 11.26
+    },
+    {
+      "word": "entrando",
+      "start": 11.26,
+      "end": 11.48
+    },
+    {
+      "word": "una",
+      "start": 11.48,
+      "end": 11.72
+    },
+    {
+      "word": "escuela",
+      "start": 11.72,
+      "end": 11.98
+    },
+    {
+      "word": "nueva",
+      "start": 11.98,
+      "end": 12.4
+    },
+    {
+      "word": "en",
+      "start": 12.4,
+      "end": 12.8
+    },
+    {
+      "word": "cuarto",
+      "start": 12.8,
+      "end": 13.2
+    },
+    {
+      "word": "año",
+      "start": 13.2,
+      "end": 13.6
+    },
+    {
+      "word": "iba",
+      "start": 13.6,
+      "end": 14
+    },
+    {
+      "word": "caminando",
+      "start": 14,
+      "end": 14.4
+    },
+    {
+      "word": "yo",
+      "start": 14.4,
+      "end": 14.72
+    },
+    {
+      "word": "con",
+      "start": 14.72,
+      "end": 14.92
+    },
+    {
+      "word": "mi",
+      "start": 14.92,
+      "end": 15.04
+    },
+    {
+      "word": "gran",
+      "start": 15.04,
+      "end": 15.18
+    },
+    {
+      "word": "bígote",
+      "start": 15.18,
+      "end": 15.48
+    },
+    {
+      "word": "como",
+      "start": 15.48,
+      "end": 15.68
+    },
+    {
+      "word": "John",
+      "start": 15.68,
+      "end": 16.01
+    },
+    {
+      "word": "Travolta",
+      "start": 16.01,
+      "end": 16.34
+    },
+    {
+      "word": "Param,",
+      "start": 16.5,
+      "end": 16.84
+    },
+    {
+      "word": "pam,",
+      "start": 16.84,
+      "end": 17.18
+    },
+    {
+      "word": "pam,",
+      "start": 17.18,
+      "end": 17.52
+    },
+    {
+      "word": "y",
+      "start": 17.7,
+      "end": 18.07
+    },
+    {
+      "word": "me",
+      "start": 18.07,
+      "end": 18.44
+    },
+    {
+      "word": "ponen",
+      "start": 18.44,
+      "end": 18.81
     },
     {
       "word": "el",
-      "start": 11.86,
-      "end": 12.12
+      "start": 18.81,
+      "end": 19.18
     },
     {
-      "word": "lastre,",
-      "start": 12.12,
-      "end": 12.56
+      "word": "sobrenombre",
+      "start": 19.18,
+      "end": 19.55
     },
     {
-      "word": "retomar",
-      "start": 13.28,
-      "end": 13.66
-    },
-    {
-      "word": "el",
-      "start": 13.66,
-      "end": 14.06
-    },
-    {
-      "word": "vuelo.",
-      "start": 14.06,
-      "end": 14.42
-    },
-    {
-      "word": "No",
-      "start": 15.24,
-      "end": 15.34
-    },
-    {
-      "word": "te",
-      "start": 15.34,
-      "end": 15.5
-    },
-    {
-      "word": "rindas",
-      "start": 15.5,
-      "end": 16.06
+      "word": "BIGOTES",
+      "start": 19.55,
+      "end": 19.92
     },
     {
       "word": "que",
-      "start": 16.06,
-      "end": 16.26
+      "start": 20.18,
+      "end": 20.612
+    },
+    {
+      "word": "orgullo",
+      "start": 20.612,
+      "end": 21.044
+    },
+    {
+      "word": "el",
+      "start": 21.044,
+      "end": 21.476
+    },
+    {
+      "word": "mejor",
+      "start": 21.476,
+      "end": 21.908
+    },
+    {
+      "word": "bigote",
+      "start": 21.908,
+      "end": 22.34
+    },
+    {
+      "word": "de",
+      "start": 22.34,
+      "end": 22.54
     },
     {
       "word": "la",
-      "start": 16.26,
-      "end": 16.38
+      "start": 22.54,
+      "end": 22.54
     },
     {
-      "word": "vida",
-      "start": 16.38,
-      "end": 16.6
+      "word": "escuela.",
+      "start": 22.54,
+      "end": 22.78
     },
     {
-      "word": "es",
-      "start": 16.6,
-      "end": 16.86
+      "word": "No,",
+      "start": 23.1,
+      "end": 23.16
     },
     {
-      "word": "eso.",
-      "start": 16.86,
-      "end": 17.16
+      "word": "había",
+      "start": 23.34,
+      "end": 23.54
     },
     {
-      "word": "Continuar",
-      "start": 18.04,
-      "end": 18.56
-    },
-    {
-      "word": "el",
-      "start": 18.56,
-      "end": 18.76
-    },
-    {
-      "word": "viaje,",
-      "start": 18.76,
-      "end": 19.1
-    },
-    {
-      "word": "perseguir",
-      "start": 19.9,
-      "end": 20.38
-    },
-    {
-      "word": "tus",
-      "start": 20.38,
-      "end": 20.64
-    },
-    {
-      "word": "sueños,",
-      "start": 20.64,
-      "end": 21.04
-    },
-    {
-      "word": "destravar",
-      "start": 21.74,
-      "end": 22.16
-    },
-    {
-      "word": "el",
-      "start": 22.16,
-      "end": 22.4
-    },
-    {
-      "word": "tiempo,",
-      "start": 22.4,
-      "end": 22.84
-    },
-    {
-      "word": "correr",
+      "word": "un",
       "start": 23.54,
       "end": 23.84
     },
     {
-      "word": "los",
+      "word": "segundo",
       "start": 23.84,
       "end": 24.28
     },
     {
-      "word": "escombros",
+      "word": "bígote",
       "start": 24.28,
-      "end": 24.82
+      "end": 24.78
     },
     {
-      "word": "y",
-      "start": 24.82,
-      "end": 25.3
+      "word": "que",
+      "start": 24.78,
+      "end": 25.1
     },
     {
-      "word": "destapar",
-      "start": 25.3,
-      "end": 25.84
+      "word": "ya",
+      "start": 25.1,
+      "end": 25.22
     },
     {
-      "word": "el",
-      "start": 25.84,
-      "end": 26.22
+      "word": "tenía",
+      "start": 25.22,
+      "end": 25.4
     },
     {
-      "word": "cielo.",
-      "start": 26.22,
+      "word": "un",
+      "start": 25.4,
+      "end": 25.6
+    },
+    {
+      "word": "año",
+      "start": 25.6,
+      "end": 25.78
+    },
+    {
+      "word": "estudiando",
+      "start": 25.78,
+      "end": 26.3
+    },
+    {
+      "word": "ahí",
+      "start": 26.3,
       "end": 26.54
     },
     {
-      "word": "No",
-      "start": 27.65,
-      "end": 27.92
+      "word": "y",
+      "start": 26.54,
+      "end": 26.83
     },
     {
-      "word": "te",
-      "start": 27.92,
-      "end": 28.08
+      "word": "tenía",
+      "start": 26.83,
+      "end": 27.12
     },
     {
-      "word": "rindas,",
-      "start": 28.08,
-      "end": 28.56
+      "word": "el",
+      "start": 27.12,
+      "end": 27.41
     },
     {
-      "word": "por",
-      "start": 28.72,
-      "end": 28.76
+      "word": "bigote",
+      "start": 27.41,
+      "end": 27.7
     },
     {
-      "word": "favor,",
-      "start": 28.76,
+      "word": "más",
+      "start": 27.7,
+      "end": 27.99
+    },
+    {
+      "word": "arrecho",
+      "start": 27.99,
+      "end": 28.28
+    },
+    {
+      "word": "que",
+      "start": 28.28,
+      "end": 28.48
+    },
+    {
+      "word": "yo.",
+      "start": 28.48,
+      "end": 28.64
+    },
+    {
+      "word": "Pasó",
+      "start": 28.64,
       "end": 29.08
     },
     {
-      "word": "no",
+      "word": "ese",
+      "start": 29.08,
+      "end": 29.26
+    },
+    {
+      "word": "año",
       "start": 29.26,
-      "end": 29.36
+      "end": 29.6
     },
     {
-      "word": "cedas,",
-      "start": 29.36,
-      "end": 29.84
+      "word": "y",
+      "start": 29.6,
+      "end": 29.94
     },
     {
-      "word": "aunque",
-      "start": 30.38,
-      "end": 30.62
+      "word": "la",
+      "start": 29.94,
+      "end": 30.04
     },
     {
-      "word": "el",
-      "start": 30.62,
+      "word": "cosa",
+      "start": 30.04,
+      "end": 30.24
+    },
+    {
+      "word": "empeoró",
+      "start": 30.24,
       "end": 30.82
     },
     {
-      "word": "frío",
+      "word": "muchísimo",
       "start": 30.82,
-      "end": 31.1
+      "end": 31.18
     },
     {
-      "word": "queme,",
-      "start": 31.1,
-      "end": 31.48
+      "word": "más",
+      "start": 31.18,
+      "end": 31.46
     },
     {
-      "word": "aunque",
-      "start": 32.1,
-      "end": 32.3
+      "word": "porque",
+      "start": 31.46,
+      "end": 31.78
     },
     {
-      "word": "el",
-      "start": 32.3,
-      "end": 32.5
-    },
-    {
-      "word": "miedo",
-      "start": 32.5,
-      "end": 32.68
-    },
-    {
-      "word": "muerta,",
-      "start": 32.68,
-      "end": 33.14
-    },
-    {
-      "word": "aunque",
-      "start": 33.8,
-      "end": 34.0
+      "word": "llegó",
+      "start": 31.78,
+      "end": 32.08
     },
     {
       "word": "el",
-      "start": 34.0,
-      "end": 34.18
+      "start": 32.08,
+      "end": 32.44
     },
     {
-      "word": "sol",
-      "start": 34.18,
-      "end": 34.38
+      "word": "tercer",
+      "start": 32.44,
+      "end": 32.87
     },
     {
-      "word": "se",
-      "start": 34.38,
-      "end": 34.66
+      "word": "bigotes",
+      "start": 32.87,
+      "end": 33.3
     },
     {
-      "word": "esconda",
-      "start": 34.66,
-      "end": 35.12
+      "word": "Pero",
+      "start": 33.42,
+      "end": 33.56
+    },
+    {
+      "word": "el",
+      "start": 33.56,
+      "end": 33.64
+    },
+    {
+      "word": "resulta",
+      "start": 33.64,
+      "end": 33.96
+    },
+    {
+      "word": "que",
+      "start": 33.96,
+      "end": 34.06
+    },
+    {
+      "word": "este",
+      "start": 34.06,
+      "end": 34.22
+    },
+    {
+      "word": "era",
+      "start": 34.22,
+      "end": 34.36
+    },
+    {
+      "word": "una",
+      "start": 34.36,
+      "end": 34.56
+    },
+    {
+      "word": "dama",
+      "start": 34.56,
+      "end": 34.92
     },
     {
       "word": "y",
-      "start": 35.12,
+      "start": 34.92,
+      "end": 35.26
+    },
+    {
+      "word": "tenía",
+      "start": 35.26,
+      "end": 35.54
+    },
+    {
+      "word": "el",
+      "start": 35.54,
+      "end": 35.72
+    },
+    {
+      "word": "mejor",
+      "start": 35.72,
       "end": 35.94
     },
     {
-      "word": "se",
+      "word": "bigote",
       "start": 35.94,
-      "end": 36.08
+      "end": 36.32
     },
     {
-      "word": "calle",
-      "start": 36.08,
-      "end": 36.44
+      "word": "que",
+      "start": 36.32,
+      "end": 36.7
+    },
+    {
+      "word": "nosotros",
+      "start": 36.7,
+      "end": 37.08
+    },
+    {
+      "word": "dos,",
+      "start": 37.08,
+      "end": 37.46
+    },
+    {
+      "word": "pues,",
+      "start": 37.62,
+      "end": 37.864
+    },
+    {
+      "word": "le",
+      "start": 37.864,
+      "end": 38.108
+    },
+    {
+      "word": "decían",
+      "start": 38.108,
+      "end": 38.352
+    },
+    {
+      "word": "LA",
+      "start": 38.352,
+      "end": 38.596
+    },
+    {
+      "word": "BIGOTONA",
+      "start": 38.596,
+      "end": 38.84
+    },
+    {
+      "word": "O",
+      "start": 39.3,
+      "end": 39.5
+    },
+    {
+      "word": "sea,",
+      "start": 39.5,
+      "end": 39.7
+    },
+    {
+      "word": "de",
+      "start": 39.7,
+      "end": 39.9
+    },
+    {
+      "word": "paso",
+      "start": 39.9,
+      "end": 40.1
+    },
+    {
+      "word": "tenía",
+      "start": 40.1,
+      "end": 40.3
     },
     {
       "word": "el",
-      "start": 36.44,
-      "end": 36.82
+      "start": 40.3,
+      "end": 40.617
     },
     {
-      "word": "viento,",
-      "start": 36.82,
-      "end": 37.26
+      "word": "sobrenombre",
+      "start": 40.617,
+      "end": 40.933
     },
     {
-      "word": "aún",
-      "start": 37.8,
-      "end": 37.96
+      "word": "más",
+      "start": 40.933,
+      "end": 41.25
+    },
+    {
+      "word": "arrecho",
+      "start": 41.25,
+      "end": 41.567
+    },
+    {
+      "word": "que",
+      "start": 41.567,
+      "end": 41.883
+    },
+    {
+      "word": "nosotros.",
+      "start": 41.883,
+      "end": 42.2
+    },
+    {
+      "word": "Entonces",
+      "start": 42.4,
+      "end": 42.73
+    },
+    {
+      "word": "eso",
+      "start": 42.73,
+      "end": 43.06
+    },
+    {
+      "word": "fue",
+      "start": 43.06,
+      "end": 43.39
+    },
+    {
+      "word": "un",
+      "start": 43.39,
+      "end": 43.72
+    },
+    {
+      "word": "chalequeo",
+      "start": 43.72,
+      "end": 44.05
+    },
+    {
+      "word": "horrible",
+      "start": 44.05,
+      "end": 44.38
+    },
+    {
+      "word": "en",
+      "start": 44.38,
+      "end": 44.54
+    },
+    {
+      "word": "esa",
+      "start": 44.54,
+      "end": 44.72
+    },
+    {
+      "word": "escuela,",
+      "start": 44.72,
+      "end": 44.98
+    },
+    {
+      "word": "los",
+      "start": 45.06,
+      "end": 45.273
+    },
+    {
+      "word": "tres",
+      "start": 45.273,
+      "end": 45.487
+    },
+    {
+      "word": "bigotes",
+      "start": 45.487,
+      "end": 45.7
     },
     {
       "word": "no",
-      "start": 37.96,
-      "end": 38.14
+      "start": 45.7,
+      "end": 45.913
+    },
+    {
+      "word": "sé",
+      "start": 45.913,
+      "end": 46.127
+    },
+    {
+      "word": "qué",
+      "start": 46.127,
+      "end": 46.34
     },
     {
       "word": "y",
-      "start": 38.14,
-      "end": 38.22
+      "start": 46.34,
+      "end": 46.51
     },
     {
-      "word": "fuego",
-      "start": 38.22,
-      "end": 38.42
+      "word": "broma",
+      "start": 46.51,
+      "end": 46.68
     },
     {
-      "word": "en",
-      "start": 38.42,
-      "end": 38.58
+      "word": "El",
+      "start": 46.86,
+      "end": 47.02
+    },
+    {
+      "word": "chalequeo",
+      "start": 47.02,
+      "end": 47.32
+    },
+    {
+      "word": "llegó",
+      "start": 47.32,
+      "end": 47.44
+    },
+    {
+      "word": "a",
+      "start": 47.44,
+      "end": 47.6
+    },
+    {
+      "word": "ser",
+      "start": 47.6,
+      "end": 47.72
+    },
+    {
+      "word": "tan",
+      "start": 47.72,
+      "end": 48
+    },
+    {
+      "word": "alto,",
+      "start": 48,
+      "end": 48.44
+    },
+    {
+      "word": "que",
+      "start": 48.6,
+      "end": 48.66
+    },
+    {
+      "word": "querían",
+      "start": 48.66,
+      "end": 48.98
+    },
+    {
+      "word": "cuadrar",
+      "start": 48.98,
+      "end": 49.34
+    },
+    {
+      "word": "a",
+      "start": 49.34,
+      "end": 49.48
+    },
+    {
+      "word": "la",
+      "start": 49.48,
+      "end": 49.6
+    },
+    {
+      "word": "bigotona",
+      "start": 49.6,
+      "end": 50.26
+    },
+    {
+      "word": "conmigo.",
+      "start": 50.26,
+      "end": 50.92
+    },
+    {
+      "word": "Pero",
+      "start": 51.04,
+      "end": 51.2
+    },
+    {
+      "word": "bueno,",
+      "start": 51.2,
+      "end": 51.42
+    },
+    {
+      "word": "nunca",
+      "start": 51.6,
+      "end": 51.78
+    },
+    {
+      "word": "pude",
+      "start": 51.78,
+      "end": 52.04
+    },
+    {
+      "word": "ser",
+      "start": 52.04,
+      "end": 52.2
+    },
+    {
+      "word": "el",
+      "start": 52.2,
+      "end": 52.36
+    },
+    {
+      "word": "bigote",
+      "start": 52.36,
+      "end": 52.587
+    },
+    {
+      "word": "número",
+      "start": 52.587,
+      "end": 52.813
+    },
+    {
+      "word": "uno",
+      "start": 52.813,
+      "end": 53.04
+    },
+    {
+      "word": "de",
+      "start": 53.04,
+      "end": 53.267
+    },
+    {
+      "word": "la",
+      "start": 53.267,
+      "end": 53.493
+    },
+    {
+      "word": "escuela.",
+      "start": 53.493,
+      "end": 53.72
+    },
+    {
+      "word": "Cuéntame,",
+      "start": 54.02,
+      "end": 54.32
+    },
+    {
+      "word": "cuando",
+      "start": 54.6,
+      "end": 54.76
+    },
+    {
+      "word": "te",
+      "start": 54.76,
+      "end": 54.94
+    },
+    {
+      "word": "salió",
+      "start": 54.94,
+      "end": 55.16
     },
     {
       "word": "tu",
-      "start": 38.58,
-      "end": 38.72
+      "start": 55.16,
+      "end": 55.28
     },
     {
-      "word": "alma,",
-      "start": 38.72,
-      "end": 38.98
+      "word": "primer",
+      "start": 55.28,
+      "end": 55.46
     },
     {
-      "word": "aún",
-      "start": 39.7,
-      "end": 40.04
+      "word": "bigote,",
+      "start": 55.46,
+      "end": 55.783
     },
     {
-      "word": "hay",
-      "start": 40.04,
-      "end": 40.52
+      "word": "te",
+      "start": 55.783,
+      "end": 56.107
     },
     {
-      "word": "vida",
-      "start": 40.52,
-      "end": 40.8
+      "word": "sentiste",
+      "start": 56.107,
+      "end": 56.43
+    },
+    {
+      "word": "orgulloso",
+      "start": 56.43,
+      "end": 56.753
+    },
+    {
+      "word": "o",
+      "start": 56.753,
+      "end": 57.077
+    },
+    {
+      "word": "te",
+      "start": 57.077,
+      "end": 57.4
+    },
+    {
+      "word": "lo",
+      "start": 57.4,
+      "end": 57.635
+    },
+    {
+      "word": "afeitaste",
+      "start": 57.635,
+      "end": 57.87
+    },
+    {
+      "word": "de",
+      "start": 57.87,
+      "end": 58.105
+    },
+    {
+      "word": "una?",
+      "start": 58.105,
+      "end": 58.34
+    },
+    {
+      "word": "Ponlo",
+      "start": 58.34,
+      "end": 58.59
     },
     {
       "word": "en",
-      "start": 40.8,
-      "end": 41.02
+      "start": 58.59,
+      "end": 58.84
     },
     {
-      "word": "tus",
-      "start": 41.02,
-      "end": 41.2
+      "word": "los",
+      "start": 58.84,
+      "end": 59.09
     },
     {
-      "word": "sueños.",
-      "start": 41.2,
-      "end": 41.62
+      "word": "comentarios.",
+      "start": 59.09,
+      "end": 59.34
+    },
+    {
+      "word": "Chao,",
+      "start": 59.72,
+      "end": 60.06
+    },
+    {
+      "word": "chao.",
+      "start": 60.06,
+      "end": 60.42
     }
   ],
-  "slug": "story_1792538779",
+  "story_hook": "Alexis se afeita el bigote y recuerda la intensa guerra escolar de bigotes en su adolescencia donde terminó derrotado por quien menos esperaba.",
+  "slug": "test_verify",
   "fps": 29.97002997002997,
-  "durationInFrames": 60,
+  "durationInFrames": 30,
   "composition": "StoryTuxedo",
   "directorStyle": "story_tuxedo",
   "source": {
-    "path": "temp_media/1792535183_NoTeRindas.mp4",
-    "filename": "1792535183_NoTeRindas_web.mp4",
-    "url": "/public/1792535183_NoTeRindas_web.mp4"
+    "path": "/Users/alexisgonzalez/CodingPower/video-tuxedo/temp_media/1792540214_BigotonaFinal.mov",
+    "filename": "1792540214_BigotonaFinal_web.mp4",
+    "url": "/public/1792540214_BigotonaFinal_web.mp4"
   },
   "preview": {
-    "showSourceVideo": true,
+    "showSourceVideo": false,
     "showSafeZones": false,
     "muteSource": false
   },
+  "scenes": [
+    {
+      "id": "cue_1",
+      "component": "ComicAlertBanner",
+      "zone": "R",
+      "from": 76,
+      "durationInFrames": 60,
+      "props": {
+        "headlineText": "ALERTA DIVORCIO",
+        "subText": "El bigote era sagrado",
+        "emojiOrIcon": "💔",
+        "accentColor": "#F43F5E",
+        "position": "top"
+      },
+      "sfx": [
+        {
+          "id": "vine_boom.mp3",
+          "at": 0,
+          "variant": 1,
+          "volume": 0.4
+        }
+      ],
+      "layer": "in_front_of_subject"
+    },
+    {
+      "id": "cue_2",
+      "component": "KineticTitleBehind",
+      "zone": "T",
+      "from": 239,
+      "durationInFrames": 60,
+      "props": {
+        "headlineText": "EVENTO CANÓNICO",
+        "subText": "Pubertad desbloqueada",
+        "emojiOrIcon": "🧔🏻‍♂️",
+        "accentColor": "#FACC15",
+        "position": "center"
+      },
+      "sfx": [
+        {
+          "id": "whoosh.mp3",
+          "at": 0,
+          "variant": 1,
+          "volume": 0.4
+        }
+      ],
+      "layer": "behind_subject"
+    },
+    {
+      "id": "cue_3",
+      "component": "PunchlinePopup",
+      "zone": "L",
+      "from": 408,
+      "durationInFrames": 60,
+      "props": {
+        "headlineText": "MODO TRAVOLTA",
+        "subText": "Pura sabrosura",
+        "emojiOrIcon": "🕺",
+        "accentColor": "#38BDF8",
+        "position": "bottom-left"
+      },
+      "sfx": [
+        {
+          "id": "pop.mp3",
+          "at": 0,
+          "variant": 1,
+          "volume": 0.4
+        }
+      ],
+      "layer": "in_front_of_subject"
+    },
+    {
+      "id": "cue_4",
+      "component": "KineticTitleBehind",
+      "zone": "T",
+      "from": 575,
+      "durationInFrames": 63,
+      "props": {
+        "headlineText": "EL BIGOTES",
+        "subText": "Corona asegurada",
+        "emojiOrIcon": "👑",
+        "accentColor": "#FACC15",
+        "position": "center"
+      },
+      "sfx": [
+        {
+          "id": "ding.mp3",
+          "at": 0,
+          "variant": 1,
+          "volume": 0.4
+        }
+      ],
+      "layer": "behind_subject"
+    },
+    {
+      "id": "cue_5",
+      "component": "PunchlinePopup",
+      "zone": "R",
+      "from": 728,
+      "durationInFrames": 66,
+      "props": {
+        "headlineText": "HAY RIVAL",
+        "subText": "Aura en peligro",
+        "emojiOrIcon": "⚔️",
+        "accentColor": "#F43F5E",
+        "position": "bottom-right"
+      },
+      "sfx": [
+        {
+          "id": "vine_boom.mp3",
+          "at": 0,
+          "variant": 1,
+          "volume": 0.4
+        }
+      ],
+      "layer": "in_front_of_subject"
+    },
+    {
+      "id": "cue_6",
+      "component": "KineticTitleBehind",
+      "zone": "T",
+      "from": 900,
+      "durationInFrames": 63,
+      "props": {
+        "headlineText": "SE PUSO PEOR",
+        "subText": "No te creo nada",
+        "emojiOrIcon": "💀",
+        "accentColor": "#A855F7",
+        "position": "center"
+      },
+      "sfx": [
+        {
+          "id": "whoosh.mp3",
+          "at": 0,
+          "variant": 1,
+          "volume": 0.4
+        }
+      ],
+      "layer": "behind_subject"
+    },
+    {
+      "id": "cue_7",
+      "component": "ComicAlertBanner",
+      "zone": "R",
+      "from": 1036,
+      "durationInFrames": 63,
+      "props": {
+        "headlineText": "PLOT TWIST",
+        "subText": "Era una dama",
+        "emojiOrIcon": "👀",
+        "accentColor": "#FACC15",
+        "position": "top"
+      },
+      "sfx": [
+        {
+          "id": "pop.mp3",
+          "at": 0,
+          "variant": 1,
+          "volume": 0.4
+        }
+      ],
+      "layer": "in_front_of_subject"
+    },
+    {
+      "id": "cue_8",
+      "component": "KineticTitleBehind",
+      "zone": "T",
+      "from": 1157,
+      "durationInFrames": 66,
+      "props": {
+        "headlineText": "LA BIGOTONA",
+        "subText": "La jefa suprema",
+        "emojiOrIcon": "🏆",
+        "accentColor": "#4ADE80",
+        "position": "center"
+      },
+      "sfx": [
+        {
+          "id": "ding.mp3",
+          "at": 0,
+          "variant": 1,
+          "volume": 0.4
+        }
+      ],
+      "layer": "behind_subject"
+    },
+    {
+      "id": "cue_9",
+      "component": "PunchlinePopup",
+      "zone": "L",
+      "from": 1310,
+      "durationInFrames": 66,
+      "props": {
+        "headlineText": "CHALEQUEO PESADO",
+        "subText": "Trágame tierra",
+        "emojiOrIcon": "🤡",
+        "accentColor": "#F43F5E",
+        "position": "bottom-left"
+      },
+      "sfx": [
+        {
+          "id": "vine_boom.mp3",
+          "at": 0,
+          "variant": 1,
+          "volume": 0.4
+        }
+      ],
+      "layer": "in_front_of_subject"
+    },
+    {
+      "id": "cue_10",
+      "component": "KineticTitleBehind",
+      "zone": "T",
+      "from": 1468,
+      "durationInFrames": 66,
+      "props": {
+        "headlineText": "BODA ESCOLAR",
+        "subText": "Querían cuadre",
+        "emojiOrIcon": "💍",
+        "accentColor": "#A855F7",
+        "position": "center"
+      },
+      "sfx": [
+        {
+          "id": "whoosh.mp3",
+          "at": 0,
+          "variant": 1,
+          "volume": 0.4
+        }
+      ],
+      "layer": "behind_subject"
+    },
+    {
+      "id": "cue_11",
+      "component": "PunchlinePopup",
+      "zone": "R",
+      "from": 1619,
+      "durationInFrames": 72,
+      "props": {
+        "headlineText": "CONFIRMA ABAJO",
+        "subText": "¿Te lo dejaste?",
+        "emojiOrIcon": "👇",
+        "accentColor": "#38BDF8",
+        "position": "bottom-right"
+      },
+      "sfx": [
+        {
+          "id": "pop.mp3",
+          "at": 0,
+          "variant": 1,
+          "volume": 0.4
+        }
+      ],
+      "layer": "in_front_of_subject"
+    }
+  ],
   "previewMode": false,
-  "showVideo": true
+  "showVideo": false
 }

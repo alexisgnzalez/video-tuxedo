@@ -523,6 +523,14 @@ def run_remotion_render(
         if "maskVideoFileName" not in plan or not plan["maskVideoFileName"]:
             plan["maskVideoFileName"] = staged_mask
 
+    # Robust export format detection
+    if output_filename and (output_filename.lower().endswith(".mov") or "prores" in output_filename.lower()):
+        export_format = "prores"
+    elif output_filename and (output_filename.lower().endswith(".mp4") or "composite" in output_filename.lower()):
+        export_format = "mp4"
+    elif plan.get("renderMode") == "overlays_only_for_davinci":
+        export_format = "prores"
+
     is_mp4 = export_format.lower() == "mp4"
 
     if is_mp4:
@@ -596,6 +604,8 @@ def run_remotion_render(
         "--concurrency=80%",
         "--overwrite",
     ]
+    if plan.get("fps") and float(plan["fps"]) > 0:
+        cmd.append(f"--fps={round(float(plan['fps']), 2)}")
 
     print(f"🚀 Running Remotion render ({comp_name} - {export_format.upper()}) in {MOTION_STUDIO_DIR}...")
     start_time = time.time()

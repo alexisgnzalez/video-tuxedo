@@ -2,6 +2,7 @@ import React from 'react';
 import {
   AbsoluteFill,
   Sequence,
+  OffthreadVideo,
   Video,
   Audio,
   staticFile,
@@ -27,16 +28,17 @@ const resolveMediaSrc = (fn?: string) => {
 };
 
 const renderCueComponent = (cue: VisualCue) => {
+  const mergedProps = (cue as any).props ? { ...(cue as any).props, ...cue } : cue;
   switch (cue.component) {
     case 'KineticTitleBehind':
-      return <KineticTitleBehind {...cue} />;
+      return <KineticTitleBehind {...mergedProps} />;
     case 'FloatingEmojiCluster':
-      return <FloatingEmojiCluster {...cue} />;
+      return <FloatingEmojiCluster {...mergedProps} />;
     case 'ComicAlertBanner':
-      return <ComicAlertBanner {...cue} />;
+      return <ComicAlertBanner {...mergedProps} />;
     case 'PunchlinePopup':
     default:
-      return <PunchlinePopup {...cue} />;
+      return <PunchlinePopup {...mergedProps} />;
   }
 };
 
@@ -47,6 +49,24 @@ export interface ExtendedMainVideoProps extends MainVideoProps {
   muteAudio?: boolean;
   sourceUrl?: string;
 }
+
+const getCueSfxFile = (cue: VisualCue): string | undefined => {
+  if (cue.sfxFile && cue.sfxFile !== 'none') return cue.sfxFile;
+  if ((cue as any).sfx && Array.isArray((cue as any).sfx) && (cue as any).sfx.length > 0) {
+    const firstSfx = (cue as any).sfx[0];
+    if (firstSfx && firstSfx.id && firstSfx.id !== 'none') return firstSfx.id;
+  }
+  return undefined;
+};
+
+const getSfxVolume = (sfxFile?: string) => {
+  if (!sfxFile || sfxFile === 'none') return 0;
+  if (sfxFile.includes('vine_boom')) return 0.08; // Very subtle sub-bass boom so speech is never masked
+  if (sfxFile.includes('ding')) return 0.10;
+  if (sfxFile.includes('pop')) return 0.12;
+  if (sfxFile.includes('whoosh')) return 0.10;
+  return 0.10;
+};
 
 export const MainVideo: React.FC<ExtendedMainVideoProps> = ({
   videoFileName,
@@ -81,7 +101,7 @@ export const MainVideo: React.FC<ExtendedMainVideoProps> = ({
       {/* LAYER 1: Base Talking Head Video with Synced In-Browser Audio */}
       {shouldRenderVideo && resolvedVideoSrc && (
         <AbsoluteFill>
-          <Video
+          <OffthreadVideo
             src={resolvedVideoSrc}
             volume={muteAudio ? 0 : volume}
             style={{
@@ -96,13 +116,18 @@ export const MainVideo: React.FC<ExtendedMainVideoProps> = ({
       {/* LAYER 2: Motion Graphics BEHIND the Speaker */}
       <AbsoluteFill>
         {behindCues.map((cue) => {
-          const fromFrame = Math.round(cue.startTime * fps);
-          const durationInFrames = Math.max(15, Math.round((cue.endTime - cue.startTime) * fps));
+          const fromFrame = typeof (cue as any).from === 'number'
+            ? (cue as any).from
+            : Math.round((cue.startTime ?? 0) * fps);
+          const durationInFrames = typeof (cue as any).durationInFrames === 'number'
+            ? (cue as any).durationInFrames
+            : Math.max(15, Math.round(((cue.endTime ?? (cue.startTime ?? 0) + 2) - (cue.startTime ?? 0)) * fps));
+          const sfx = getCueSfxFile(cue);
 
           return (
             <Sequence key={cue.id} from={fromFrame} durationInFrames={durationInFrames} name={`${cue.component} (behind)`}>
-              {cue.sfxFile && cue.sfxFile !== 'none' && (
-                <Audio src={resolveMediaSrc(`sfx/${cue.sfxFile}`)} volume={0.4} />
+              {sfx && (
+                <Audio src={resolveMediaSrc(`sfx/${sfx}`)} volume={getSfxVolume(sfx)} />
               )}
               {renderCueComponent(cue)}
             </Sequence>
@@ -113,7 +138,7 @@ export const MainVideo: React.FC<ExtendedMainVideoProps> = ({
       {/* LAYER 3: Isolated Subject Cutout (Sits in front of Layer 2 graphics!) */}
       {maskVideoFileName && maskVideoFileName.trim() !== '' && (
         <AbsoluteFill>
-          <Video
+          <OffthreadVideo
             src={resolveMediaSrc(maskVideoFileName)}
             style={{
               width: '100%',
@@ -127,13 +152,18 @@ export const MainVideo: React.FC<ExtendedMainVideoProps> = ({
       {/* LAYER 4: Motion Graphics IN FRONT of the Speaker */}
       <AbsoluteFill>
         {frontCues.map((cue) => {
-          const fromFrame = Math.round(cue.startTime * fps);
-          const durationInFrames = Math.max(15, Math.round((cue.endTime - cue.startTime) * fps));
+          const fromFrame = typeof (cue as any).from === 'number'
+            ? (cue as any).from
+            : Math.round((cue.startTime ?? 0) * fps);
+          const durationInFrames = typeof (cue as any).durationInFrames === 'number'
+            ? (cue as any).durationInFrames
+            : Math.max(15, Math.round(((cue.endTime ?? (cue.startTime ?? 0) + 2) - (cue.startTime ?? 0)) * fps));
+          const sfx = getCueSfxFile(cue);
 
           return (
             <Sequence key={cue.id} from={fromFrame} durationInFrames={durationInFrames} name={`${cue.component} (front)`}>
-              {cue.sfxFile && cue.sfxFile !== 'none' && (
-                <Audio src={resolveMediaSrc(`sfx/${cue.sfxFile}`)} volume={0.5} />
+              {sfx && (
+                <Audio src={resolveMediaSrc(`sfx/${sfx}`)} volume={getSfxVolume(sfx)} />
               )}
               {renderCueComponent(cue)}
             </Sequence>

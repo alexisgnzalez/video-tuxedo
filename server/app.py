@@ -1163,10 +1163,20 @@ def render_motion_endpoint(req: MotionRenderRequest):
                     "elapsed_s": p.get("elapsed_s", 0.0),
                 })
 
+            fmt = req.export_format
+            if req.filename and (req.filename.lower().endswith(".mov") or "prores" in req.filename.lower()):
+                fmt = "prores"
+            elif req.filename and (req.filename.lower().endswith(".mp4") or "composite" in req.filename.lower()):
+                fmt = "mp4"
+            elif req.plan.get("renderMode") == "overlays_only_for_davinci":
+                fmt = "prores"
+            elif not fmt:
+                fmt = "mp4"
+
             result = run_remotion_render(
                 plan=req.plan,
                 output_filename=req.filename,
-                export_format=req.export_format or "mp4",
+                export_format=fmt,
                 progress_callback=_on_prog,
                 cancel_check=lambda: _MOTION_TASKS.get(task_id, {}).get("cancelled", False),
             )
@@ -1235,7 +1245,14 @@ def download_motion_video(filename: str):
 @app.get("/")
 def serve_index():
     index_file = STATIC_DIR / "index.html"
-    return FileResponse(str(index_file))
+    return FileResponse(
+        str(index_file),
+        headers={
+            "Cache-Control": "no-cache, no-store, must-revalidate",
+            "Pragma": "no-cache",
+            "Expires": "0",
+        },
+    )
 
 
 @app.get("/{file_name:path}")

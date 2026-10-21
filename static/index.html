@@ -1817,18 +1817,28 @@
           Rendering 1080x1920 HD frames with motion graphics and synced sound effects...
         </p>
 
-        <div class="progress-bar-container" style="margin-bottom: 1rem;">
+        <div class="progress-bar-container" id="motionRenderProgressContainer" style="margin-bottom: 1rem;">
           <div class="progress-bar-fill" id="motionRenderProgressBar" style="width: 0%;"></div>
         </div>
 
-        <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem;">
+        <div id="motionRenderStatsRow1" style="display: flex; justify-content: space-between; font-weight: 600; font-size: 0.9rem; margin-bottom: 0.5rem;">
           <span id="motionRenderFrameText">Starting Remotion engine...</span>
           <span id="motionRenderPercentText">0%</span>
         </div>
 
-        <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--color-stone-muted); margin-bottom: 1.5rem;">
+        <div id="motionRenderStatsRow2" style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--color-stone-muted); margin-bottom: 1.5rem;">
           <span id="motionRenderFpsText">0 FPS</span>
           <span id="motionRenderEtaText">ETA: --</span>
+        </div>
+
+        <!-- Render Finished Direct Action Section -->
+        <div id="motionRenderSuccessActions" style="display: none; margin-bottom: 1.25rem; flex-direction: column; gap: 0.75rem;">
+          <a id="motionRenderDownloadLink" class="btn-primary" href="#" download style="display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem; text-decoration: none; font-weight: 600; padding: 0.8rem 1.2rem; background: linear-gradient(135deg, #059669, #10b981); color: #ffffff; border-radius: 8px; box-shadow: 0 4px 14px rgba(16, 185, 129, 0.25);">
+            ⬇️ Download File Now
+          </a>
+          <button class="btn-secondary" id="motionRenderCloseModalBtn" style="width: 100%; padding: 0.7rem;">
+            Done / Close
+          </button>
         </div>
 
         <button class="btn-ghost" id="motionRenderCancelBtn" style="color: var(--color-terracotta);">
@@ -1841,13 +1851,13 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Scripts -->
-  <script src="/static/js/visualizer.js?v=0.4.0"></script>
-  <script src="/static/js/subtitles.js?v=0.4.0"></script>
-  <script src="/static/js/silence_cutter.js?v=0.4.0"></script>
-  <script src="/static/js/magic_mask.js?v=0.4.0"></script>
-  <script src="/static/motion/player.bundle.js?v=0.4.0"></script>
-  <script src="/static/js/motion_graphics.js?v=0.5.0"></script>
-  <script src="/static/js/app.js?v=0.4.0"></script>
+  <script src="/static/js/visualizer.js?v=0.6.1"></script>
+  <script src="/static/js/subtitles.js?v=0.6.1"></script>
+  <script src="/static/js/silence_cutter.js?v=0.6.1"></script>
+  <script src="/static/js/magic_mask.js?v=0.6.1"></script>
+  <script src="/static/motion/player.bundle.js?v=0.6.1"></script>
+  <script src="/static/js/motion_graphics.js?v=0.6.1"></script>
+  <script src="/static/js/app.js?v=0.6.1"></script>
 </body>
 </html>
 

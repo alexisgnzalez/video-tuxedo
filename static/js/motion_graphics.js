@@ -108,11 +108,17 @@ class MotionGraphicsStudio {
 
     // Render Progress Dialog
     this.renderModal = document.getElementById('motionRenderModal');
+    this.renderProgressContainer = document.getElementById('motionRenderProgressContainer');
     this.renderProgressBar = document.getElementById('motionRenderProgressBar');
     this.renderPercentText = document.getElementById('motionRenderPercentText');
     this.renderFrameText = document.getElementById('motionRenderFrameText');
     this.renderFpsText = document.getElementById('motionRenderFpsText');
     this.renderEtaText = document.getElementById('motionRenderEtaText');
+    this.renderStatsRow1 = document.getElementById('motionRenderStatsRow1');
+    this.renderStatsRow2 = document.getElementById('motionRenderStatsRow2');
+    this.renderSuccessActions = document.getElementById('motionRenderSuccessActions');
+    this.renderDownloadLink = document.getElementById('motionRenderDownloadLink');
+    this.renderCloseModalBtn = document.getElementById('motionRenderCloseModalBtn');
     this.renderCancelBtn = document.getElementById('motionRenderCancelBtn');
   }
 
@@ -340,6 +346,10 @@ class MotionGraphicsStudio {
 
     if (this.renderCancelBtn) {
       this.renderCancelBtn.addEventListener('click', () => this.cancelRender());
+    }
+
+    if (this.renderCloseModalBtn) {
+      this.renderCloseModalBtn.addEventListener('click', () => this.hideRenderModal());
     }
 
     // Subtitle Review Step events
@@ -1074,6 +1084,7 @@ class MotionGraphicsStudio {
       if (this.renderMp4Btn) this.renderMp4Btn.disabled = true;
 
       const exportPlan = JSON.parse(JSON.stringify(this.currentPlan));
+      const slug = exportPlan.slug || 'story_video';
       let defaultFilename = '';
 
       if (format === 'mp4') {
@@ -1085,7 +1096,7 @@ class MotionGraphicsStudio {
           exportPlan.preview.showSafeZones = false;
           exportPlan.preview.muteSource = false;
         }
-        defaultFilename = `${exportPlan.slug}_1080x1920_composite.mp4`;
+        defaultFilename = `${slug}_1080x1920_composite.mp4`;
       } else {
         exportPlan.renderMode = 'overlays_only_for_davinci';
         exportPlan.previewMode = false;
@@ -1094,8 +1105,10 @@ class MotionGraphicsStudio {
           exportPlan.preview.showSourceVideo = false;
           exportPlan.preview.showSafeZones = false;
         }
-        defaultFilename = `${exportPlan.slug}_prores4444.mov`;
+        defaultFilename = `${slug}_prores4444.mov`;
       }
+
+      this.showRenderModal(format);
 
       const res = await fetch('/api/motion/render', {
         method: 'POST',
@@ -1114,10 +1127,10 @@ class MotionGraphicsStudio {
 
       const data = await res.json();
       this.renderTaskId = data.task_id;
-      this.showRenderModal(format);
       this.startProgressPolling();
     } catch (err) {
       if (window.showToast) window.showToast(err.message, 'error');
+      this.hideRenderModal();
       if (this.renderBtn) this.renderBtn.disabled = false;
       if (this.renderMp4Btn) this.renderMp4Btn.disabled = false;
     }
@@ -1134,10 +1147,19 @@ class MotionGraphicsStudio {
           ? 'Rendering original video combined with motion graphics, subtitles, and audio in 1080x1920 HD...'
           : 'Rendering 1080x1920 frames with transparent alpha channel and synced sound effects...';
     }
-    if (this.renderModal) this.renderModal.classList.add('open');
+    if (this.renderProgressContainer) this.renderProgressContainer.style.display = 'block';
+    if (this.renderStatsRow1) this.renderStatsRow1.style.display = 'flex';
+    if (this.renderStatsRow2) this.renderStatsRow2.style.display = 'flex';
+    if (this.renderSuccessActions) this.renderSuccessActions.style.display = 'none';
+    if (this.renderCancelBtn) this.renderCancelBtn.style.display = 'inline-block';
+
     if (this.renderProgressBar) this.renderProgressBar.style.width = '0%';
     if (this.renderPercentText) this.renderPercentText.textContent = '0%';
     if (this.renderFrameText) this.renderFrameText.textContent = 'Starting Remotion engine...';
+    if (this.renderFpsText) this.renderFpsText.textContent = '0 FPS';
+    if (this.renderEtaText) this.renderEtaText.textContent = 'ETA: --';
+
+    if (this.renderModal) this.renderModal.classList.add('open');
   }
 
   hideRenderModal() {
@@ -1165,29 +1187,58 @@ class MotionGraphicsStudio {
 
         if (task.status === 'completed') {
           clearInterval(this.pollInterval);
-          this.hideRenderModal();
-          const outName = task.result ? task.result.filename : 'video.mp4';
+          const outName = task.result ? task.result.filename : (this.currentRenderFormat === 'mp4' ? 'video.mp4' : 'overlays.mov');
+
+          if (this.renderProgressBar) this.renderProgressBar.style.width = '100%';
+          if (this.renderPercentText) this.renderPercentText.textContent = '100%';
+          if (this.renderFrameText) this.renderFrameText.textContent = 'Render Complete!';
+          if (this.renderFpsText) this.renderFpsText.textContent = '';
+          if (this.renderEtaText) this.renderEtaText.textContent = 'Finished';
+
+          if (this.renderModalTitle) {
+            this.renderModalTitle.textContent =
+              this.currentRenderFormat === 'mp4' ? '🎉 1080x1920 HD MP4 Video Ready!' : '🎉 Apple ProRes 4444 Alpha Ready!';
+          }
+          if (this.renderModalDesc) {
+            this.renderModalDesc.textContent =
+              this.currentRenderFormat === 'mp4'
+                ? `Saved directly to ~/Downloads/${outName}. Click below to download directly to your browser:`
+                : `Saved directly to ~/Downloads/${outName} with 10-bit alpha for DaVinci Resolve.`;
+          }
+
+          if (this.renderSuccessActions) this.renderSuccessActions.style.display = 'flex';
+          if (this.renderCancelBtn) this.renderCancelBtn.style.display = 'none';
+
+          if (this.renderDownloadLink) {
+            this.renderDownloadLink.href = `/api/motion/download/${encodeURIComponent(outName)}`;
+            this.renderDownloadLink.download = outName;
+            this.renderDownloadLink.textContent =
+              this.currentRenderFormat === 'mp4' ? '⬇️ Download MP4 (1080x1920 HD)' : '⬇️ Download ProRes 4444 (.mov)';
+          }
+
+          if (this.renderBtn) this.renderBtn.disabled = false;
+          if (this.renderMp4Btn) this.renderMp4Btn.disabled = false;
+
+          // Trigger automatic browser download
+          try {
+            const dlLink = document.createElement('a');
+            dlLink.href = `/api/motion/download/${encodeURIComponent(outName)}`;
+            dlLink.download = outName;
+            document.body.appendChild(dlLink);
+            dlLink.click();
+            document.body.removeChild(dlLink);
+          } catch (dlErr) {
+            console.warn('Auto download trigger error:', dlErr);
+          }
 
           if (this.currentRenderFormat === 'mp4') {
             if (window.showToast) {
               window.showToast(`1080x1920 HD MP4 saved to ~/Downloads/${outName}!`, 'success');
             }
-            // Trigger automatic browser download
-            try {
-              const dlLink = document.createElement('a');
-              dlLink.href = `/api/motion/download/${encodeURIComponent(outName)}`;
-              dlLink.download = outName;
-              document.body.appendChild(dlLink);
-              dlLink.click();
-              document.body.removeChild(dlLink);
-            } catch (dlErr) {
-              console.warn('Auto download trigger error:', dlErr);
-            }
           } else {
             if (window.showToast) {
               window.showToast(`ProRes 4444 saved directly to ~/Downloads/${outName}!`, 'success');
             }
-            // Show DaVinci Resolve import guide
             const modal = document.getElementById('davinciModalOverlay');
             if (modal) modal.classList.add('open');
           }
