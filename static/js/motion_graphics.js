@@ -492,8 +492,8 @@ class MotionGraphicsStudio {
           this.setLoadProgress(2, 'Transcribing Dialogue with Whisper...', 'Detecting speech timestamps and aligning words for kinetic typography...');
         } else if (elapsed === 7) {
           this.setLoadProgress(3, 'Tracking Subject Motion...', 'Calculating subject bounding boxes and 9:16 safe placement zones...');
-        } else if (elapsed === 12) {
-          this.setLoadProgress(4, 'Directing Comedic Scene Plan...', 'Prompting Gemini Flash to pick punchlines, visual metaphors, and sound effects...');
+        } else if (elapsed >= 12) {
+          this.setLoadProgress(4, 'Directing Comedic Scene Plan...', `Prompting Gemini Flash to pick punchlines, visual metaphors, and sound effects (${elapsed - 11}s)...`);
         }
       }, 1000);
 
@@ -1179,11 +1179,19 @@ class MotionGraphicsStudio {
         if (!res.ok) return;
         const task = await res.json();
 
-        if (this.renderProgressBar) this.renderProgressBar.style.width = `${task.percent}%`;
-        if (this.renderPercentText) this.renderPercentText.textContent = `${task.percent}%`;
-        if (this.renderFrameText) this.renderFrameText.textContent = `Frame ${task.frame} / ${task.total_frames}`;
-        if (this.renderFpsText) this.renderFpsText.textContent = `${task.fps} FPS`;
-        if (this.renderEtaText) this.renderEtaText.textContent = `ETA: ${task.eta_s}s`;
+        if (task.status === 'starting' && task.frame === 0) {
+          if (this.renderProgressBar) this.renderProgressBar.style.width = '3%';
+          if (this.renderPercentText) this.renderPercentText.textContent = '0%';
+          if (this.renderFrameText) this.renderFrameText.textContent = 'Bundling composition & starting engine...';
+          if (this.renderFpsText) this.renderFpsText.textContent = 'Initializing...';
+          if (this.renderEtaText) this.renderEtaText.textContent = 'ETA: --';
+        } else if (task.status === 'rendering') {
+          if (this.renderProgressBar) this.renderProgressBar.style.width = `${Math.max(3, task.percent)}%`;
+          if (this.renderPercentText) this.renderPercentText.textContent = `${task.percent}%`;
+          if (this.renderFrameText) this.renderFrameText.textContent = `Rendering frame ${task.frame} / ${task.total_frames}`;
+          if (this.renderFpsText) this.renderFpsText.textContent = task.fps > 0 ? `${task.fps} FPS` : 'Rendering...';
+          if (this.renderEtaText) this.renderEtaText.textContent = task.eta_s > 0 ? `ETA: ${task.eta_s}s` : 'Finishing...';
+        }
 
         if (task.status === 'completed') {
           clearInterval(this.pollInterval);
@@ -1250,7 +1258,7 @@ class MotionGraphicsStudio {
       } catch (err) {
         console.warn('Progress poll error:', err);
       }
-    }, 700);
+    }, 400);
   }
 
   async cancelRender() {

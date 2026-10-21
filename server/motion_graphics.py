@@ -615,43 +615,64 @@ def run_remotion_render(
         cwd=str(MOTION_STUDIO_DIR),
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
-        text=True,
-        bufsize=1,
     )
 
     total_frames = plan.get("durationInFrames", 300)
     current_frame = 0
+    max_reported_frame = 0
     recent_lines = []
+    buf = ""
 
     if process.stdout:
-        for line in process.stdout:
-            recent_lines.append(line)
-            if len(recent_lines) > 60:
-                recent_lines.pop(0)
+        while True:
+            chunk = process.stdout.read(64)
+            if not chunk:
+                break
+            buf += chunk.decode("utf-8", errors="ignore")
 
-            if cancel_check and cancel_check():
-                process.terminate()
-                raise InterruptedError("Render cancelled by user")
+            while "\r" in buf or "\n" in buf:
+                pos_r = buf.find("\r")
+                pos_n = buf.find("\n")
+                if pos_r != -1 and (pos_n == -1 or pos_r < pos_n):
+                    line, buf = buf[:pos_r], buf[pos_r + 1 :]
+                else:
+                    line, buf = buf[:pos_n], buf[pos_n + 1 :]
 
-            # Parse Remotion CLI progress output: e.g. "Rendered frame 45/300 (15%)"
-            m = re.search(r"Rendered frame (\d+)/(\d+)", line)
-            if m:
-                current_frame = int(m.group(1))
-                tot = int(m.group(2))
-                pct = round((current_frame / max(1, tot)) * 100.0, 1)
-                elapsed = time.time() - start_time
-                fps_rate = round(current_frame / max(0.01, elapsed), 1)
-                eta = round((tot - current_frame) / max(0.01, fps_rate), 1)
+                clean_line = line.strip()
+                if clean_line:
+                    recent_lines.append(clean_line)
+                    if len(recent_lines) > 60:
+                        recent_lines.pop(0)
 
-                if progress_callback:
-                    progress_callback({
-                        "frame": current_frame,
-                        "total_frames": tot,
-                        "percent": pct,
-                        "fps": fps_rate,
-                        "elapsed_s": round(elapsed, 1),
-                        "eta_s": eta,
-                    })
+                if cancel_check and cancel_check():
+                    process.terminate()
+                    raise InterruptedError("Render cancelled by user")
+
+                # Parse Remotion CLI progress output:
+                # e.g. "Rendered 45/300, time remaining: 10s" or "Rendering frames 45/300" or "Encoded 45/300"
+                m = re.search(r"(?:Render(?:ed|ing frames?)|Encoded)\s+(\d+)/(\d+)", line)
+                if not m:
+                    m = re.search(r"(\d+)/(\d+)", line)
+                if m:
+                    parsed_frame = int(m.group(1))
+                    tot = int(m.group(2))
+                    if parsed_frame > max_reported_frame:
+                        max_reported_frame = parsed_frame
+                    current_frame = max(parsed_frame, max_reported_frame)
+                    pct = min(99.0, round((current_frame / max(1, tot)) * 100.0, 1))
+                    elapsed = time.time() - start_time
+                    fps_rate = round(current_frame / max(0.01, elapsed), 1)
+                    eta = max(0.0, round((tot - current_frame) / max(0.01, fps_rate), 1))
+
+                    if progress_callback:
+                        progress_callback({
+                            "frame": current_frame,
+                            "total_frames": tot,
+                            "percent": pct,
+                            "fps": fps_rate,
+                            "elapsed_s": round(elapsed, 1),
+                            "eta_s": eta,
+                        })
 
     ret_code = process.wait()
     if ret_code != 0:

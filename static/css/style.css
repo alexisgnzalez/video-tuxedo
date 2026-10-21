@@ -2649,4 +2649,26 @@ input[type="checkbox"]:focus {
   background: #F3D7A6;
 }
 
+/* Modal Progress Bar Styles */
+.progress-bar-container {
+  width: 100%;
+  height: 12px;
+  background: var(--bg-surface-elevated, #EBE8E3);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  border-radius: 999px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.progress-bar-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #10b981, #059669);
+  border-radius: 999px;
+  transition: width 0.35s ease-out;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.35);
+}
+
+
 
