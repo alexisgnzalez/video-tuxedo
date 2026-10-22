@@ -148,6 +148,16 @@ A procedural motion graphics engine and interactive web studio inspired by **195
 3. Drag the motion overlay clip onto **Video Track 2 (V2)** directly above your footage. Its synchronized sound effects will automatically populate **Audio Track 2 (A2)**.
 4. The graphics, posters, and animations appear with 100% native transparency over your video with no keying or paid Studio license required!
 
+### 5. 🎬 Tuxedo Editor (End-to-End Creator Studio) *(New!)*
+Complete all-in-one studio: Upload, non-destructive silence cuts, local Whisper subtitles with Gemini Flash comedic polish, AI subject rotoscoping for 3-layer sandwich visual effects, and multi-style kinetic motion graphics.
+
+- **Non-Destructive EDL Timeline**: Split clips, drag to reorder, trim in/out handles with instant scrubbing.
+- **Audio Micro-Crossfades**: Eliminates zero-crossing clicks and pops between jump-cut speech boundaries with 15ms hardware audio fades.
+- **Local Whisper & Gemini Flash Polish**: High-speed speech transcription mapped across the edited timeline with optional free Gemini Flash proofreading (preserving audio synchronization).
+- **3-Layer Sandwich VFX**: AI speaker matte extraction with YOLO-Seg / SAM 2.1 placing big bold headlines and stickers directly behind your shoulders.
+- **Pluggable Style Registry**: Comedic Storytelling (*StoryTuxedo*), *Caracas Mid-Century Kinetic*, and *Clean Minimalist*.
+- **Multi-Format Export**: Full-composite 1080x1920 MP4 with 9:16 safe zones, Apple ProRes 4444 Alpha transparent overlays, ProRes 422 HQ broadcast master, SubRip (.SRT) files, and complete Project Backup ZIPs.
+
 ---
 
 ### 🔮 Roadmap & Upcoming Tools
@@ -156,6 +166,7 @@ A procedural motion graphics engine and interactive web studio inspired by **195
 - [x] **Silence Cutter & Jump Cuts** (100% Lossless DaVinci FCPXML/EDL, Single/Multipart MP4, Synced SRT)
 - [x] **Magic Mask & AI Rotoscoper** (Apple ProRes 4444 10-bit Alpha, B&W Matte, Green Screen, Blur)
 - [x] **Motion Graphics Studio** (Caracas Mid-Century Kinetic Poster, 9:16 Vertical, Remotion, ProRes 4444 Alpha)
+- [x] **Tuxedo Editor (End-to-End)** (Non-Destructive EDL, Whisper AI, 3-Layer Sandwich VFX, Multi-Style Graphics)
 - [ ] **AI Video Eye Contact Fix**: Local gaze redirection for talking head videos.
 
 ---

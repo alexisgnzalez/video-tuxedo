@@ -7,6 +7,10 @@ import { MainVideo } from './MainVideo';
 import { MainVideoSchema, MainVideoProps } from './schema';
 import defaultDirectorPlan from '../public/director_plan.json';
 import { DEFAULT_PLAN, ScenePlan } from './types';
+import { TuxedoEdit } from './compositions/TuxedoEdit';
+import { TuxedoEditSchema } from './editSchema';
+
+
 
 export const Root: React.FC = () => {
   return (
@@ -113,6 +117,42 @@ export const Root: React.FC = () => {
           subtitle: 'PETARE Y SU MODERNISMO',
           seed: 1957,
           showGrain: true,
+        }}
+      />
+
+      {/* 4. Tuxedo Editor (End-to-End Comedic Jump-Cut & Kinetic Graphics) */}
+      <Composition
+        id="TuxedoEdit"
+        component={TuxedoEdit as any}
+        schema={TuxedoEditSchema as any}
+        durationInFrames={300}
+        fps={30}
+        width={1080}
+        height={1920}
+        defaultProps={{
+          composition: 'TuxedoEdit',
+          slug: 'demo',
+          mode: 'edl',
+          fps: 30,
+          durationInFrames: 300,
+          sourceUrl: '',
+          conformUrl: '',
+          cutoutUrl: '',
+          clips: [],
+          captions: { enabled: true, cues: [], style: {} },
+          layers: [],
+          graphics: { style: 'story_tuxedo', settings: {}, items: [] },
+          preview: { showSafeZones: false, muteAudio: false },
+        }}
+        calculateMetadata={async ({ props }) => {
+          const p = props as any;
+          return {
+            durationInFrames: Math.max(30, p.durationInFrames || 300),
+            fps: p.fps || 30,
+            width: 1080,
+            height: 1920,
+            props: p,
+          };
         }}
       />
     </>

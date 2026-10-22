@@ -4,28 +4,33 @@ import { Player, PlayerRef } from '@remotion/player';
 import { TalkingHeadOverlay } from './compositions/TalkingHeadOverlay';
 import { MainVideo } from './MainVideo';
 import { PosterPlate } from './compositions/PosterPlate';
+import { TuxedoEdit } from './compositions/TuxedoEdit';
 import { DEFAULT_PLAN, ScenePlan } from './types';
 
-interface PlayerWrapperProps {
-  plan: ScenePlan;
+export interface PlayerWrapperProps {
+  plan: any;
   onFrameUpdate?: (frame: number) => void;
   onPlay?: () => void;
   onPause?: () => void;
+  onPlayerReady?: (player: PlayerRef | null) => void;
 }
 
-const MotionPlayerWrapper: React.FC<PlayerWrapperProps> = ({
+export const MotionPlayerWrapper: React.FC<PlayerWrapperProps> = ({
   plan,
   onFrameUpdate,
   onPlay,
   onPause,
+  onPlayerReady,
 }) => {
   const playerRef = useRef<PlayerRef>(null);
 
   useEffect(() => {
     const p = playerRef.current;
+    if (onPlayerReady) {
+      onPlayerReady(p);
+    }
     if (!p) return;
 
-    // Attach frame change listener
     const onTimeUpdate = () => {
       if (onFrameUpdate) {
         onFrameUpdate(p.getCurrentFrame());
@@ -39,27 +44,35 @@ const MotionPlayerWrapper: React.FC<PlayerWrapperProps> = ({
     return () => {
       p.removeEventListener('timeupdate', onTimeUpdate);
     };
-  }, [onFrameUpdate, onPlay, onPause]);
+  }, [onFrameUpdate, onPlay, onPause, onPlayerReady]);
 
-  // Expose player controller methods to window.__activePlayer
   useEffect(() => {
     (window as any).__activePlayer = playerRef.current;
   }, [plan]);
 
-  const isStoryTuxedo =
-    (plan as any)?.composition === 'StoryTuxedo' ||
-    Boolean((plan as any)?.cues && (plan as any)?.words);
-  const TargetComponent = isStoryTuxedo ? (MainVideo as any) : TalkingHeadOverlay;
-  const targetProps = isStoryTuxedo
-    ? {
-        ...(plan as any),
-        previewMode: true,
-        showVideo: (plan as any)?.preview?.showSourceVideo ?? true,
-        muteAudio: (plan as any)?.preview?.muteSource ?? false,
-        sourceUrl: (plan as any)?.source?.url,
-        videoFileName: (plan as any)?.videoFileName || (plan as any)?.source?.filename,
-      }
-    : { plan };
+  let TargetComponent: any = TalkingHeadOverlay;
+  let targetProps: any = { plan };
+
+  if (plan?.composition === 'TuxedoEdit') {
+    TargetComponent = TuxedoEdit;
+    targetProps = plan;
+  } else if (
+    plan?.composition === 'StoryTuxedo' ||
+    Boolean(plan?.cues && plan?.words)
+  ) {
+    TargetComponent = MainVideo;
+    targetProps = {
+      ...plan,
+      previewMode: true,
+      showVideo: plan?.preview?.showSourceVideo ?? true,
+      muteAudio: plan?.preview?.muteSource ?? false,
+      sourceUrl: plan?.source?.url,
+      videoFileName: plan?.videoFileName || plan?.source?.filename,
+    };
+  }
+
+  const durationInFrames = Math.max(30, plan?.durationInFrames || 300);
+  const fps = plan?.fps || 30;
 
   return (
     <div
@@ -69,16 +82,18 @@ const MotionPlayerWrapper: React.FC<PlayerWrapperProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        backgroundColor: '#0c141c',
+        backgroundColor: '#141413',
+        overflow: 'hidden',
+        position: 'relative',
       }}
     >
       <Player
         ref={playerRef}
         component={TargetComponent}
-        durationInFrames={Math.max(30, plan.durationInFrames || 300)}
+        durationInFrames={durationInFrames}
         compositionWidth={1080}
         compositionHeight={1920}
-        fps={plan.fps || 30}
+        fps={fps}
         inputProps={targetProps}
         style={{
           width: '100%',
@@ -95,103 +110,183 @@ const MotionPlayerWrapper: React.FC<PlayerWrapperProps> = ({
   );
 };
 
-// Global API exposed for vanilla JavaScript
-let reactRoot: ReactRoot | null = null;
-let currentPlan: ScenePlan = DEFAULT_PLAN;
+export interface PlayerInstance {
+  update: (newPlan: any) => void;
+  seek: (frame: number) => void;
+  play: () => void;
+  pause: () => void;
+  togglePlay: () => void;
+  getCurrentFrame: () => number;
+  toggleMute: () => boolean;
+  setMuted: (muted: boolean) => void;
+  isMuted: () => boolean;
+  destroy: () => void;
+  getPlayerRef: () => PlayerRef | null;
+}
+
+export function createPlayerInstance(
+  container: HTMLElement,
+  initialPlan: any,
+  callbacks?: {
+    onFrameUpdate?: (frame: number) => void;
+    onPlay?: () => void;
+    onPause?: () => void;
+  }
+): PlayerInstance {
+  let root: ReactRoot | null = createRoot(container);
+  let activePlan = initialPlan || DEFAULT_PLAN;
+  let activePlayerRef: PlayerRef | null = null;
+
+  const render = () => {
+    if (!root) return;
+    root.render(
+      <MotionPlayerWrapper
+        plan={activePlan}
+        onFrameUpdate={callbacks?.onFrameUpdate}
+        onPlay={callbacks?.onPlay}
+        onPause={callbacks?.onPause}
+        onPlayerReady={(p) => {
+          activePlayerRef = p;
+        }}
+      />
+    );
+  };
+
+  render();
+
+  return {
+    update: (newPlan: any) => {
+      activePlan = { ...newPlan };
+      render();
+    },
+    seek: (frame: number) => {
+      if (activePlayerRef) {
+        activePlayerRef.seekTo(frame);
+      }
+    },
+    play: () => {
+      if (activePlayerRef) {
+        activePlayerRef.play();
+      }
+    },
+    pause: () => {
+      if (activePlayerRef) {
+        activePlayerRef.pause();
+      }
+    },
+    togglePlay: () => {
+      if (activePlayerRef) {
+        if (activePlayerRef.isPlaying()) {
+          activePlayerRef.pause();
+        } else {
+          activePlayerRef.play();
+        }
+      }
+    },
+    getCurrentFrame: (): number => {
+      return activePlayerRef ? activePlayerRef.getCurrentFrame() : 0;
+    },
+    toggleMute: (): boolean => {
+      if (activePlan) {
+        activePlan.preview = activePlan.preview || {};
+        activePlan.preview.muteAudio = !activePlan.preview.muteAudio;
+        if (activePlan.preview.muteSource !== undefined) {
+          activePlan.preview.muteSource = activePlan.preview.muteAudio;
+        }
+        render();
+        return Boolean(activePlan.preview.muteAudio);
+      }
+      return false;
+    },
+    setMuted: (muted: boolean) => {
+      if (activePlan) {
+        activePlan.preview = activePlan.preview || {};
+        activePlan.preview.muteAudio = muted;
+        activePlan.preview.muteSource = muted;
+        render();
+      }
+    },
+    isMuted: (): boolean => {
+      return Boolean(activePlan?.preview?.muteAudio || activePlan?.preview?.muteSource);
+    },
+    destroy: () => {
+      if (root) {
+        root.unmount();
+        root = null;
+      }
+      activePlayerRef = null;
+    },
+    getPlayerRef: () => activePlayerRef,
+  };
+}
+
+// Global default instance for backwards-compatibility
+let defaultInstance: PlayerInstance | null = null;
 
 (window as any).MotionPlayer = {
+  create: createPlayerInstance,
+
   mount: (
     container: HTMLElement,
-    initialPlan: ScenePlan,
+    initialPlan: any,
     callbacks?: {
       onFrameUpdate?: (frame: number) => void;
       onPlay?: () => void;
       onPause?: () => void;
     }
   ) => {
-    currentPlan = initialPlan || DEFAULT_PLAN;
-    if (!reactRoot) {
-      reactRoot = createRoot(container);
+    if (defaultInstance) {
+      defaultInstance.destroy();
     }
-    reactRoot.render(
-      <MotionPlayerWrapper
-        plan={currentPlan}
-        onFrameUpdate={callbacks?.onFrameUpdate}
-        onPlay={callbacks?.onPlay}
-        onPause={callbacks?.onPause}
-      />
-    );
+    defaultInstance = createPlayerInstance(container, initialPlan, callbacks);
+    return defaultInstance;
   },
 
-  update: (newPlan: ScenePlan) => {
-    currentPlan = { ...newPlan };
-    const p = (window as any).__activePlayer;
-    if (reactRoot) {
-      // Re-render with new plan
-      const container = (reactRoot as any)._internalRoot?.containerInfo;
-      if (container) {
-        reactRoot.render(<MotionPlayerWrapper plan={currentPlan} />);
-      }
+  update: (newPlan: any) => {
+    if (defaultInstance) {
+      defaultInstance.update(newPlan);
     }
   },
 
   seek: (frame: number) => {
-    const p = (window as any).__activePlayer as PlayerRef | undefined;
-    if (p) {
-      p.seekTo(frame);
+    if (defaultInstance) {
+      defaultInstance.seek(frame);
     }
   },
 
   play: () => {
-    const p = (window as any).__activePlayer as PlayerRef | undefined;
-    if (p) {
-      p.play();
+    if (defaultInstance) {
+      defaultInstance.play();
     }
   },
 
   pause: () => {
-    const p = (window as any).__activePlayer as PlayerRef | undefined;
-    if (p) {
-      p.pause();
+    if (defaultInstance) {
+      defaultInstance.pause();
     }
   },
 
   togglePlay: () => {
-    const p = (window as any).__activePlayer as PlayerRef | undefined;
-    if (p) {
-      if (p.isPlaying()) {
-        p.pause();
-      } else {
-        p.play();
-      }
+    if (defaultInstance) {
+      defaultInstance.togglePlay();
     }
   },
 
   getCurrentFrame: (): number => {
-    const p = (window as any).__activePlayer as PlayerRef | undefined;
-    return p ? p.getCurrentFrame() : 0;
+    return defaultInstance ? defaultInstance.getCurrentFrame() : 0;
   },
 
   toggleMute: (): boolean => {
-    if (currentPlan) {
-      currentPlan.preview = currentPlan.preview || {};
-      currentPlan.preview.muteSource = !currentPlan.preview.muteSource;
-      (window as any).MotionPlayer.update(currentPlan);
-      return currentPlan.preview.muteSource;
-    }
-    return false;
+    return defaultInstance ? defaultInstance.toggleMute() : false;
   },
 
   setMuted: (muted: boolean) => {
-    if (currentPlan) {
-      currentPlan.preview = currentPlan.preview || {};
-      currentPlan.preview.muteSource = muted;
-      (window as any).MotionPlayer.update(currentPlan);
+    if (defaultInstance) {
+      defaultInstance.setMuted(muted);
     }
   },
 
   isMuted: (): boolean => {
-    return Boolean(currentPlan?.preview?.muteSource);
+    return defaultInstance ? defaultInstance.isMuted() : false;
   },
 };
-

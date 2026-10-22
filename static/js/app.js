@@ -53,6 +53,12 @@ document.addEventListener('DOMContentLoaded', () => {
   const toolCardMotion = document.getElementById('toolCardMotion');
   const backFromMotionToLauncherBtn = document.getElementById('backFromMotionToLauncherBtn');
 
+  // Tool 5: Tuxedo Editor (End-to-End)
+  const editorToolView = document.getElementById('editorToolView');
+  const launchEditorBtn = document.getElementById('launchEditorBtn');
+  const toolCardEditor = document.getElementById('toolCardEditor');
+  const editorBackBtn = document.getElementById('editorBackBtn');
+
   // Modal elements
   const openGuideBtn = document.getElementById('openDavinciGuideBtn');
   const openModalFromExportBtn = document.getElementById('openDavinciGuideModalBtn');
@@ -116,21 +122,38 @@ document.addEventListener('DOMContentLoaded', () => {
       subtitleToolView.classList.remove('active');
       silenceToolView.classList.remove('active');
       if (magicMaskToolView) magicMaskToolView.classList.remove('active');
+      if (editorToolView) editorToolView.classList.remove('active');
       if (motionToolView) motionToolView.classList.add('active');
       breadcrumbCurrent.textContent = 'Motion Graphics Studio';
       window.history.replaceState(null, '', '#motion');
       window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else if (viewName === 'editor') {
+      toolsLauncherView.classList.remove('active');
+      subtitleToolView.classList.remove('active');
+      silenceToolView.classList.remove('active');
+      if (magicMaskToolView) magicMaskToolView.classList.remove('active');
+      if (motionToolView) motionToolView.classList.remove('active');
+      if (editorToolView) editorToolView.classList.add('active');
+      breadcrumbCurrent.textContent = 'Tuxedo Editor (End-to-End)';
+      const hashStr = arguments[1] ? `#editor/${arguments[1]}` : '#editor';
+      window.history.replaceState(null, '', hashStr);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      if (window.initEditor) {
+        window.initEditor(arguments[1] || null);
+      }
     } else {
       subtitleToolView.classList.remove('active');
       silenceToolView.classList.remove('active');
       if (magicMaskToolView) magicMaskToolView.classList.remove('active');
       if (motionToolView) motionToolView.classList.remove('active');
+      if (editorToolView) editorToolView.classList.remove('active');
       toolsLauncherView.classList.add('active');
       breadcrumbCurrent.textContent = 'App Launcher';
       window.history.replaceState(null, '', window.location.pathname);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   }
+  window.switchView = navigateToView;
 
   // Deep linking on load
   const urlParams = new URLSearchParams(window.location.search);
@@ -144,6 +167,9 @@ document.addEventListener('DOMContentLoaded', () => {
     navigateToView('magicmask');
   } else if (toolParam === 'motion' || toolParam === 'motion-graphics' || hash === '#motion' || hash === '#motion-graphics') {
     navigateToView('motion');
+  } else if (toolParam === 'editor' || hash.startsWith('#editor')) {
+    const slug = hash.replace('#editor', '').replace(/^\//, '').trim() || null;
+    navigateToView('editor', slug);
   }
 
   // Bind navigation
@@ -213,6 +239,24 @@ document.addEventListener('DOMContentLoaded', () => {
 
   if (backFromMotionToLauncherBtn) {
     backFromMotionToLauncherBtn.addEventListener('click', () => navigateToView('launcher'));
+  }
+
+  // Tuxedo Editor Launch Listeners
+  if (launchEditorBtn) {
+    launchEditorBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navigateToView('editor');
+    });
+  }
+
+  if (toolCardEditor) {
+    toolCardEditor.addEventListener('click', () => {
+      navigateToView('editor');
+    });
+  }
+
+  if (editorBackBtn) {
+    editorBackBtn.addEventListener('click', () => navigateToView('launcher'));
   }
 
 

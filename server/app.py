@@ -12,6 +12,12 @@ from threading import Thread
 from pathlib import Path
 from typing import Optional, List, Dict, Any
 
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse, PlainTextResponse, JSONResponse
@@ -47,6 +53,8 @@ from server.motion_graphics import (
     _MOTION_TASKS,
 )
 from server.director_agent import generate_director_plan
+from server.editor import router as editor_router
+
 
 
 app = FastAPI(
@@ -93,6 +101,9 @@ app.mount("/static", StaticFiles(directory=str(STATIC_DIR), follow_symlink=True)
 app.mount("/public", StaticFiles(directory=str(MOTION_PUBLIC_DIR), follow_symlink=True), name="public")
 app.mount("/sfx", StaticFiles(directory=str(SFX_DIR), follow_symlink=True), name="sfx")
 app.mount("/temp_media", StaticFiles(directory=str(UPLOAD_DIR), follow_symlink=True), name="temp_media")
+
+# Mount Tuxedo Editor router
+app.include_router(editor_router, prefix="/api/editor")
 
 
 
@@ -272,14 +283,25 @@ def get_tools_list():
         {
             "id": "motion-graphics",
             "name": "Motion Graphics Studio",
-            "badge": "New!",
+            "badge": "Ready",
             "badgeType": "success",
             "description": "Mid-Century Kinetic Poster motion graphics (Remotion). Procedural El Ávila mountains, Petare hills, Cruz-Diez moiré stripes and Spanish SRT triggers exported to ProRes 4444 Alpha.",
             "icon": "film",
             "active": True,
             "category": "Motion Graphics & VFX"
+        },
+        {
+            "id": "editor",
+            "name": "Tuxedo Editor (End-to-End)",
+            "badge": "New Suite",
+            "badgeType": "success",
+            "description": "Full end-to-end video editor: Upload, non-destructive silence cutter, local Whisper subtitles, AI subject rotoscoping, and multi-style motion graphics.",
+            "icon": "sparkles",
+            "active": True,
+            "category": "End-to-End Video"
         }
     ]
+
 
 
 

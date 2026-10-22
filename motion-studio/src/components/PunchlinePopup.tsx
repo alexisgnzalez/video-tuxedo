@@ -7,12 +7,12 @@ import {
 } from 'remotion';
 import { VisualCue } from '../schema';
 
-export const PunchlinePopup: React.FC<VisualCue> = ({
-  headlineText,
-  emojiOrIcon,
-  accentColor,
-  position,
-}) => {
+export const PunchlinePopup: React.FC<any> = (cue) => {
+  const headline = cue.props?.headlineText || cue.headlineText || 'TRÁGAME TIERRA 💀';
+  const emoji = cue.props?.emoji || cue.emojiOrIcon || '';
+  const bg = cue.props?.color || cue.accentColor || '#FFE600';
+  const position = cue.placement?.position || cue.position || 'bottom-right';
+
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
 
@@ -49,7 +49,7 @@ export const PunchlinePopup: React.FC<VisualCue> = ({
           position: 'absolute',
           ...positionStyle,
           transform: isCentered ? positionStyle.transform : `scale(${scale}) rotate(${wiggle}deg)`,
-          backgroundColor: accentColor,
+          backgroundColor: bg,
           border: '6px solid #000000',
           borderRadius: 28,
           padding: '22px 36px',
@@ -61,11 +61,11 @@ export const PunchlinePopup: React.FC<VisualCue> = ({
           maxWidth: 900,
         }}
       >
-        <span style={{ fontSize: 82 }}>{emojiOrIcon}</span>
+        {emoji ? <span style={{ fontSize: 72 }}>{emoji}</span> : null}
         <span
           style={{
-            fontFamily: 'Inter, Montserrat, system-ui, sans-serif',
-            fontSize: 54,
+            fontFamily: 'Impact, Montserrat, system-ui, sans-serif',
+            fontSize: cue.props?.fontSize || 54,
             fontWeight: 900,
             color: '#000000',
             textTransform: 'uppercase',
@@ -73,7 +73,7 @@ export const PunchlinePopup: React.FC<VisualCue> = ({
             letterSpacing: '-1px',
           }}
         >
-          {headlineText}
+          {headline}
         </span>
       </div>
     </AbsoluteFill>

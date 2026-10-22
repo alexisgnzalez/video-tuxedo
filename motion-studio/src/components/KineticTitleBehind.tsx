@@ -8,10 +8,12 @@ import {
 } from 'remotion';
 import { VisualCue } from '../schema';
 
-export const KineticTitleBehind: React.FC<VisualCue> = ({
-  headlineText,
-  accentColor,
-}) => {
+export const KineticTitleBehind: React.FC<any> = (cue) => {
+  const headline = cue.props?.headlineText || cue.headlineText || 'NARRATIVE HOOK';
+  const color = cue.props?.color || cue.accentColor || '#FFE600';
+  const fontSize = cue.props?.fontSize || 140;
+  const topOffset = cue.placement?.offsetY || 220;
+
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
 
@@ -40,7 +42,7 @@ export const KineticTitleBehind: React.FC<VisualCue> = ({
       style={{
         justifyContent: 'flex-start',
         alignItems: 'center',
-        paddingTop: 220,
+        paddingTop: topOffset,
         pointerEvents: 'none',
       }}
     >
@@ -48,12 +50,12 @@ export const KineticTitleBehind: React.FC<VisualCue> = ({
         style={{
           transform: `translateY(${translateY}px) scale(${Math.max(0, scale)})`,
           fontFamily: 'Impact, Montserrat, Inter, system-ui, sans-serif',
-          fontSize: 155,
+          fontSize,
           fontWeight: 900,
           lineHeight: 0.92,
           textAlign: 'center',
           textTransform: 'uppercase',
-          color: accentColor,
+          color,
           WebkitTextStroke: '8px #000000',
           textShadow: '0px 18px 0px #000000, 0px 25px 40px rgba(0,0,0,0.65)',
           padding: '0 40px',

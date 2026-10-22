@@ -28,9 +28,19 @@ _HARDWARE_PRORES_CACHE: Optional[bool] = None
 
 DOWNLOADS_DIR = Path.home() / "Downloads"
 BASE_DIR = Path(__file__).resolve().parent.parent
-SAM_MODEL_PATH = BASE_DIR / "sam2.1_t.pt"
-YOLO_SEG_PATH = BASE_DIR / "yolov8m-seg.pt"
-if not YOLO_SEG_PATH.exists():
+MODELS_DIR = BASE_DIR / "models"
+MODELS_DIR.mkdir(parents=True, exist_ok=True)
+
+SAM_MODEL_PATH = MODELS_DIR / "sam2.1_t.pt"
+if not SAM_MODEL_PATH.exists() and (BASE_DIR / "sam2.1_t.pt").exists():
+    SAM_MODEL_PATH = BASE_DIR / "sam2.1_t.pt"
+
+YOLO_SEG_PATH = MODELS_DIR / "yolov8m-seg.pt"
+if not YOLO_SEG_PATH.exists() and (MODELS_DIR / "yolov8n-seg.pt").exists():
+    YOLO_SEG_PATH = MODELS_DIR / "yolov8n-seg.pt"
+if not YOLO_SEG_PATH.exists() and (BASE_DIR / "yolov8m-seg.pt").exists():
+    YOLO_SEG_PATH = BASE_DIR / "yolov8m-seg.pt"
+if not YOLO_SEG_PATH.exists() and (BASE_DIR / "yolov8n-seg.pt").exists():
     YOLO_SEG_PATH = BASE_DIR / "yolov8n-seg.pt"
 
 
@@ -438,7 +448,7 @@ def rotoscope_and_render_video(
     points: Optional[List[List[float]]] = None,
     labels: Optional[List[int]] = None,
     bbox: Optional[List[float]] = None,
-    export_mode: str = "prores_alpha",  # "prores_alpha", "matte", "green_screen", "blur"
+    export_mode: str = "webm_alpha",  # "webm_alpha", "prores_alpha", "matte", "green_screen", "blur"
     feather: int = 3,
     expand: int = 0,
     invert: bool = False,
@@ -446,11 +456,12 @@ def rotoscope_and_render_video(
     start_time: float = 0.0,
     end_time: Optional[float] = None,
     output_filename: Optional[str] = None,
+    output_dir: Optional[Any] = None,
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     cancel_check: Optional[Callable[[], bool]] = None,
 ) -> Dict[str, Any]:
     """
-    Rotoscope and encode video with hardware-accelerated Apple ProRes 4444:
+    Rotoscope and encode video with hardware-accelerated ProRes 4444 or realtime WebM VP9 Alpha:
     - 'person': Instant person tracking via YOLO-Seg on Apple Silicon MPS (16-30 FPS).
     - 'object': High-precision object tracking via SAM 2.1 Video Predictor.
     """
@@ -469,13 +480,21 @@ def rotoscope_and_render_video(
     expected_frames = max(1, int(round(clip_duration * fps)))
 
     stem = Path(media_path).stem
-    ext = ".mov" if export_mode == "prores_alpha" else ".mp4"
+    if export_mode == "prores_alpha":
+        ext = ".mov"
+    elif export_mode == "webm_alpha":
+        ext = ".webm"
+    else:
+        ext = ".mp4"
+
     if not output_filename:
         out_name = f"{stem}_magic_mask_{export_mode}{ext}"
     else:
         out_name = output_filename if output_filename.endswith(ext) else f"{output_filename}{ext}"
 
-    output_path = DOWNLOADS_DIR / out_name
+    target_dir = Path(output_dir) if output_dir else DOWNLOADS_DIR
+    target_dir.mkdir(parents=True, exist_ok=True)
+    output_path = target_dir / out_name
     ffmpeg_exe = imageio_ffmpeg.get_ffmpeg_exe()
     device = get_torch_device()
     use_hw_prores = is_hardware_prores_available()
@@ -512,7 +531,25 @@ def rotoscope_and_render_video(
             source_video = media_path
 
         # 2. Build FFmpeg command with Hardware VideoToolbox ProRes 4444 acceleration
-        if export_mode == "prores_alpha":
+        if export_mode == "webm_alpha":
+            # Realtime WebM VP9 with native Alpha channel for Chromium & Remotion Web Player
+            out_scale = "scale=540:960" if width > 540 else ""
+            vf_args = ["-vf", out_scale] if out_scale else []
+            ffmpeg_cmd = [
+                ffmpeg_exe, "-y",
+                "-f", "rawvideo", "-pix_fmt", "bgra", "-s", f"{width}x{height}", "-r", str(fps), "-i", "-",
+                *vf_args,
+                "-c:v", "libvpx-vp9",
+                "-pix_fmt", "yuva420p",
+                "-deadline", "realtime",
+                "-cpu-used", "8",
+                "-row-mt", "1",
+                "-auto-alt-ref", "0",
+                "-b:v", "1500k",
+                "-an",
+                str(output_path),
+            ]
+        elif export_mode == "prores_alpha":
             if use_hw_prores:
                 ffmpeg_cmd = [
                     ffmpeg_exe, "-y",
@@ -643,7 +680,7 @@ def rotoscope_and_render_video(
 
                 mask_refined = apply_mask_refinements(raw_mask, feather=feather, expand=expand, invert=invert)
 
-                if export_mode == "prores_alpha":
+                if export_mode in ("prores_alpha", "webm_alpha"):
                     bgra_frame = cv2.merge([orig_bgr[:, :, 0], orig_bgr[:, :, 1], orig_bgr[:, :, 2], mask_refined])
                     proc.stdin.write(bgra_frame.tobytes())
                 elif export_mode == "matte":
@@ -749,7 +786,7 @@ def rotoscope_and_render_video(
 
                 mask_refined = apply_mask_refinements(raw_mask, feather=feather, expand=expand, invert=invert)
 
-                if export_mode == "prores_alpha":
+                if export_mode in ("prores_alpha", "webm_alpha"):
                     bgra_frame = cv2.merge([orig_bgr[:, :, 0], orig_bgr[:, :, 1], orig_bgr[:, :, 2], mask_refined])
                     proc.stdin.write(bgra_frame.tobytes())
                 elif export_mode == "matte":

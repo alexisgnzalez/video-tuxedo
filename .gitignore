@@ -1,5 +1,6 @@
 # macOS
 .DS_Store
+**/.DS_Store
 .AppleDouble
 .LSOverride
 
@@ -20,6 +21,7 @@
 .env
 .env.local
 .env.*.local
+.tiktok_tokens.json
 
 # Node
 node_modules/
@@ -36,9 +38,13 @@ venv/
 temp_media/
 exports/
 runs/
+projects/
+models/
 *.pt
 motion-studio/src/videos/
 motion-studio/public/*.mov
 motion-studio/public/*.mp4
 motion-studio/public/*_web.mp4
 motion-studio/public/public
+motion-studio/public/projects/
+
