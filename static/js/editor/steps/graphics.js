@@ -51,6 +51,25 @@ export async function renderStepGraphics(container) {
         </div>
       </div>
 
+      <!-- Auto-Generate Graphics with AI -->
+      <div style="background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(217, 119, 6, 0.12) 100%); border: 1.5px solid #F59E0B; border-radius: 8px; padding: 14px; display: flex; flex-direction: column; gap: 8px;">
+        <div style="display: flex; align-items: center; justify-content: space-between;">
+          <span style="font-size: 13px; font-weight: 700; color: #B45309; display: flex; align-items: center; gap: 6px;">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"></path>
+            </svg>
+            Auto-Generate Graphics (AI)
+          </span>
+          <span style="font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: rgba(245, 158, 11, 0.2); color: #B45309;">1-Click</span>
+        </div>
+        <p style="font-size: 11px; color: var(--vt-text-muted); margin: 0; line-height: 1.4;">
+          Automatically places opening hooks, punchline cards, and emphasis badges using speech analysis & Gemini. You can then polish, move, or delete any cue.
+        </p>
+        <button class="vt-btn-primary" id="btnAutoGenerateGraphics" style="background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); border-color: #D97706; font-weight: 600; cursor: pointer;">
+          ⚡ Auto-Generate All Titles & Emphasis
+        </button>
+      </div>
+
       <!-- Add Graphic Component -->
       <div style="background: var(--vt-bg-subtle); border: 1px solid var(--vt-border); border-radius: 8px; padding: 12px; display: flex; flex-direction: column; gap: 8px;">
         <span style="font-size: 12px; font-weight: 600;">Add Graphic Cue at Playhead</span>
@@ -248,6 +267,34 @@ function bindGraphicsEvents(container, styles) {
     renderStepGraphics(container);
     store.triggerAutosave();
     store.emit('change');
+  });
+
+  // Auto-generate Graphics button
+  const autoBtn = container.querySelector('#btnAutoGenerateGraphics');
+  autoBtn?.addEventListener('click', async () => {
+    autoBtn.disabled = true;
+    autoBtn.textContent = 'Drafting AI graphics & punchlines...';
+    try {
+      const res = await fetch(`/api/editor/projects/${encodeURIComponent(proj.slug)}/graphics/auto`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ style_id: proj.graphics?.style || 'story_tuxedo' }),
+      });
+      if (!res.ok) throw new Error('Auto-generation failed');
+      const data = await res.json();
+      if (proj.graphics) {
+        proj.graphics.items = data.items || [];
+      }
+      store.triggerAutosave();
+      store.emit('change', proj);
+      renderOverlayItems(container, styles);
+      showToast(`Generated ${data.count || 0} motion graphics from AI speech analysis!`, 'success');
+    } catch (err) {
+      showToast(`Error: ${err.message}`, 'error');
+    } finally {
+      autoBtn.disabled = false;
+      autoBtn.textContent = '⚡ Auto-Generate All Titles & Emphasis';
+    }
   });
 
   // Add Graphic Cue

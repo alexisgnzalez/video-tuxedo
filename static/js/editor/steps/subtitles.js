@@ -55,6 +55,19 @@ export function renderStepSubtitles(container) {
         <div id="subtitlesProgressContainer" style="display: none;"></div>
       </div>
 
+      <!-- Subtitle Render / Reference Toggle -->
+      <div style="display: flex; align-items: center; justify-content: space-between; background: var(--vt-bg-subtle); padding: 12px 14px; border-radius: 8px; border: 1px solid var(--vt-border); margin-top: 4px;">
+        <div style="display: flex; flex-direction: column; gap: 2px;">
+          <span style="font-size: 13px; font-weight: 600;">Burn / Render Subtitles</span>
+          <span style="font-size: 11px; color: var(--vt-text-muted);" id="subtitleRenderHelpText">
+            ${proj.captions?.enabled !== false ? '● Render kinetic styled subtitles on final export' : '○ Subtitles OFF in export (showing simple reference in editor)'}
+          </span>
+        </div>
+        <label style="position: relative; display: inline-flex; align-items: center; cursor: pointer;">
+          <input type="checkbox" id="chkRenderSubtitles" ${proj.captions?.enabled !== false ? 'checked' : ''} style="cursor: pointer; width: 18px; height: 18px; accent-color: var(--vt-accent-coral);">
+        </label>
+      </div>
+
       <!-- Cue List Header -->
       <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 8px;">
         <span style="font-size: 13px; font-weight: 600;">Subtitle Cues (${cues.length})</span>
@@ -241,6 +254,24 @@ function bindSubtitleEvents(container) {
       polishBtn.disabled = false;
       showToast(e.message, 'error');
     }
+  });
+
+  // Render Subtitles toggle
+  const chkRender = container.querySelector('#chkRenderSubtitles');
+  const helpText = container.querySelector('#subtitleRenderHelpText');
+  chkRender?.addEventListener('change', (e) => {
+    const isChecked = e.target.checked;
+    if (proj.captions) {
+      proj.captions.enabled = isChecked;
+    }
+    if (helpText) {
+      helpText.textContent = isChecked
+        ? '● Render kinetic styled subtitles on final export'
+        : '○ Subtitles OFF in export (showing simple reference in editor)';
+    }
+    store.triggerAutosave();
+    store.emit('change', proj);
+    showToast(isChecked ? 'Styled subtitles enabled' : 'Reference-only mode (subtitles will not be rendered on export)');
   });
 
   // Add cue button

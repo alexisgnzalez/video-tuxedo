@@ -51,6 +51,8 @@ export class VideoTrack {
       // Selection on click
       clipEl.addEventListener('click', (e) => {
         e.stopPropagation();
+        store.selectCue(null);
+        store.selectLayer(null);
         store.selectClip(clip.id);
       });
 

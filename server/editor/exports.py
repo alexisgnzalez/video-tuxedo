@@ -112,18 +112,32 @@ def render_project_video(
     project_dict["composition"] = "TuxedoEdit"
     project_dict["slug"] = slug
     project_dict["mode"] = "flat" if project.conform.exists else "edl"
-    project_dict["sourceUrl"] = f"http://127.0.0.1:8000/api/editor/projects/{slug}/file/source.mp4"
+
+    cutout_filename = project.cutout.file or "cutout.webm"
+    source_filename = project.source.webFile or project.source.file or "source.mp4"
+
+    # Media streaming URLs served via FastAPI /files/ endpoint
+    project_dict["sourceUrl"] = f"http://127.0.0.1:8000/api/editor/projects/{slug}/files/{source_filename}"
     if project.conform.exists:
-        project_dict["conformUrl"] = f"http://127.0.0.1:8000/api/editor/projects/{slug}/file/conform.mp4?v={project.conform.hash}"
+        project_dict["conformUrl"] = f"http://127.0.0.1:8000/api/editor/projects/{slug}/files/conform.mp4?v={project.conform.hash}"
     if project.cutout.exists:
-        project_dict["cutoutUrl"] = f"http://127.0.0.1:8000/api/editor/projects/{slug}/file/cutout.mp4?v={project.cutout.conformHash or '1'}"
+        project_dict["cutoutUrl"] = f"http://127.0.0.1:8000/api/editor/projects/{slug}/files/{cutout_filename}?v={project.cutout.conformHash or '1'}"
+
+    # Remap any layer image paths
+    if "layers" in project_dict and isinstance(project_dict["layers"], list):
+        for lyr in project_dict["layers"]:
+            if lyr.get("src") and "/layers/" in lyr["src"]:
+                lyr["src"] = f"projects/{slug}/layers/{Path(lyr['src']).name}"
+
+    if not project.captions.enabled:
+        project_dict["captions"]["cues"] = []
 
     # Also resolve local filesystem paths for Remotion bundler
     project_dict["source"] = {
-        "path": str(project_dir / "conform.mp4") if project.conform.exists else str(project_dir / "source.mp4")
+        "path": str(project_dir / "conform.mp4") if project.conform.exists else str(project_dir / source_filename)
     }
     if project.cutout.exists:
-        project_dict["mask_video_path"] = str(project_dir / "cutout.mp4")
+        project_dict["mask_video_path"] = str(project_dir / cutout_filename)
 
     if preset == "prores_master":
         # Direct FFmpeg ProRes 422 HQ export from conform

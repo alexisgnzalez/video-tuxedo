@@ -92,10 +92,14 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Navigation functions
   function navigateToView(viewName) {
+    document.body.classList.toggle('editor-open', viewName === 'editor');
+
     if (viewName === 'subtitles') {
       toolsLauncherView.classList.remove('active');
       silenceToolView.classList.remove('active');
       if (magicMaskToolView) magicMaskToolView.classList.remove('active');
+      if (motionToolView) motionToolView.classList.remove('active');
+      if (editorToolView) editorToolView.classList.remove('active');
       subtitleToolView.classList.add('active');
       breadcrumbCurrent.textContent = 'Auto Subtitles Studio';
       window.history.replaceState(null, '', '#subtitles');
@@ -104,6 +108,8 @@ document.addEventListener('DOMContentLoaded', () => {
       toolsLauncherView.classList.remove('active');
       subtitleToolView.classList.remove('active');
       if (magicMaskToolView) magicMaskToolView.classList.remove('active');
+      if (motionToolView) motionToolView.classList.remove('active');
+      if (editorToolView) editorToolView.classList.remove('active');
       silenceToolView.classList.add('active');
       breadcrumbCurrent.textContent = 'Silence Cutter & Jump Cuts';
       window.history.replaceState(null, '', '#silence');
@@ -113,6 +119,7 @@ document.addEventListener('DOMContentLoaded', () => {
       subtitleToolView.classList.remove('active');
       silenceToolView.classList.remove('active');
       if (motionToolView) motionToolView.classList.remove('active');
+      if (editorToolView) editorToolView.classList.remove('active');
       if (magicMaskToolView) magicMaskToolView.classList.add('active');
       breadcrumbCurrent.textContent = 'Magic Mask & Rotoscoping Studio';
       window.history.replaceState(null, '', '#magicmask');

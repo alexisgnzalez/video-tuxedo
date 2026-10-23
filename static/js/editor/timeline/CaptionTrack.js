@@ -25,12 +25,9 @@ export class CaptionTrack {
       const widthPx = durSec * zoom;
       const leftPx = cue.start * zoom;
 
+      const isSelected = cue.id === selectedCueId;
       const cueEl = document.createElement('div');
-      cueEl.className = 'timeline-cue-block';
-      if (cue.id === selectedCueId) {
-        cueEl.style.border = '2px solid #FACC15';
-        cueEl.style.boxShadow = '0 0 6px rgba(250, 204, 21, 0.4)';
-      }
+      cueEl.className = `timeline-cue-block ${isSelected ? 'selected' : ''}`;
       cueEl.style.left = `${leftPx}px`;
       cueEl.style.width = `${Math.max(12, widthPx)}px`;
       cueEl.setAttribute('data-cue-id', cue.id);
@@ -38,6 +35,8 @@ export class CaptionTrack {
 
       cueEl.addEventListener('click', (e) => {
         e.stopPropagation();
+        store.selectClip(null);
+        store.selectLayer(null);
         store.selectCue(cue.id);
         store.setTime(cue.start);
       });

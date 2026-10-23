@@ -38,11 +38,16 @@ from server.editor.project import (
 from server.editor.tasks import tasks
 from server.silence_cutter import detect_silence_and_speech
 from server.editor.captions_ai import transcribe_project_audio, proofread_project_captions
-from server.editor.styles import list_styles, get_style
+from server.editor.styles import list_styles, get_style, auto_draft_graphics_with_ai
 from server.editor.exports import export_srt, export_vtt, export_project_zip, render_project_video
 from server.magic_mask import rotoscope_and_render_video
 
 router = APIRouter()
+
+
+class AutoGraphicsRequest(BaseModel):
+    style_id: Optional[str] = "story_tuxedo"
+    api_key: Optional[str] = None
 
 
 class CreateFromPathRequest(BaseModel):
@@ -297,7 +302,8 @@ def get_peaks(slug: str) -> List[float]:
     return []
 
 
-@router.get("/projects/{slug}/files/{file_path:path}")
+@router.api_route("/projects/{slug}/files/{file_path:path}", methods=["GET", "HEAD"])
+@router.api_route("/projects/{slug}/file/{file_path:path}", methods=["GET", "HEAD"])
 def serve_project_file(slug: str, file_path: str):
     """Serves project media files with HTTP range requests support for video player seeking."""
     try:
@@ -575,6 +581,24 @@ async def upload_layer_asset(
         "name": safe_name,
         "src": f"/api/editor/projects/{slug}/files/layers/{safe_name}",
         "size_bytes": target_path.stat().st_size,
+    }
+
+
+@router.post("/projects/{slug}/graphics/auto")
+def auto_draft_graphics(slug: str, req: AutoGraphicsRequest) -> Dict[str, Any]:
+    """Auto-drafts motion graphics and punchline cues based on speech transcript & Gemini analysis."""
+    proj = load_project(slug)
+    style_id = req.style_id or (proj.graphics.style if proj.graphics else "story_tuxedo")
+    items = auto_draft_graphics_with_ai(proj, style_id=style_id, api_key=req.api_key)
+    if proj.graphics:
+        proj.graphics.items = items
+        proj.graphics.style = style_id
+    save_project(proj)
+    return {
+        "status": "success",
+        "style": style_id,
+        "items": items,
+        "count": len(items),
     }
 
 

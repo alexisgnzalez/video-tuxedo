@@ -64,7 +64,7 @@ export const KineticTitleBehind: React.FC<any> = (cue) => {
           wordBreak: 'break-word',
         }}
       >
-        {headlineText}
+        {headline}
       </div>
     </AbsoluteFill>
   );

@@ -10,11 +10,13 @@ import { CaptionCueProps } from '../editSchema';
 interface EditCaptionsProps {
   cues: CaptionCueProps[];
   style?: Record<string, any>;
+  mode?: 'styled' | 'reference';
 }
 
 export const EditCaptions: React.FC<EditCaptionsProps> = ({
   cues,
   style = {},
+  mode = 'styled',
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -31,6 +33,60 @@ export const EditCaptions: React.FC<EditCaptionsProps> = ({
 
   if (!activeCue) {
     return null;
+  }
+
+  // Reference mode: clean, minimal, non-rendered teleprompter preview
+  if (mode === 'reference') {
+    return (
+      <AbsoluteFill
+        style={{
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          paddingBottom: 220,
+          pointerEvents: 'none',
+        }}
+      >
+        <div
+          style={{
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            backgroundColor: 'rgba(15, 23, 42, 0.88)',
+            border: '1.5px solid rgba(255, 255, 255, 0.22)',
+            borderRadius: 14,
+            padding: '10px 24px',
+            maxWidth: 920,
+            backdropFilter: 'blur(8px)',
+            boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
+          }}
+        >
+          <div
+            style={{
+              fontSize: 13,
+              fontWeight: 700,
+              color: '#94A3B8',
+              letterSpacing: 1.5,
+              textTransform: 'uppercase',
+              marginBottom: 4,
+            }}
+          >
+            [Reference Subtitle • Not Rendered]
+          </div>
+          <div
+            style={{
+              fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
+              fontSize: 32,
+              fontWeight: 600,
+              color: '#FFFFFF',
+              textAlign: 'center',
+              lineHeight: 1.35,
+            }}
+          >
+            {activeCue.text}
+          </div>
+        </div>
+      </AbsoluteFill>
+    );
   }
 
   // Position: top (y ~280), middle (y ~960), lower-third (default: bottom ~420)

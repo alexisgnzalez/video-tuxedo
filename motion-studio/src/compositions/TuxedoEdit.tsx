@@ -81,7 +81,7 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
               durationInFrames={seq.durFrames}
               premountFor={15}
             >
-              <Video
+              <OffthreadVideo
                 src={baseSource}
                 startFrom={seq.srcInFrame}
                 endAt={seq.srcOutFrame}
@@ -95,7 +95,7 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
             </Sequence>
           ))
         ) : conformSource ? (
-          <Video
+          <OffthreadVideo
             src={conformSource}
             volume={preview.muteAudio ? 0 : 1}
             style={{
@@ -105,7 +105,7 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
             }}
           />
         ) : baseSource ? (
-          <Video
+          <OffthreadVideo
             src={baseSource}
             volume={preview.muteAudio ? 0 : 1}
             style={{
@@ -165,7 +165,7 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
                 durationInFrames={seq.durFrames}
                 premountFor={15}
               >
-                <Video
+                <OffthreadVideo
                   src={cutoutSource}
                   startFrom={seq.srcInFrame}
                   endAt={seq.srcOutFrame}
@@ -180,7 +180,7 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
               </Sequence>
             ))
           ) : (
-            <Video
+            <OffthreadVideo
               src={cutoutSource}
               volume={0}
               onError={(e) => console.warn('Cutout flat video error:', e)}
@@ -230,11 +230,15 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
       </AbsoluteFill>
 
       {/* ============================================================== */}
-      {/* LAYER 7: Word-Level Bouncy Captions                            */}
+      {/* LAYER 7: Word-Level Bouncy Captions / Reference Overlay        */}
       {/* ============================================================== */}
-      {captions.enabled && captions.cues && captions.cues.length > 0 && (
+      {captions.cues && captions.cues.length > 0 && (
         <AbsoluteFill style={{ pointerEvents: 'none' }}>
-          <EditCaptions cues={captions.cues} style={captions.style} />
+          <EditCaptions
+            cues={captions.cues}
+            style={captions.style}
+            mode={captions.enabled !== false ? 'styled' : 'reference'}
+          />
         </AbsoluteFill>
       )}
 

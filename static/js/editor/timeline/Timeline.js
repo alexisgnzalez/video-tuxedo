@@ -41,12 +41,12 @@ export class Timeline {
             </svg>
             Split (S)
           </button>
-          <button class="timeline-tool-btn" id="tlDeleteBtn" title="Delete Selected Clip (Del)">
+          <button class="timeline-tool-btn" id="tlDeleteBtn" title="Delete Selected Clip or Cue (D or Del)">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <polyline points="3 6 5 6 21 6"></polyline>
               <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
             </svg>
-            Delete
+            Delete (D)
           </button>
         </div>
 
@@ -97,6 +97,9 @@ export class Timeline {
 
     // Subscribe to store updates
     store.subscribe('change', () => this.render());
+    store.subscribe('selection:clip', () => this.videoTrack?.render());
+    store.subscribe('selection:cue', () => this.captionTrack?.render());
+    store.subscribe('selection:layer', () => this.layerTrack?.render());
     store.subscribe('time:change', ({ time }) => this.updatePlayheadPosition(time));
     store.subscribe('zoom:change', () => this.render());
 
@@ -123,7 +126,7 @@ export class Timeline {
 
     // Delete button
     const delBtn = this.container.querySelector('#tlDeleteBtn');
-    delBtn?.addEventListener('click', () => this.deleteSelectedClip());
+    delBtn?.addEventListener('click', () => this.deleteSelection());
 
     // Helper to calculate target seconds from a pointer event clamped to project duration
     const getClampedSecFromPointer = (ev) => {
@@ -215,9 +218,12 @@ export class Timeline {
       if (e.code === 'KeyS' && !e.metaKey && !e.ctrlKey) {
         e.preventDefault();
         this.splitAtPlayhead();
+      } else if (e.code === 'KeyD' && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        this.deleteSelection();
       } else if (e.code === 'Delete' || e.code === 'Backspace') {
         e.preventDefault();
-        this.deleteSelectedClip();
+        this.deleteSelection();
       } else if (e.code === 'Space') {
         e.preventDefault();
         if (window.editorPlayer) {
@@ -255,27 +261,80 @@ export class Timeline {
     }
   }
 
-  deleteSelectedClip() {
+  deleteSelection() {
     const proj = store.getProject();
-    if (!proj || !proj.clips || !store.selectedClipId) return;
+    if (!proj) return;
 
-    const clipId = store.selectedClipId;
-    const initialClips = [...proj.clips];
-    const newClips = removeClip(proj.clips, clipId);
+    if (store.selectedClipId && proj.clips) {
+      const clipId = store.selectedClipId;
+      const initialClips = [...proj.clips];
+      const newClips = removeClip(proj.clips, clipId);
 
-    if (newClips.length !== initialClips.length) {
-      store.execute({
-        name: 'Delete Clip',
-        do: () => {
-          proj.clips = newClips;
-          store.selectClip(null);
-        },
-        undo: () => {
-          proj.clips = initialClips;
-          store.selectClip(clipId);
-        },
-      });
+      if (newClips.length !== initialClips.length) {
+        store.execute({
+          name: 'Delete Clip',
+          do: () => {
+            proj.clips = newClips;
+            store.selectClip(null);
+          },
+          undo: () => {
+            proj.clips = initialClips;
+            store.selectClip(clipId);
+          },
+        });
+      }
+      return;
     }
+
+    if (store.selectedCueId && proj.captions?.cues) {
+      const cueId = store.selectedCueId;
+      const initialCues = [...proj.captions.cues];
+      const newCues = proj.captions.cues.filter(c => c.id !== cueId);
+
+      if (newCues.length !== initialCues.length) {
+        store.execute({
+          name: 'Delete Subtitle Cue',
+          do: () => {
+            proj.captions.cues = newCues;
+            store.selectCue(null);
+          },
+          undo: () => {
+            proj.captions.cues = initialCues;
+            store.selectCue(cueId);
+          },
+        });
+      }
+      return;
+    }
+
+    if (store.selectedLayerId) {
+      const layerId = store.selectedLayerId;
+      const initialItems = [...(proj.graphics?.items || [])];
+      const initialLayers = [...(proj.layers || [])];
+      const newItems = initialItems.filter(i => i.id !== layerId);
+      const newLayers = initialLayers.filter(l => l.id !== layerId);
+
+      if (newItems.length !== initialItems.length || newLayers.length !== initialLayers.length) {
+        store.execute({
+          name: 'Delete Graphic Layer',
+          do: () => {
+            if (proj.graphics) proj.graphics.items = newItems;
+            proj.layers = newLayers;
+            store.selectLayer(null);
+          },
+          undo: () => {
+            if (proj.graphics) proj.graphics.items = initialItems;
+            proj.layers = initialLayers;
+            store.selectLayer(layerId);
+          },
+        });
+      }
+      return;
+    }
+  }
+
+  deleteSelectedClip() {
+    this.deleteSelection();
   }
 
   render() {

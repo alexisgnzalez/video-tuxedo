@@ -32,15 +32,12 @@ export class LayerTrack {
       const widthPx = durSec * zoom;
       const leftPx = startSec * zoom;
 
+      const isSelected = item.id === selectedLayerId;
       const blockEl = document.createElement('div');
-      blockEl.className = 'timeline-layer-block';
+      blockEl.className = `timeline-layer-block ${isSelected ? 'selected' : ''}`;
       if (item.type === 'graphic') {
         blockEl.style.backgroundColor = '#F59E0B';
         blockEl.style.borderColor = '#D97706';
-      }
-      if (item.id === selectedLayerId) {
-        blockEl.style.border = '2px solid #FFF';
-        blockEl.style.boxShadow = '0 0 8px rgba(255, 255, 255, 0.6)';
       }
 
       blockEl.style.left = `${leftPx}px`;
@@ -50,6 +47,8 @@ export class LayerTrack {
 
       blockEl.addEventListener('click', (e) => {
         e.stopPropagation();
+        store.selectClip(null);
+        store.selectCue(null);
         store.selectLayer(item.id);
         store.setTime(startSec);
       });

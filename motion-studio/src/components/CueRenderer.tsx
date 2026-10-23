@@ -11,7 +11,7 @@ import { SubtlePill } from './SubtlePill';
 
 export const renderCueComponent = (cue: VisualCue) => {
   const mergedProps = (cue as any).props ? { ...(cue as any).props, ...cue } : cue;
-  const comp = cue.component || '';
+  const comp = (cue.component as string) || '';
 
   switch (comp) {
     case 'kinetic_header':
