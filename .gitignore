@@ -44,6 +44,7 @@ models/
 motion-studio/src/videos/
 motion-studio/public/*.mov
 motion-studio/public/*.mp4
+motion-studio/public/*.webm
 motion-studio/public/*_web.mp4
 motion-studio/public/public
 motion-studio/public/projects/

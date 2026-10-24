@@ -120,7 +120,7 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
             </Sequence>
           ))
         ) : conformSource ? (
-          <Video
+          <OffthreadVideo
             src={conformSource}
             volume={preview.muteAudio ? 0 : 1}
             style={{
@@ -130,7 +130,7 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
             }}
           />
         ) : baseSource ? (
-          <Video
+          <OffthreadVideo
             src={baseSource}
             volume={preview.muteAudio ? 0 : 1}
             style={{
@@ -197,8 +197,9 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
                   durationInFrames={seq.durFrames}
                   premountFor={15}
                 >
-                  <Video
+                  <OffthreadVideo
                     src={cutoutSource}
+                    transparent
                     startFrom={seq.srcInFrame}
                     endAt={seq.srcOutFrame}
                     volume={0}
@@ -222,8 +223,9 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
                   durationInFrames={durFrames}
                   premountFor={15}
                 >
-                  <Video
+                  <OffthreadVideo
                     src={cutoutSource}
+                    transparent
                     startFrom={fromFrame}
                     endAt={fromFrame + durFrames}
                     volume={0}
