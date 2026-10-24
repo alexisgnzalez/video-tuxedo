@@ -272,11 +272,22 @@ def delete_project(slug: str) -> Dict[str, Any]:
 
 
 @router.post("/projects/{slug}/reveal")
-def reveal_project_in_finder(slug: str) -> Dict[str, Any]:
-    """Opens project folder in macOS Finder."""
+def reveal_project_in_finder(slug: str, file: Optional[str] = Query(None)) -> Dict[str, Any]:
+    """Opens project folder or reveals specific file in macOS Finder."""
     p_dir = get_project_dir(slug).resolve()
     if not p_dir.exists():
         raise HTTPException(status_code=404, detail="Project not found")
+
+    if file:
+        target = (p_dir / file).resolve()
+        if target.exists():
+            subprocess.run(["open", "-R", str(target)])
+            return {"status": "revealed", "path": str(target)}
+        parent = target.parent
+        parent.mkdir(parents=True, exist_ok=True)
+        subprocess.run(["open", str(parent)])
+        return {"status": "revealed", "path": str(parent)}
+
     subprocess.run(["open", str(p_dir)])
     return {"status": "revealed", "path": str(p_dir)}
 

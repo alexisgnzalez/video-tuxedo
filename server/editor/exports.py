@@ -116,6 +116,24 @@ def render_project_video(
     cutout_filename = project.cutout.file or "cutout.webm"
     source_filename = project.source.webFile or project.source.file or "source.mp4"
 
+    project_exports_dir = project_dir / "exports"
+    project_exports_dir.mkdir(parents=True, exist_ok=True)
+
+    # Calculate full timeline duration in frames and fps
+    fps = project.fps or (project.source.fps if project.source else 30.0) or 30.0
+    if project.conform and project.conform.exists and project.conform.duration > 0:
+        duration_sec = project.conform.duration
+    elif project.clips:
+        duration_sec = sum(max(0.0, c.srcOut - c.srcIn) for c in project.clips)
+    elif project.source and project.source.duration:
+        duration_sec = project.source.duration
+    else:
+        duration_sec = 10.0
+
+    total_frames = max(30, int(round(duration_sec * fps)))
+    project_dict["durationInFrames"] = total_frames
+    project_dict["fps"] = fps
+
     # Media streaming URLs served via FastAPI /files/ endpoint
     project_dict["sourceUrl"] = f"http://127.0.0.1:8000/api/editor/projects/{slug}/files/{source_filename}"
     if project.conform.exists:
@@ -145,10 +163,13 @@ def render_project_video(
             task.update(percent=30, message="Rendering ProRes 422 HQ Master...")
         src_vid = (project_dir / "conform.mp4") if project.conform.exists else (project_dir / "source.mp4")
         out_name = f"{slug}_prores422hq.mov"
-        out_path = EXPORTS_DIR / out_name
+        out_path = project_exports_dir / out_name
+
+        from server.silence_cutter import _get_ffmpeg_exe
+        ffmpeg_exe = _get_ffmpeg_exe()
 
         cmd = [
-            "ffmpeg", "-y",
+            ffmpeg_exe, "-y",
             "-i", str(src_vid),
             "-c:v", "prores_ks",
             "-profile:v", "3",
@@ -160,13 +181,19 @@ def render_project_video(
         if res.returncode != 0:
             raise RuntimeError(f"ProRes 422 master export failed: {res.stderr.decode('utf-8', errors='ignore')}")
 
+        try:
+            from server.paths import DOWNLOADS_DIR
+            shutil.copyfile(out_path, DOWNLOADS_DIR / out_name)
+        except Exception:
+            pass
+
         if task:
             task.update(percent=100, message="ProRes 422 HQ master ready.")
 
         return {
             "success": True,
             "filename": out_name,
-            "export_url": f"/api/editor/exports/{out_name}",
+            "export_url": f"/api/editor/projects/{slug}/files/exports/{out_name}",
             "file_path": str(out_path),
             "size_bytes": out_path.stat().st_size,
         }
@@ -188,11 +215,23 @@ def render_project_video(
         plan=project_dict,
         output_filename=out_filename,
         export_format=export_format,
+        output_dir=project_exports_dir,
         progress_callback=on_progress,
         cancel_check=task.is_cancelled if task else None,
     )
 
+    out_path = project_exports_dir / out_filename
+    size_bytes = out_path.stat().st_size if out_path.exists() else int(render_res.get("file_size_mb", 0) * 1024 * 1024)
+
     if task:
         task.update(percent=100, message="Render completed successfully.")
 
-    return render_res
+    return {
+        "success": True,
+        "filename": out_filename,
+        "export_url": f"/api/editor/projects/{slug}/files/exports/{out_filename}",
+        "file_path": str(out_path),
+        "size_bytes": size_bytes,
+        "render_time_s": render_res.get("render_time_s", 0),
+        "total_frames": render_res.get("total_frames", total_frames),
+    }

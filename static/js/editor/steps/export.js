@@ -108,13 +108,34 @@ function bindExportEvents(container) {
 
             const filename = tData.result?.filename || 'video.mp4';
             const dlUrl = `/api/editor/projects/${encodeURIComponent(proj.slug)}/files/exports/${filename}`;
+            const sizeStr = tData.result?.size_bytes ? (tData.result.size_bytes / 1024 / 1024).toFixed(1) + ' MB' : 'Ready';
 
             downloadBox.style.display = 'block';
             downloadBox.innerHTML = `
-              <a class="vt-btn-primary" href="${dlUrl}" download style="text-decoration: none;">
-                Download ${filename} (${(tData.result?.size_bytes ? (tData.result.size_bytes / 1024 / 1024).toFixed(1) + ' MB' : 'Ready')})
-              </a>
+              <div style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 10px;">
+                <a class="vt-btn-primary" href="${dlUrl}" download style="text-decoration: none; display: inline-flex; align-items: center; gap: 8px;">
+                  <span>⬇️ Download ${filename}</span>
+                  <span style="opacity: 0.8; font-size: 12px;">(${sizeStr})</span>
+                </a>
+                <button class="vt-btn-secondary" id="btnRevealExportFile" type="button" style="display: inline-flex; align-items: center; gap: 6px;">
+                  📁 Show in Project Exports
+                </button>
+              </div>
+              <div style="font-size: 12px; color: var(--vt-text-secondary, #94a3b8); line-height: 1.5;">
+                <div>📍 <strong>Project Exports:</strong> <code style="color: var(--vt-accent, #6366f1);">${proj.slug}/exports/${filename}</code></div>
+                <div>💾 <strong>Backup:</strong> <code style="color: var(--vt-text-muted, #64748b);">~/Downloads/${filename}</code></div>
+              </div>
             `;
+
+            downloadBox.querySelector('#btnRevealExportFile')?.addEventListener('click', async () => {
+              try {
+                const r = await fetch(`/api/editor/projects/${encodeURIComponent(proj.slug)}/reveal?file=exports/${encodeURIComponent(filename)}`, { method: 'POST' });
+                if (r.ok) showToast('Opened in Finder exports folder!', 'success');
+              } catch (e) {
+                showToast(e.message, 'error');
+              }
+            });
+
             showToast('Render completed successfully!', 'success');
           } else if (tData.status === 'failed') {
             clearInterval(pollTimer);

@@ -146,9 +146,26 @@ export const Root: React.FC = () => {
         }}
         calculateMetadata={async ({ props }) => {
           const p = props as any;
+          const fps = p.fps || 30;
+          let durFrames = p.durationInFrames;
+          if (!durFrames || durFrames <= 0) {
+            if (p.conform && p.conform.duration && p.conform.duration > 0) {
+              durFrames = Math.round(p.conform.duration * fps);
+            } else if (p.clips && p.clips.length > 0) {
+              const durSec = p.clips.reduce(
+                (acc: number, c: any) => acc + Math.max(0, (c.srcOut || 0) - (c.srcIn || 0)),
+                0
+              );
+              durFrames = Math.round(durSec * fps);
+            } else if (p.source && p.source.duration && p.source.duration > 0) {
+              durFrames = Math.round(p.source.duration * fps);
+            } else {
+              durFrames = 300;
+            }
+          }
           return {
-            durationInFrames: Math.max(30, p.durationInFrames || 300),
-            fps: p.fps || 30,
+            durationInFrames: Math.max(30, durFrames),
+            fps,
             width: 1080,
             height: 1920,
             props: p,

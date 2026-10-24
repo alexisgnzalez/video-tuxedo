@@ -165,7 +165,7 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
                 durationInFrames={seq.durFrames}
                 premountFor={15}
               >
-                <OffthreadVideo
+                <Video
                   src={cutoutSource}
                   startFrom={seq.srcInFrame}
                   endAt={seq.srcOutFrame}
@@ -180,7 +180,7 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
               </Sequence>
             ))
           ) : (
-            <OffthreadVideo
+            <Video
               src={cutoutSource}
               volume={0}
               onError={(e) => console.warn('Cutout flat video error:', e)}

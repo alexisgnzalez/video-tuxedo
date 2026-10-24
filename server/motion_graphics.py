@@ -496,6 +496,7 @@ def run_remotion_render(
     plan: Dict[str, Any],
     output_filename: Optional[str] = None,
     export_format: str = "mp4",
+    output_dir: Optional[Union[Path, str]] = None,
     progress_callback: Optional[Callable[[Dict[str, Any]], None]] = None,
     cancel_check: Optional[Callable[[], bool]] = None,
 ) -> Dict[str, Any]:
@@ -505,7 +506,7 @@ def run_remotion_render(
     - 'mp4': H.264 / AAC 1080x1920 HD full composite with original video, sound effects & motion graphics.
     - 'prores': Apple ProRes 4444 with 10-bit Alpha transparent overlays for DaVinci Resolve.
     Automatically stages local media into public/ to avoid filesystem sandboxing,
-    sets 80% Apple Silicon concurrency, and auto-saves to ~/Downloads/.
+    sets 80% Apple Silicon concurrency, and saves to output_dir and ~/Downloads/.
     """
     slug = plan.get("slug") or f"motion_{int(time.time())}"
 
@@ -522,6 +523,22 @@ def run_remotion_render(
         staged_mask = stage_media_for_remotion(mask_p)
         if "maskVideoFileName" not in plan or not plan["maskVideoFileName"]:
             plan["maskVideoFileName"] = staged_mask
+
+    # Calculate full timeline duration in frames
+    fps = float(plan.get("fps") or 30.0)
+    total_frames = plan.get("durationInFrames")
+    if not total_frames or int(total_frames) <= 0:
+        if plan.get("conform") and plan["conform"].get("duration") and float(plan["conform"]["duration"]) > 0:
+            total_frames = int(round(float(plan["conform"]["duration"]) * fps))
+        elif plan.get("clips") and len(plan["clips"]) > 0:
+            total_frames = int(round(sum(max(0.0, float(c.get("srcOut", 0)) - float(c.get("srcIn", 0))) for c in plan["clips"]) * fps))
+        elif plan.get("source") and isinstance(plan["source"], dict) and plan["source"].get("duration"):
+            total_frames = int(round(float(plan["source"]["duration"]) * fps))
+        else:
+            total_frames = 300
+    total_frames = max(30, int(total_frames))
+    plan["durationInFrames"] = total_frames
+    plan["fps"] = fps
 
     # Robust export format detection
     if output_filename and (output_filename.lower().endswith(".mov") or "prores" in output_filename.lower()):
@@ -589,7 +606,10 @@ def run_remotion_render(
         ]
 
     dest_downloads = DOWNLOADS_DIR / clean_name
-    dest_exports = BASE_DIR / "exports" / clean_name
+    if output_dir:
+        dest_exports = Path(output_dir) / clean_name
+    else:
+        dest_exports = BASE_DIR / "exports" / clean_name
     dest_exports.parent.mkdir(parents=True, exist_ok=True)
 
     cmd = [
@@ -682,9 +702,18 @@ def run_remotion_render(
     # Copy to ~/Downloads
     try:
         shutil.copyfile(dest_exports, dest_downloads)
-        print(f"📁 Auto-saved rendered ProRes 4444 to ~/Downloads: {dest_downloads}")
+        print(f"📁 Auto-saved rendered video to ~/Downloads: {dest_downloads}")
     except Exception as e:
         print(f"⚠️ Could not copy to ~/Downloads: {e}")
+
+    # Also keep a copy in BASE_DIR / exports for backward compatibility
+    if output_dir and Path(output_dir).resolve() != (BASE_DIR / "exports").resolve():
+        try:
+            repo_exports = BASE_DIR / "exports" / clean_name
+            repo_exports.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(dest_exports, repo_exports)
+        except Exception:
+            pass
 
     render_dur = round(time.time() - start_time, 2)
     file_size_mb = (
@@ -695,7 +724,7 @@ def run_remotion_render(
 
     return {
         "status": "success",
-        "output_path": str(dest_downloads if dest_downloads.exists() else dest_exports),
+        "output_path": str(dest_exports),
         "downloads_path": str(dest_downloads),
         "exports_path": str(dest_exports),
         "filename": clean_name,
