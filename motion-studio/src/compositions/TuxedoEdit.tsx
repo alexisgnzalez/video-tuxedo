@@ -44,6 +44,31 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
   const behindGraphics = (graphics.items || []).filter((g) => g.layer === 'behind');
   const frontGraphics = (graphics.items || []).filter((g) => g.layer === 'front');
 
+  // Compute active time ranges where behind elements exist.
+  // CRITICAL OPTIMIZATION: Cutout video is ONLY rendered during intervals where behind graphics/layers exist.
+  // Rendering cutout across the entire video causes dual-video decode drift, ghosting arms, and browser lag.
+  const behindIntervals: Array<{ start: number; end: number }> = [];
+  [...behindLayers, ...behindGraphics].forEach((item) => {
+    if (typeof item.start === 'number' && typeof item.end === 'number' && item.end > item.start) {
+      behindIntervals.push({ start: Math.max(0, item.start), end: item.end });
+    }
+  });
+
+  behindIntervals.sort((a, b) => a.start - b.start);
+  const mergedBehindRanges: Array<{ start: number; end: number }> = [];
+  for (const interval of behindIntervals) {
+    if (mergedBehindRanges.length === 0) {
+      mergedBehindRanges.push({ ...interval });
+    } else {
+      const last = mergedBehindRanges[mergedBehindRanges.length - 1];
+      if (interval.start <= last.end + 0.2) {
+        last.end = Math.max(last.end, interval.end);
+      } else {
+        mergedBehindRanges.push({ ...interval });
+      }
+    }
+  }
+
   // Compute timeline placement for EDL clips
   let currentTimelineFrame = 0;
   const edlSequences = clips.map((clip) => {
@@ -95,7 +120,7 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
             </Sequence>
           ))
         ) : conformSource ? (
-          <OffthreadVideo
+          <Video
             src={conformSource}
             volume={preview.muteAudio ? 0 : 1}
             style={{
@@ -105,7 +130,7 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
             }}
           />
         ) : baseSource ? (
-          <OffthreadVideo
+          <Video
             src={baseSource}
             volume={preview.muteAudio ? 0 : 1}
             style={{
@@ -154,42 +179,64 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
 
       {/* ============================================================== */}
       {/* LAYER 4: Isolated Subject Cutout (Transparent Alpha Mask)      */}
+      {/* Active ONLY during intervals where behind graphics/layers exist*/}
       {/* ============================================================== */}
-      {cutoutSource && (
+      {cutoutSource && mergedBehindRanges.length > 0 && (
         <AbsoluteFill style={{ pointerEvents: 'none' }}>
           {mode === 'edl' ? (
-            edlSequences.map((seq) => (
-              <Sequence
-                key={`cutout_${seq.clip.id}`}
-                from={seq.fromFrame}
-                durationInFrames={seq.durFrames}
-                premountFor={15}
-              >
-                <Video
-                  src={cutoutSource}
-                  startFrom={seq.srcInFrame}
-                  endAt={seq.srcOutFrame}
-                  volume={0}
-                  onError={(e) => console.warn('Cutout EDL video error:', e)}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'cover',
-                  }}
-                />
-              </Sequence>
-            ))
+            edlSequences
+              .filter((seq) => {
+                const clipStart = seq.fromFrame / fps;
+                const clipEnd = (seq.fromFrame + seq.durFrames) / fps;
+                return mergedBehindRanges.some((r) => r.start < clipEnd && r.end > clipStart);
+              })
+              .map((seq) => (
+                <Sequence
+                  key={`cutout_${seq.clip.id}`}
+                  from={seq.fromFrame}
+                  durationInFrames={seq.durFrames}
+                  premountFor={15}
+                >
+                  <Video
+                    src={cutoutSource}
+                    startFrom={seq.srcInFrame}
+                    endAt={seq.srcOutFrame}
+                    volume={0}
+                    onError={(e) => console.warn('Cutout EDL video error:', e)}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                </Sequence>
+              ))
           ) : (
-            <Video
-              src={cutoutSource}
-              volume={0}
-              onError={(e) => console.warn('Cutout flat video error:', e)}
-              style={{
-                width: '100%',
-                height: '100%',
-                objectFit: 'cover',
-              }}
-            />
+            mergedBehindRanges.map((range, idx) => {
+              const fromFrame = Math.round(range.start * fps);
+              const durFrames = Math.max(1, Math.round((range.end - range.start) * fps));
+              return (
+                <Sequence
+                  key={`cutout_behind_${idx}`}
+                  from={fromFrame}
+                  durationInFrames={durFrames}
+                  premountFor={15}
+                >
+                  <Video
+                    src={cutoutSource}
+                    startFrom={fromFrame}
+                    endAt={fromFrame + durFrames}
+                    volume={0}
+                    onError={(e) => console.warn('Cutout flat video error:', e)}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      objectFit: 'cover',
+                    }}
+                  />
+                </Sequence>
+              );
+            })
           )}
         </AbsoluteFill>
       )}

@@ -119,8 +119,13 @@ def render_project_video(
     project_exports_dir = project_dir / "exports"
     project_exports_dir.mkdir(parents=True, exist_ok=True)
 
-    # Calculate full timeline duration in frames and fps
-    fps = project.fps or (project.source.fps if project.source else 30.0) or 30.0
+    # Calculate full timeline duration in frames and fps.
+    # When conform.mp4 exists, it is strictly 30.0 fps CFR.
+    if project.conform and project.conform.exists:
+        fps = 30.0
+    else:
+        fps = project.fps or (project.source.fps if project.source else 30.0) or 30.0
+
     if project.conform and project.conform.exists and project.conform.duration > 0:
         duration_sec = project.conform.duration
     elif project.clips:

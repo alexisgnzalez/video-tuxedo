@@ -69,7 +69,7 @@ class EditorPlayerManager {
       };
     }
 
-    const fps = proj.source?.fps || 30;
+    const fps = proj.conform?.exists ? 30 : (proj.source?.fps || 30);
     const durSec = getTimelineDuration(proj.clips);
     const totalFrames = Math.max(30, Math.round(durSec * fps));
 
@@ -117,7 +117,8 @@ class EditorPlayerManager {
 
   seek(seconds) {
     if (!this.playerInstance) return;
-    const fps = store.getProject()?.source?.fps || 30;
+    const proj = store.getProject();
+    const fps = proj?.conform?.exists ? 30 : (proj?.source?.fps || 30);
     const frame = Math.round(seconds * fps);
     this.playerInstance.seek(frame);
   }
