@@ -56,6 +56,7 @@ class EditorPlayerManager {
     // Subscribe to store changes to keep Remotion plan synchronized
     store.subscribe('change', () => this.syncPlan());
     store.subscribe('selection:layer', (layerId) => this.renderGizmo(layerId));
+    this.updateStageAspectRatio();
   }
 
   buildRemotionPlan() {
@@ -109,7 +110,56 @@ class EditorPlayerManager {
     };
   }
 
+  updateStageAspectRatio() {
+    const proj = store.getProject();
+    const wrap = document.getElementById('editorStageCanvasWrap');
+    const badge = document.getElementById('editorStageBadge');
+    if (!wrap) return;
+
+    const w = proj?.width || proj?.source?.width || 1080;
+    const h = proj?.height || proj?.source?.height || 1920;
+
+    let ratioLabel = '9:16';
+    let typeLabel = 'Vertical Reel';
+    let cssRatio = '9 / 16';
+
+    const ratioVal = w / h;
+    if (Math.abs(ratioVal - 9 / 16) < 0.05) {
+      ratioLabel = '9:16';
+      typeLabel = 'Vertical Reel / Shorts';
+      cssRatio = '9 / 16';
+    } else if (Math.abs(ratioVal - 16 / 9) < 0.05) {
+      ratioLabel = '16:9';
+      typeLabel = 'Landscape / YouTube';
+      cssRatio = '16 / 9';
+    } else if (Math.abs(ratioVal - 1.0) < 0.05) {
+      ratioLabel = '1:1';
+      typeLabel = 'Square';
+      cssRatio = '1 / 1';
+    } else if (Math.abs(ratioVal - 4 / 5) < 0.05) {
+      ratioLabel = '4:5';
+      typeLabel = 'Portrait';
+      cssRatio = '4 / 5';
+    } else {
+      ratioLabel = `${w}:${h}`;
+      typeLabel = 'Custom Aspect';
+      cssRatio = `${w} / ${h}`;
+    }
+
+    wrap.style.aspectRatio = cssRatio;
+
+    if (badge) {
+      const ratioEl = badge.querySelector('.badge-ratio');
+      const resEl = badge.querySelector('.badge-res');
+      const tagEl = badge.querySelector('.badge-tag');
+      if (ratioEl) ratioEl.textContent = ratioLabel;
+      if (resEl) resEl.textContent = `${w} × ${h}`;
+      if (tagEl) tagEl.textContent = typeLabel;
+    }
+  }
+
   syncPlan() {
+    this.updateStageAspectRatio();
     if (!this.playerInstance) return;
     const plan = this.buildRemotionPlan();
     this.playerInstance.update(plan);

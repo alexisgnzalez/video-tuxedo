@@ -111,9 +111,11 @@ def render_project_video(
     project_dict = project.model_dump()
     project_dict["composition"] = "TuxedoEdit"
     project_dict["slug"] = slug
-    project_dict["mode"] = "flat" if project.conform.exists else "edl"
+    has_conform = bool(project.conform and project.conform.exists)
+    has_cutout = bool(project.cutout and project.cutout.exists)
+    project_dict["mode"] = "flat" if has_conform else "edl"
 
-    cutout_filename = project.cutout.file or "cutout.webm"
+    cutout_filename = (project.cutout.file if project.cutout else None) or "cutout.webm"
     source_filename = project.source.webFile or project.source.file or "source.mp4"
 
     project_exports_dir = project_dir / "exports"
@@ -121,12 +123,12 @@ def render_project_video(
 
     # Calculate full timeline duration in frames and fps.
     # When conform.mp4 exists, it is strictly 30.0 fps CFR.
-    if project.conform and project.conform.exists:
+    if has_conform:
         fps = 30.0
     else:
         fps = project.fps or (project.source.fps if project.source else 30.0) or 30.0
 
-    if project.conform and project.conform.exists and project.conform.duration > 0:
+    if has_conform and project.conform.duration > 0:
         duration_sec = project.conform.duration
     elif project.clips:
         duration_sec = sum(max(0.0, c.srcOut - c.srcIn) for c in project.clips)
@@ -141,9 +143,9 @@ def render_project_video(
 
     # Media streaming URLs served via FastAPI /files/ endpoint
     project_dict["sourceUrl"] = f"http://127.0.0.1:8000/api/editor/projects/{slug}/files/{source_filename}"
-    if project.conform.exists:
+    if has_conform:
         project_dict["conformUrl"] = f"http://127.0.0.1:8000/api/editor/projects/{slug}/files/conform.mp4?v={project.conform.hash}"
-    if project.cutout.exists:
+    if has_cutout:
         project_dict["cutoutUrl"] = f"http://127.0.0.1:8000/api/editor/projects/{slug}/files/{cutout_filename}?v={project.cutout.conformHash or '1'}"
 
     # Remap any layer image paths
@@ -155,18 +157,33 @@ def render_project_video(
     if not project.captions.enabled:
         project_dict["captions"]["cues"] = []
 
+    # Ensure audio is not muted during export and graphics cues have sfxFile set
+    project_dict["preview"] = {"showSafeZones": False, "muteAudio": False}
+    if "graphics" in project_dict and isinstance(project_dict["graphics"], dict):
+        for item in project_dict["graphics"].get("items", []):
+            if not item.get("sfxFile"):
+                comp = item.get("component", "")
+                if "sandwich" in comp or "KineticTitle" in comp or "kinetic" in comp:
+                    item["sfxFile"] = "whoosh.mp3"
+                elif "punchline" in comp or "Punchline" in comp:
+                    item["sfxFile"] = "pop.mp3"
+                elif "pill" in comp or "badge" in comp:
+                    item["sfxFile"] = "ding.mp3"
+                else:
+                    item["sfxFile"] = "pop.mp3"
+
     # Also resolve local filesystem paths for Remotion bundler
     project_dict["source"] = {
-        "path": str(project_dir / "conform.mp4") if project.conform.exists else str(project_dir / source_filename)
+        "path": str(project_dir / "conform.mp4") if has_conform else str(project_dir / source_filename)
     }
-    if project.cutout.exists:
+    if has_cutout:
         project_dict["mask_video_path"] = str(project_dir / cutout_filename)
 
     if preset == "prores_master":
         # Direct FFmpeg ProRes 422 HQ export from conform
         if task:
             task.update(percent=30, message="Rendering ProRes 422 HQ Master...")
-        src_vid = (project_dir / "conform.mp4") if project.conform.exists else (project_dir / "source.mp4")
+        src_vid = (project_dir / "conform.mp4") if has_conform else (project_dir / "source.mp4")
         out_name = f"{slug}_prores422hq.mov"
         out_path = project_exports_dir / out_name
 

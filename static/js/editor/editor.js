@@ -3,16 +3,16 @@
  * Coordinates the Step Rail, Remotion Player, Timeline, Undo/Redo, and Autosave.
  */
 
-import { store } from './store.js';
-import { player } from './player.js';
-import { Timeline } from './timeline/Timeline.js';
-import { renderStepUpload } from './steps/upload.js';
-import { renderStepCut } from './steps/cut.js';
-import { renderStepSubtitles } from './steps/subtitles.js';
-import { renderStepCutout } from './steps/cutout.js';
-import { renderStepGraphics } from './steps/graphics.js';
-import { renderStepExport } from './steps/export.js';
-import { formatTimecode, showToast } from './ui.js';
+import { store } from './store.js?v=0.6.4';
+import { player } from './player.js?v=0.6.4';
+import { Timeline } from './timeline/Timeline.js?v=0.6.4';
+import { renderStepUpload } from './steps/upload.js?v=0.6.4';
+import { renderStepCut } from './steps/cut.js?v=0.6.4';
+import { renderStepSubtitles } from './steps/subtitles.js?v=0.6.4';
+import { renderStepCutout } from './steps/cutout.js?v=0.6.4';
+import { renderStepGraphics } from './steps/graphics.js?v=0.6.4';
+import { renderStepExport } from './steps/export.js?v=0.6.4';
+import { formatTimecode, showToast } from './ui.js?v=0.6.4';
 
 let timelineInstance = null;
 

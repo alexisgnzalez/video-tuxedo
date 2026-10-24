@@ -11,7 +11,7 @@ import {
 import { TuxedoEditProps } from '../editSchema';
 import { ImageLayer } from '../components/ImageLayer';
 import { EditCaptions } from '../components/EditCaptions';
-import { getCueSfxFile, getSfxVolume, renderCueComponent } from '../components/CueRenderer';
+import { getCueSfxFile, getSfxVolume, normalizeSfxPath, renderCueComponent } from '../components/CueRenderer';
 
 export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
   mode = 'edl',
@@ -32,8 +32,21 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
       return raw;
     }
     const clean = raw.replace(/^\/+/, '');
+    if (clean.startsWith('sfx/') || clean.startsWith('public/sfx/')) {
+      const sfxRel = clean.replace(/^public\//, '');
+      try {
+        return staticFile(sfxRel);
+      } catch {
+        return `/${sfxRel}`;
+      }
+    }
     if (clean.startsWith('public/')) {
-      return `/${clean}`;
+      const pubRel = clean.replace(/^public\//, '');
+      try {
+        return staticFile(pubRel);
+      } catch {
+        return `/${pubRel}`;
+      }
     }
     return `/${clean}`;
   };
@@ -165,11 +178,15 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
           const fromFrame = Math.round(item.start * fps);
           const durFrames = Math.max(15, Math.round((item.end - item.start) * fps));
           const sfx = getCueSfxFile(item as any);
+          const sfxPath = sfx ? normalizeSfxPath(sfx) : '';
 
           return (
             <Sequence key={item.id} from={fromFrame} durationInFrames={durFrames}>
-              {sfx && (
-                <Audio src={resolveMediaSrc(`sfx/${sfx}`)} volume={getSfxVolume(sfx)} />
+              {sfxPath && (
+                <Audio
+                  src={resolveMediaSrc(sfxPath)}
+                  volume={preview.muteAudio ? 0 : getSfxVolume(sfx)}
+                />
               )}
               {renderCueComponent(item as any)}
             </Sequence>
@@ -266,11 +283,15 @@ export const TuxedoEdit: React.FC<TuxedoEditProps> = ({
           const fromFrame = Math.round(item.start * fps);
           const durFrames = Math.max(15, Math.round((item.end - item.start) * fps));
           const sfx = getCueSfxFile(item as any);
+          const sfxPath = sfx ? normalizeSfxPath(sfx) : '';
 
           return (
             <Sequence key={item.id} from={fromFrame} durationInFrames={durFrames}>
-              {sfx && (
-                <Audio src={resolveMediaSrc(`sfx/${sfx}`)} volume={getSfxVolume(sfx)} />
+              {sfxPath && (
+                <Audio
+                  src={resolveMediaSrc(sfxPath)}
+                  volume={preview.muteAudio ? 0 : getSfxVolume(sfx)}
+                />
               )}
               {renderCueComponent(item as any)}
             </Sequence>

@@ -6,7 +6,7 @@
   <title>Video Tuxedo — Professional Video Editing Helper Tools</title>
   <meta name="description" content="Video Tuxedo is a suite of video editing tools built to streamline your workflow. Generate timecode-accurate subtitles for DaVinci Resolve Free using local Whisper AI.">
   <link rel="stylesheet" href="/static/css/style.css?v=0.2.2">
-  <link rel="stylesheet" href="/static/css/editor.css?v=0.6.2">
+  <link rel="stylesheet" href="/static/css/editor.css?v=0.6.4">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐧</text></svg>">
 </head>
 <body>
@@ -1917,7 +1917,14 @@
 
         <!-- Center Player Stage -->
         <div class="editor-stage">
-          <div class="editor-stage-canvas-wrap">
+          <div class="editor-stage-badge" id="editorStageBadge">
+            <span class="badge-ratio">9:16</span>
+            <span class="badge-divider">•</span>
+            <span class="badge-res">1080 × 1920</span>
+            <span class="badge-divider">•</span>
+            <span class="badge-tag">Vertical Reel</span>
+          </div>
+          <div class="editor-stage-canvas-wrap" id="editorStageCanvasWrap">
             <div id="editorPlayerContainer"></div>
           </div>
 
@@ -2005,15 +2012,15 @@
   <div class="toast-container" id="toastContainer"></div>
 
   <!-- Scripts -->
-  <script src="/static/js/visualizer.js?v=0.6.3"></script>
-  <script src="/static/js/subtitles.js?v=0.6.3"></script>
-  <script src="/static/js/silence_cutter.js?v=0.6.3"></script>
-  <script src="/static/js/magic_mask.js?v=0.6.3"></script>
-  <script src="/static/motion/player.bundle.js?v=0.6.3"></script>
-  <script src="/static/js/motion_graphics.js?v=0.6.3"></script>
-  <script src="/static/js/app.js?v=0.6.3"></script>
+  <script src="/static/js/visualizer.js?v=0.6.4"></script>
+  <script src="/static/js/subtitles.js?v=0.6.4"></script>
+  <script src="/static/js/silence_cutter.js?v=0.6.4"></script>
+  <script src="/static/js/magic_mask.js?v=0.6.4"></script>
+  <script src="/static/motion/player.bundle.js?v=0.6.4"></script>
+  <script src="/static/js/motion_graphics.js?v=0.6.4"></script>
+  <script src="/static/js/app.js?v=0.6.4"></script>
   <script type="module">
-    import { initEditor, loadProjectBySlug } from '/static/js/editor/editor.js';
+    import { initEditor, loadProjectBySlug } from '/static/js/editor/editor.js?v=0.6.4';
     window.initEditor = initEditor;
     window.loadEditorProject = loadProjectBySlug;
   </script>

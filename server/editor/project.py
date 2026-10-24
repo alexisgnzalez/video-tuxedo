@@ -134,6 +134,7 @@ class GraphicsItem(BaseModel):
     placement: Dict[str, Any] = Field(default_factory=lambda: {"position": "top"})
     props: Dict[str, Any] = Field(default_factory=dict)
     sfx: List[Dict[str, Any]] = Field(default_factory=list)
+    sfxFile: Optional[str] = None
     source: str = "rules"  # rules | gemini | manual
 
 

@@ -372,25 +372,91 @@ body.editor-open .main-content {
 /* Player Stage (Center) */
 .editor-stage {
   flex: 1;
-  background: var(--vt-bg-dark);
+  background: radial-gradient(circle at 50% 45%, #181820 0%, #0d0d12 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   position: relative;
   overflow: hidden;
+  padding: 16px 20px 76px 20px;
+  box-sizing: border-box;
+}
+
+/* Aspect Ratio Header Badge */
+.editor-stage-badge {
+  position: absolute;
+  top: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(22, 22, 28, 0.8);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  padding: 4px 12px;
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--vt-text-light, #f1f5f9);
+  z-index: 12;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+
+.editor-stage-badge .badge-ratio {
+  font-weight: 700;
+  color: var(--vt-accent, #6366f1);
+  letter-spacing: 0.5px;
+}
+
+.editor-stage-badge .badge-divider {
+  opacity: 0.3;
+}
+
+.editor-stage-badge .badge-res {
+  color: #e2e8f0;
+}
+
+.editor-stage-badge .badge-tag {
+  color: #94a3b8;
 }
 
 .editor-stage-canvas-wrap {
   position: relative;
-  height: 90%;
+  height: 100%;
   aspect-ratio: 9 / 16;
-  max-width: calc(100% - 40px);
-  max-height: calc(100% - 60px);
-  box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-  border-radius: 4px;
+  max-width: 100%;
+  max-height: 100%;
+  box-shadow: 
+    0 0 0 1px rgba(255, 255, 255, 0.12),
+    0 0 0 4px rgba(18, 18, 24, 0.8),
+    0 25px 60px -10px rgba(0, 0, 0, 0.85),
+    0 0 40px rgba(99, 102, 241, 0.08);
+  border-radius: 18px;
   overflow: hidden;
   background: #000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: aspect-ratio 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+/* Simulated Smartphone Camera Notch */
+.editor-stage-canvas-wrap::before {
+  content: '';
+  position: absolute;
+  top: 7px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 5px;
+  background: rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 4px;
+  z-index: 30;
+  pointer-events: none;
 }
 
 #editorPlayerContainer {
@@ -441,17 +507,19 @@ body.editor-open .main-content {
 /* Player Floating Transport Controls */
 .editor-transport-bar {
   position: absolute;
-  bottom: 12px;
+  bottom: 14px;
   display: flex;
   align-items: center;
   gap: 12px;
-  background: rgba(20, 20, 19, 0.85);
-  backdrop-filter: blur(8px);
-  border: 1px solid var(--vt-border-dark);
-  border-radius: 20px;
-  padding: 6px 14px;
+  background: rgba(18, 18, 24, 0.88);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 24px;
+  padding: 6px 16px;
   color: var(--vt-text-light);
-  z-index: 15;
+  z-index: 25;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
 }
 
 .transport-btn {

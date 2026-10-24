@@ -45,6 +45,7 @@ export const GraphicsItemSchema = z.object({
   placement: z.record(z.string(), z.any()).default({ position: 'top' }),
   props: z.record(z.string(), z.any()).default({}),
   sfx: z.array(z.record(z.string(), z.any())).default([]),
+  sfxFile: z.string().optional(),
   source: z.string().default('rules'),
 });
 
