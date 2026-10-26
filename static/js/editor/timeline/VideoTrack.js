@@ -3,7 +3,7 @@
  * Renders clips with in/out trim handles using pointer capture, drag-reorder, and waveform background.
  */
 
-import { store } from '../store.js';
+import { store } from '../store.js?v=0.7.2';
 import { trimClip, moveClip } from '../edl.js';
 
 export class VideoTrack {

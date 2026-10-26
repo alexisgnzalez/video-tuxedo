@@ -3,7 +3,7 @@
  * Renders subtitle cue blocks with click-to-select and time syncing.
  */
 
-import { store } from '../store.js';
+import { store } from '../store.js?v=0.7.2';
 
 export class CaptionTrack {
   constructor(containerEl) {

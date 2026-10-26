@@ -2,7 +2,7 @@
  * Tuxedo Editor Step 6: Export Presets & Project Bundle
  */
 
-import { store } from '../store.js';
+import { store } from '../store.js?v=0.7.2';
 import { showToast, createProgressLine } from '../ui.js';
 
 const PRESET_INFO = {
@@ -107,10 +107,11 @@ export function renderStepExport(container) {
         <span>🖥️</span>
         Open Project in macOS Finder
       </button>
+    </div>
 
-      <div style="display: flex; gap: 8px; margin-top: 4px;">
-        <button class="vt-btn-secondary" id="btnBackToStep5" style="flex: 1;">&larr; Back to Step 5</button>
-      </div>
+    <!-- Always Visible Sticky Footer Navigation -->
+    <div class="step-panel-footer">
+      <button class="vt-btn-secondary" id="btnBackToStep5" style="width: 100%;">&larr; Back to Step 5</button>
     </div>
   `;
 

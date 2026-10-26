@@ -13,6 +13,106 @@ interface EditCaptionsProps {
   mode?: 'styled' | 'reference';
 }
 
+function reconcileCueWords(cue: CaptionCueProps): Array<{
+  id?: string;
+  text: string;
+  start: number;
+  end: number;
+  emphasis?: boolean;
+  highlightType?: string;
+  isPunchline?: boolean;
+}> {
+  const cueText = (cue.text || '').trim();
+  if (!cueText) return [];
+
+  const rawWords = cueText.split(/\s+/).filter(Boolean);
+  if (rawWords.length === 0) return [];
+
+  const cueStart = cue.start ?? 0;
+  const cueEnd = cue.end ?? (cueStart + 1.0);
+  const totalDuration = Math.max(0.1, cueEnd - cueStart);
+  const defaultSlotDur = totalDuration / rawWords.length;
+
+  const existingWords = (cue.words || []).filter((w) => Boolean(w && typeof w.text === 'string' && w.text.trim()));
+
+  const isExactCountMatch = existingWords.length === rawWords.length;
+  if (isExactCountMatch) {
+    const isExactTextMatch = existingWords.every((ew, i) => {
+      const c1 = ew.text.toLowerCase().replace(/[.,!?:;¿¡"']/g, '');
+      const c2 = rawWords[i].toLowerCase().replace(/[.,!?:;¿¡"']/g, '');
+      return c1 === c2;
+    });
+    if (isExactTextMatch) {
+      return existingWords.map((ew, i) => ({
+        ...ew,
+        text: rawWords[i],
+        isPunchline: ew.isPunchline || (rawWords[i].length > 2 && rawWords[i] === rawWords[i].toUpperCase()),
+      }));
+    }
+  }
+
+  const result: Array<{
+    id?: string;
+    text: string;
+    start: number;
+    end: number;
+    emphasis?: boolean;
+    highlightType?: string;
+    isPunchline?: boolean;
+  }> = [];
+
+  let existCursor = 0;
+  for (let i = 0; i < rawWords.length; i++) {
+    const rawWord = rawWords[i];
+    const cleanRaw = rawWord.toLowerCase().replace(/[.,!?:;¿¡"']/g, '');
+
+    let matchIdx = -1;
+    for (let j = existCursor; j < existingWords.length; j++) {
+      const cleanExist = (existingWords[j].text || '').toLowerCase().replace(/[.,!?:;¿¡"']/g, '');
+      if (cleanExist === cleanRaw && cleanRaw.length > 0) {
+        matchIdx = j;
+        break;
+      }
+    }
+
+    if (matchIdx !== -1) {
+      const matched = existingWords[matchIdx];
+      result.push({
+        ...matched,
+        text: rawWord,
+        isPunchline: matched.isPunchline || (rawWord.length > 2 && rawWord === rawWord.toUpperCase()),
+      });
+      existCursor = matchIdx + 1;
+    } else {
+      const start = cueStart + i * defaultSlotDur;
+      const end = cueStart + (i + 1) * defaultSlotDur;
+      result.push({
+        id: `w_gen_${i}`,
+        text: rawWord,
+        start,
+        end,
+        emphasis: false,
+        highlightType: undefined,
+        isPunchline: rawWord.length > 2 && rawWord === rawWord.toUpperCase(),
+      });
+    }
+  }
+
+  for (let i = 0; i < result.length; i++) {
+    if (i === 0) {
+      result[i].start = Math.max(cueStart, result[i].start);
+    } else {
+      result[i].start = Math.max(result[i - 1].end, result[i].start);
+    }
+    const nextStart = (i + 1 < result.length) ? result[i + 1].start : cueEnd;
+    if (result[i].end <= result[i].start || result[i].end > nextStart) {
+      result[i].end = Math.max(result[i].start + 0.05, nextStart);
+    }
+  }
+
+  return result;
+}
+
 export const EditCaptions: React.FC<EditCaptionsProps> = ({
   cues,
   style = {},
@@ -52,17 +152,17 @@ export const EditCaptions: React.FC<EditCaptionsProps> = ({
             flexDirection: 'column',
             alignItems: 'center',
             backgroundColor: 'rgba(15, 23, 42, 0.88)',
-            border: '1.5px solid rgba(255, 255, 255, 0.22)',
+            border: '1px solid rgba(255, 255, 255, 0.16)',
             borderRadius: 14,
             padding: '10px 24px',
             maxWidth: 920,
-            backdropFilter: 'blur(8px)',
-            boxShadow: '0 6px 20px rgba(0,0,0,0.5)',
+            backdropFilter: 'blur(12px)',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.5)',
           }}
         >
           <div
             style={{
-              fontSize: 13,
+              fontSize: 12,
               fontWeight: 700,
               color: '#94A3B8',
               letterSpacing: 1.5,
@@ -74,8 +174,8 @@ export const EditCaptions: React.FC<EditCaptionsProps> = ({
           </div>
           <div
             style={{
-              fontFamily: 'Inter, system-ui, -apple-system, sans-serif',
-              fontSize: 32,
+              fontFamily: "'Plus Jakarta Sans', Inter, system-ui, -apple-system, sans-serif",
+              fontSize: 30,
               fontWeight: 600,
               color: '#FFFFFF',
               textAlign: 'center',
@@ -93,50 +193,36 @@ export const EditCaptions: React.FC<EditCaptionsProps> = ({
   const preset = style.preset || 'standup_hybrid';
   const posSetting = style.position || 'collarbone';
 
-  // The "Collarbone" Safe Zone (30% to 35% up from bottom of frame)
-  // In a 1080x1920 canvas, 32% from bottom = ~620px
+  // The "Collarbone" Safe Zone (30% to 35% up from bottom of 1080x1920 frame)
+  // ~600px - 620px ensures clean clearance above TikTok's native UI elements
   const justify =
     posSetting === 'top'
       ? 'flex-start'
       : posSetting === 'middle'
       ? 'center'
       : 'flex-end';
-  const paddingTop = posSetting === 'top' ? 260 : 0;
+  const paddingTop = posSetting === 'top' ? 240 : 0;
   const paddingBottom =
     posSetting === 'collarbone'
-      ? (style.paddingBottom || 620)
+      ? (style.paddingBottom || 600)
       : posSetting === 'lower-third'
-      ? 480
+      ? 460
       : 0;
 
-  const fontFam = style.font || (preset === 'pill_box' ? 'Inter, Montserrat, sans-serif' : 'Montserrat, -apple-system, sans-serif');
-  const fontSize = style.size || (preset === 'pill_box' ? 54 : preset === 'indie_cinema' ? 62 : 68);
-  const baseColor = style.color || (preset === 'indie_cinema' ? '#F4D35E' : '#FFFFFF');
-  const highlightAmber = style.highlight || '#FFD166';
-  const punchlineCoral = style.accent || '#FF595E';
+  const fontFam = style.font || "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Montserrat', sans-serif";
+  const fontSize = style.size || (preset === 'pill_box' ? 48 : preset === 'indie_cinema' ? 52 : 56);
+  const baseColor = style.color || (preset === 'indie_cinema' ? '#FBF7EE' : '#FFFFFF');
+  const highlightGold = style.highlight || '#FFD60A';
+  const punchlineCoral = style.accent || '#FF4757';
   const isKaraoke = style.karaoke !== false;
   const isIndie = preset === 'indie_cinema';
   const isPill = preset === 'pill_box';
 
-  const words = activeCue.words && activeCue.words.length > 0
-    ? activeCue.words
-    : activeCue.text.split(' ').map((w, i) => {
-        const totalW = Math.max(1, activeCue.text.split(' ').length);
-        const dur = (activeCue.end - activeCue.start) / totalW;
-        return {
-          id: `w_${i}`,
-          text: w,
-          start: activeCue.start + i * dur,
-          end: activeCue.start + (i + 1) * dur,
-          emphasis: false,
-          highlightType: undefined,
-          isPunchline: false,
-        };
-      });
+  const words = reconcileCueWords(activeCue);
 
   // Check if active cue is a comedic tag (1-2 words tagged for slight tilt)
   const isComedicTag = words.length <= 2 && (activeCue.cueType === 'punchline' || activeCue.cueType === 'slang');
-  const containerRotation = isComedicTag ? -2.5 : 0;
+  const containerRotation = isComedicTag ? -2.0 : 0;
 
   return (
     <AbsoluteFill
@@ -154,14 +240,17 @@ export const EditCaptions: React.FC<EditCaptionsProps> = ({
           flexWrap: 'wrap',
           justifyContent: 'center',
           alignItems: 'center',
-          gap: isPill ? 14 : 16,
-          padding: isPill ? '12px 32px' : '0 40px',
-          backgroundColor: isPill ? 'rgba(15, 23, 42, 0.82)' : 'transparent',
+          gap: isPill ? 12 : 14,
+          padding: isPill ? '10px 28px' : '0 36px',
+          backgroundColor: isPill ? 'rgba(10, 12, 18, 0.76)' : 'transparent',
           borderRadius: isPill ? 9999 : 0,
-          border: isPill ? '1.5px solid rgba(255, 255, 255, 0.20)' : 'none',
-          backdropFilter: isPill ? 'blur(8px)' : 'none',
-          boxShadow: isPill ? '0 8px 24px rgba(0,0,0,0.45)' : 'none',
-          maxWidth: 960,
+          border: isPill ? '1px solid rgba(255, 255, 255, 0.16)' : 'none',
+          backdropFilter: isPill ? 'blur(16px)' : 'none',
+          WebkitBackdropFilter: isPill ? 'blur(16px)' : 'none',
+          boxShadow: isPill
+            ? '0 12px 36px rgba(0, 0, 0, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.12)'
+            : 'none',
+          maxWidth: 920,
           transform: `rotate(${containerRotation}deg)`,
           transition: 'transform 0.15s ease',
         }}
@@ -170,63 +259,64 @@ export const EditCaptions: React.FC<EditCaptionsProps> = ({
           const isActive = currentTime >= w.start && currentTime <= w.end;
           const isPast = currentTime > w.end;
 
-          // Word entrance bounce when it becomes active
+          // Word entrance bounce when it becomes active (snappy, subtle, polished)
           const wordFrame = Math.max(0, Math.round((currentTime - w.start) * fps));
           const bounce = spring({
             frame: wordFrame,
             fps,
-            config: { damping: 12, stiffness: 220, mass: 0.5 },
+            config: { damping: 16, stiffness: 260, mass: 0.4 },
           });
 
           // Check if word should be formatted as punchline
-          const isWordPunchline = Boolean(w.isPunchline || w.highlightType === 'punchline' || (w.text && w.text.length > 2 && w.text === w.text.toUpperCase() && !isIndie));
+          const isWordPunchline = Boolean(
+            w.isPunchline ||
+            w.highlightType === 'punchline' ||
+            (w.text && w.text.length > 2 && w.text === w.text.toUpperCase() && !isIndie)
+          );
 
-          // Pacing & Casing rules:
-          // Sentence case for 90% setup storytelling; ALL CAPS reserved strictly for punchlines/slang
+          // Casing rules: Sentence case for storytelling; uppercase for punchlines
           const textTransform = isWordPunchline ? 'uppercase' : 'none';
 
-          // Animation scale:
-          // Indie cinema: zero bounce
-          // Setup words: smooth micro-pop (100% to 108%)
-          // Punchline words: scale pop (100% to 114%)
+          // Animation scale (subtle micro-pop, not distracting)
           let scale = 1.0;
           if (isActive && isKaraoke && !isIndie) {
-            scale = isWordPunchline ? 1.0 + bounce * 0.14 : 1.0 + bounce * 0.08;
+            scale = isWordPunchline ? 1.0 + bounce * 0.10 : 1.0 + bounce * 0.06;
           }
 
-          // Purpose-driven color palette:
-          // Base: Pure White (#FFFFFF) or warm Indie Yellow (#F4D35E)
-          // Context/hook: Warm Amber (#FFD166)
-          // Punchline/slang: Coral Red (#FF595E)
+          // Refined modern palette
           let textColor = baseColor;
+          let textShadowStyle = '0 2px 4px rgba(0,0,0,0.85), 0 4px 16px rgba(0,0,0,0.6)';
+
+          if (isPill) {
+            textShadowStyle = '0 2px 6px rgba(0,0,0,0.45)';
+          } else if (isIndie) {
+            textShadowStyle = '0 2px 6px rgba(0,0,0,0.5), 0 4px 12px rgba(0,0,0,0.3)';
+          }
+
           if (isActive && isKaraoke) {
             if (isWordPunchline) {
               textColor = punchlineCoral;
-            } else if (w.highlightType === 'context' || w.emphasis) {
-              textColor = highlightAmber;
+              textShadowStyle = isPill
+                ? '0 0 14px rgba(255, 71, 87, 0.6)'
+                : '0 0 20px rgba(255, 71, 87, 0.65), 0 2px 6px rgba(0,0,0,0.9)';
             } else {
-              textColor = highlightAmber;
+              textColor = highlightGold;
+              textShadowStyle = isPill
+                ? '0 0 14px rgba(255, 214, 10, 0.5)'
+                : '0 0 18px rgba(255, 214, 10, 0.55), 0 2px 6px rgba(0,0,0,0.9)';
             }
           } else if (isPast && isKaraoke) {
-            textColor = isIndie ? '#FAF9F5' : '#E5E7EB';
+            textColor = isIndie ? '#E2DEC9' : '#CBD5E1';
           } else {
-            textColor = isIndie ? '#F4D35E' : '#FFFFFF';
+            textColor = isIndie ? '#FBF7EE' : '#F8FAFC';
           }
 
-          // Stroke and shadow parameters from the style guide:
-          // Thin dark charcoal / black outline (3px - 5px)
-          // Soft black drop shadow (40% - 60% opacity)
+          // Refined sub-pixel outline (never clunky, drawn behind fill)
           const strokeStyle = isPill
             ? 'none'
             : isIndie
-            ? '2.5px #000000'
-            : '3.5px #000000';
-
-          const shadowStyle = isPill
-            ? 'none'
-            : isIndie
-            ? '0 4px 10px rgba(0,0,0,0.45)'
-            : '0 6px 14px rgba(0,0,0,0.55), 0 2px 4px rgba(0,0,0,0.40)';
+            ? '1.5px rgba(0, 0, 0, 0.85)'
+            : '2px rgba(0, 0, 0, 0.92)';
 
           return (
             <span
@@ -234,15 +324,17 @@ export const EditCaptions: React.FC<EditCaptionsProps> = ({
               style={{
                 fontFamily: fontFam,
                 fontSize,
-                fontWeight: isIndie ? 700 : isWordPunchline ? 900 : 800,
+                fontWeight: isIndie ? 600 : isWordPunchline ? 900 : 800,
                 color: textColor,
                 textTransform: textTransform as any,
                 transform: `scale(${scale})`,
+                paintOrder: 'stroke fill',
                 WebkitTextStroke: strokeStyle,
-                textShadow: shadowStyle,
-                letterSpacing: isWordPunchline ? '0px' : '-0.5px',
+                textShadow: textShadowStyle,
+                letterSpacing: isWordPunchline ? '0.02em' : '-0.02em',
+                lineHeight: 1.2,
                 display: 'inline-block',
-                transition: 'color 0.1s ease',
+                transition: 'color 0.08s ease, transform 0.08s ease',
               }}
             >
               {w.text}

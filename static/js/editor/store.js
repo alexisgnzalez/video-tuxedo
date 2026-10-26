@@ -189,4 +189,7 @@ class EditorStore {
   }
 }
 
-export const store = new EditorStore();
+// Guaranteed singleton across any module specifier or bundle boundary
+const storeSingleton = window.__tuxedoEditorStore || new EditorStore();
+window.__tuxedoEditorStore = storeSingleton;
+export const store = storeSingleton;

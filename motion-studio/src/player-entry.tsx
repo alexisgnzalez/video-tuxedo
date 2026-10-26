@@ -158,6 +158,10 @@ export function createPlayerInstance(
     update: (newPlan: any) => {
       activePlan = { ...newPlan };
       render();
+      if (activePlayerRef && !activePlayerRef.isPlaying()) {
+        const curFrame = activePlayerRef.getCurrentFrame();
+        activePlayerRef.seekTo(curFrame);
+      }
     },
     seek: (frame: number) => {
       if (activePlayerRef) {

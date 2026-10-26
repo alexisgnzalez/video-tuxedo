@@ -2,7 +2,7 @@
  * Tuxedo Editor Step 2: Silence Cutter & Non-Destructive Jump Cuts
  */
 
-import { store } from '../store.js';
+import { store } from '../store.js?v=0.7.2';
 import { showToast, createProgressLine } from '../ui.js';
 
 export function renderStepCut(container) {
@@ -74,10 +74,13 @@ export function renderStepCut(container) {
         <div id="conformProgressContainer" style="display: none; margin-top: 10px;"></div>
       </div>
 
-      <div style="display: flex; gap: 8px; margin-top: 12px;">
-        <button class="vt-btn-secondary" id="btnBackToStep1" style="flex: 1;">&larr; Back</button>
-        <button class="vt-btn-primary" id="btnGoToStep3" style="flex: 2;">Next: Subtitles &rarr;</button>
       </div>
+    </div>
+
+    <!-- Always Visible Sticky Footer Navigation -->
+    <div class="step-panel-footer">
+      <button class="vt-btn-secondary" id="btnBackToStep1" style="flex: 1;">&larr; Back</button>
+      <button class="vt-btn-primary" id="btnGoToStep3" style="flex: 2;">Next: Subtitles &rarr;</button>
     </div>
   `;
 

@@ -3,22 +3,36 @@
  * Coordinates the Step Rail, Remotion Player, Timeline, Undo/Redo, and Autosave.
  */
 
-import { store } from './store.js?v=0.6.4';
-import { player } from './player.js?v=0.6.4';
-import { Timeline } from './timeline/Timeline.js?v=0.6.4';
-import { renderStepUpload } from './steps/upload.js?v=0.6.4';
-import { renderStepCut } from './steps/cut.js?v=0.6.4';
-import { renderStepSubtitles } from './steps/subtitles.js?v=0.6.4';
-import { renderStepCutout } from './steps/cutout.js?v=0.6.4';
-import { renderStepGraphics } from './steps/graphics.js?v=0.6.4';
-import { renderStepExport } from './steps/export.js?v=0.6.4';
-import { formatTimecode, showToast } from './ui.js?v=0.6.4';
+import { store } from './store.js?v=0.7.2';
+import { player } from './player.js?v=0.7.2';
+import { Timeline } from './timeline/Timeline.js?v=0.7.2';
+import { renderStepUpload } from './steps/upload.js?v=0.7.2';
+import { renderStepCut } from './steps/cut.js?v=0.7.2';
+import { renderStepSubtitles } from './steps/subtitles.js?v=0.7.2';
+import { renderStepCutout } from './steps/cutout.js?v=0.7.2';
+import { renderStepGraphics } from './steps/graphics.js?v=0.7.2';
+import { renderStepExport } from './steps/export.js?v=0.7.2';
+import { formatTimecode, showToast } from './ui.js?v=0.7.2';
 
 let timelineInstance = null;
+let isInitialized = false;
 
 export async function initEditor(slug = null) {
   const viewEl = document.getElementById('editorToolView');
   if (!viewEl) return;
+
+  if (isInitialized) {
+    if (slug) {
+      await loadProjectBySlug(slug);
+    } else {
+      const curProj = store.getProject();
+      const targetStep = (curProj?.clips && curProj.clips.length > 0) ? 2 : 1;
+      store.setStep(targetStep);
+      renderActiveStep(targetStep);
+    }
+    return;
+  }
+  isInitialized = true;
 
   // Window global reference so timeline can trigger player actions
   window.editorPlayer = player;
@@ -73,6 +87,14 @@ export async function initEditor(slug = null) {
     const redoBtn = document.getElementById('editorRedoBtn');
     if (undoBtn) undoBtn.disabled = !store.canUndo();
     if (redoBtn) redoBtn.disabled = !store.canRedo();
+  });
+
+  // Subscribe to project loads to update top bar title
+  store.subscribe('project:load', (proj) => {
+    const nameInput = document.getElementById('editorProjectName');
+    if (nameInput) {
+      nameInput.value = proj?.name || proj?.slug || 'Untitled Project';
+    }
   });
 
   // Load project if slug provided

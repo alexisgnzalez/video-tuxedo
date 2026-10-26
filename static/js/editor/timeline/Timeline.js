@@ -3,7 +3,7 @@
  * Viewport-sized canvas ruler & waveform peaks, 4 synchronized tracks, and playhead scrubber.
  */
 
-import { store } from '../store.js';
+import { store } from '../store.js?v=0.7.2';
 import { VideoTrack } from './VideoTrack.js';
 import { CaptionTrack } from './CaptionTrack.js';
 import { LayerTrack } from './LayerTrack.js';

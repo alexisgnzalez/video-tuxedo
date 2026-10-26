@@ -2,7 +2,7 @@
  * Tuxedo Editor Step 4: AI Subject Rotoscoping & 3-Layer Sandwich VFX
  */
 
-import { store } from '../store.js';
+import { store } from '../store.js?v=0.7.2';
 import { showToast, createProgressLine } from '../ui.js';
 
 export function renderStepCutout(container) {
@@ -60,10 +60,13 @@ export function renderStepCutout(container) {
         3. <strong>Top Layer:</strong> Conformed speaker cutout preserving hair and shoulders in front!
       </div>
 
-      <div style="display: flex; gap: 8px; margin-top: 12px;">
-        <button class="vt-btn-secondary" id="btnBackToStep3" style="flex: 1;">&larr; Back</button>
-        <button class="vt-btn-primary" id="btnGoToStep5" style="flex: 2;">Next: Graphics & Overlays &rarr;</button>
       </div>
+    </div>
+
+    <!-- Always Visible Sticky Footer Navigation -->
+    <div class="step-panel-footer">
+      <button class="vt-btn-secondary" id="btnBackToStep3" style="flex: 1;">&larr; Back</button>
+      <button class="vt-btn-primary" id="btnGoToStep5" style="flex: 2;">Next: Graphics & Overlays &rarr;</button>
     </div>
   `;
 

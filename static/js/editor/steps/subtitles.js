@@ -2,7 +2,7 @@
  * Tuxedo Editor Step 3: Subtitles & Gemini Flash AI Polish
  */
 
-import { store } from '../store.js';
+import { store } from '../store.js?v=0.7.2';
 import { showToast, createProgressLine, formatTime } from '../ui.js';
 
 export function renderStepSubtitles(container) {
@@ -30,18 +30,18 @@ export function renderStepSubtitles(container) {
         <div class="editor-field">
           <label class="editor-label">Subtitle Style Preset</label>
           <select class="editor-select" id="selectSubtitlePreset">
-            <option value="standup_hybrid" ${currentPreset === 'standup_hybrid' ? 'selected' : ''}>🌟 Dynamic "Stand-Up" Hybrid (Recommended)</option>
-            <option value="indie_cinema" ${currentPreset === 'indie_cinema' ? 'selected' : ''}>🎬 Warm "Indie Cinema" Captions (Nostalgic)</option>
-            <option value="pill_box" ${currentPreset === 'pill_box' ? 'selected' : ''}>💬 Conversational Pill Box (Modern UI)</option>
+            <option value="standup_hybrid" ${currentPreset === 'standup_hybrid' ? 'selected' : ''}>🌟 Dynamic "Stand-Up" Hybrid (Refined)</option>
+            <option value="indie_cinema" ${currentPreset === 'indie_cinema' ? 'selected' : ''}>🎬 Warm "Indie Cinema" Captions (Editorial)</option>
+            <option value="pill_box" ${currentPreset === 'pill_box' ? 'selected' : ''}>💬 Frosted Glass Pill (Modern Minimalist)</option>
           </select>
           <div style="font-size: 11px; color: var(--vt-text-muted); margin-top: 4px;" id="presetHelpText">
-            ${currentPreset === 'indie_cinema' ? 'Warm yellow/off-white, thin outline, steady zero-bounce placement for nostalgic stories.' : currentPreset === 'pill_box' ? 'Clean semi-transparent pill container with rounded corners and modern sans-serif.' : 'Heavy sans-serif, sentence case setups, ALL CAPS punchlines, warm amber context & coral slang.'}
+            ${currentPreset === 'indie_cinema' ? 'Warm ivory/gold tones, subtle shadow, zero-bounce steady placement for narrative storytelling.' : currentPreset === 'pill_box' ? 'Translucent frosted glass capsule with blur backdrop, crisp white text and gold active glow.' : 'Crisp sub-pixel outline, sentence case setups, uppercase punchlines with luminous gold & coral highlights.'}
           </div>
         </div>
 
         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
           <div class="editor-field">
-            <label class="editor-label">Pacing Pacing Rule</label>
+            <label class="editor-label">Pacing & Density Rule</label>
             <select class="editor-select" id="selectSubtitlePacing">
               <option value="standup_hybrid" selected>Setup/Punchline Hybrid</option>
               <option value="punchy">Punchy / Fast (2–4 words)</option>
@@ -114,15 +114,16 @@ export function renderStepSubtitles(container) {
         <button class="vt-btn-secondary" id="btnAddCueBtn" style="width: auto; padding: 4px 10px; font-size: 11px;">+ Add Cue</button>
       </div>
 
-      <!-- Cue List Scroll Container -->
-      <div id="cuesScrollList" style="display: flex; flex-direction: column; gap: 8px; max-height: 380px; overflow-y: auto; padding-right: 4px;">
+      <!-- Cue List Container (Flows naturally within sidebar) -->
+      <div id="cuesScrollList" style="display: flex; flex-direction: column; gap: 8px; flex-shrink: 0; min-height: 120px; padding-bottom: 24px;">
         ${cues.length === 0 ? '<div style="font-size: 12px; color: var(--vt-text-muted); text-align: center; padding: 20px;">No subtitle cues yet. Click "Transcribe Dialogue" to generate subtitles.</div>' : ''}
       </div>
+    </div>
 
-      <div style="display: flex; gap: 8px; margin-top: 12px;">
-        <button class="vt-btn-secondary" id="btnBackToStep2" style="flex: 1;">&larr; Back</button>
-        <button class="vt-btn-primary" id="btnGoToStep4" style="flex: 2;">Next: Subject Rotoscoping &rarr;</button>
-      </div>
+    <!-- Always Visible Sticky Footer Navigation -->
+    <div class="step-panel-footer">
+      <button class="vt-btn-secondary" id="btnBackToStep2" style="flex: 1;">&larr; Back</button>
+      <button class="vt-btn-primary" id="btnGoToStep4" style="flex: 2;">Next: Subject Rotoscoping &rarr;</button>
     </div>
   `;
 
@@ -140,6 +141,7 @@ function renderCueItems(container) {
 
   listEl.innerHTML = '';
   cues.forEach((cue, index) => {
+    syncCueWords(cue);
     const item = document.createElement('div');
     item.style.background = 'var(--vt-bg-surface)';
     item.style.border = '1px solid var(--vt-border)';
@@ -183,10 +185,11 @@ function renderCueItems(container) {
       if (window.editorPlayer) window.editorPlayer.seek(cue.start);
     });
 
-    // Inline edit
+    // Inline edit with instant real-time synchronization
     const input = item.querySelector('.cue-text-input');
     input?.addEventListener('input', (e) => {
       cue.text = e.target.value;
+      syncCueWords(cue);
       store.triggerAutosave();
       store.emit('change');
     });
@@ -429,4 +432,95 @@ function bindSubtitleEvents(container) {
   // Step navigation
   container.querySelector('#btnBackToStep2')?.addEventListener('click', () => store.setStep(2));
   container.querySelector('#btnGoToStep4')?.addEventListener('click', () => store.setStep(4));
+}
+
+export function syncCueWords(cue) {
+  if (!cue) return;
+  const cueText = (cue.text || '').trim();
+  if (!cueText) {
+    cue.words = [];
+    return;
+  }
+
+  const rawWords = cueText.split(/\s+/).filter(Boolean);
+  if (rawWords.length === 0) {
+    cue.words = [];
+    return;
+  }
+
+  const cueStart = cue.start ?? 0;
+  const cueEnd = cue.end ?? (cueStart + 1.0);
+  const totalDuration = Math.max(0.1, cueEnd - cueStart);
+  const defaultSlotDur = totalDuration / rawWords.length;
+
+  const existingWords = (cue.words || []).filter(w => Boolean(w && typeof w.text === 'string' && w.text.trim()));
+
+  const isExactCountMatch = existingWords.length === rawWords.length;
+  if (isExactCountMatch) {
+    const isExactTextMatch = existingWords.every((ew, i) => {
+      const c1 = ew.text.toLowerCase().replace(/[.,!?:;¿¡"']/g, '');
+      const c2 = rawWords[i].toLowerCase().replace(/[.,!?:;¿¡"']/g, '');
+      return c1 === c2;
+    });
+    if (isExactTextMatch) {
+      cue.words = existingWords.map((ew, i) => ({
+        ...ew,
+        text: rawWords[i],
+        isPunchline: ew.isPunchline || (rawWords[i].length > 2 && rawWords[i] === rawWords[i].toUpperCase()),
+      }));
+      return;
+    }
+  }
+
+  const newWords = [];
+  let existCursor = 0;
+  for (let i = 0; i < rawWords.length; i++) {
+    const rawWord = rawWords[i];
+    const cleanRaw = rawWord.toLowerCase().replace(/[.,!?:;¿¡"']/g, '');
+
+    let matchIdx = -1;
+    for (let j = existCursor; j < existingWords.length; j++) {
+      const cleanExist = (existingWords[j].text || '').toLowerCase().replace(/[.,!?:;¿¡"']/g, '');
+      if (cleanExist === cleanRaw && cleanRaw.length > 0) {
+        matchIdx = j;
+        break;
+      }
+    }
+
+    if (matchIdx !== -1) {
+      const matched = existingWords[matchIdx];
+      newWords.push({
+        ...matched,
+        text: rawWord,
+        isPunchline: matched.isPunchline || (rawWord.length > 2 && rawWord === rawWord.toUpperCase()),
+      });
+      existCursor = matchIdx + 1;
+    } else {
+      const start = cueStart + i * defaultSlotDur;
+      const end = cueStart + (i + 1) * defaultSlotDur;
+      newWords.push({
+        id: `w_gen_${Date.now()}_${i}`,
+        text: rawWord,
+        start,
+        end,
+        emphasis: false,
+        highlightType: undefined,
+        isPunchline: rawWord.length > 2 && rawWord === rawWord.toUpperCase(),
+      });
+    }
+  }
+
+  for (let i = 0; i < newWords.length; i++) {
+    if (i === 0) {
+      newWords[i].start = Math.max(cueStart, newWords[i].start);
+    } else {
+      newWords[i].start = Math.max(newWords[i - 1].end, newWords[i].start);
+    }
+    const nextStart = (i + 1 < newWords.length) ? newWords[i + 1].start : cueEnd;
+    if (newWords[i].end <= newWords[i].start || newWords[i].end > nextStart) {
+      newWords[i].end = Math.max(newWords[i].start + 0.05, nextStart);
+    }
+  }
+
+  cue.words = newWords;
 }

@@ -3,7 +3,7 @@
  * Renders visual overlays, stickers, and graphic items with duration bars.
  */
 
-import { store } from '../store.js';
+import { store } from '../store.js?v=0.7.2';
 
 export class LayerTrack {
   constructor(containerEl) {

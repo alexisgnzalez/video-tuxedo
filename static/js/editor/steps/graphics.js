@@ -2,7 +2,7 @@
  * Tuxedo Editor Step 5: Multi-Style Motion Graphics & B-Roll Overlays
  */
 
-import { store } from '../store.js';
+import { store } from '../store.js?v=0.7.2';
 import { showToast } from '../ui.js';
 
 export async function renderStepGraphics(container) {
@@ -101,10 +101,13 @@ export async function renderStepGraphics(container) {
         <!-- Rendered items -->
       </div>
 
-      <div style="display: flex; gap: 8px; margin-top: 12px;">
-        <button class="vt-btn-secondary" id="btnBackToStep4" style="flex: 1;">&larr; Back</button>
-        <button class="vt-btn-primary" id="btnGoToStep6" style="flex: 2;">Next: Export Video &rarr;</button>
       </div>
+    </div>
+
+    <!-- Always Visible Sticky Footer Navigation -->
+    <div class="step-panel-footer">
+      <button class="vt-btn-secondary" id="btnBackToStep4" style="flex: 1;">&larr; Back</button>
+      <button class="vt-btn-primary" id="btnGoToStep6" style="flex: 2;">Next: Export Video &rarr;</button>
     </div>
   `;
 

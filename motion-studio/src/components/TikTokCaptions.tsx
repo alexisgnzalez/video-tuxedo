@@ -20,7 +20,7 @@ const VENEZUELAN_SLANG_WORDS = new Set([
 
 export const TikTokCaptions: React.FC<TikTokCaptionsProps> = ({
   words,
-  activeColor = '#FFD166', // Warm Amber from TikTok style guide
+  activeColor = '#FFD60A', // Refined Vibrant Gold
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -56,7 +56,7 @@ export const TikTokCaptions: React.FC<TikTokCaptionsProps> = ({
       style={{
         justifyContent: 'flex-end',
         alignItems: 'center',
-        paddingBottom: 620, // The "Collarbone" Safe Zone: 30% to 35% up from bottom
+        paddingBottom: 600, // Collarbone Safe Zone (30% to 35% up from bottom)
         pointerEvents: 'none',
       }}
     >
@@ -66,9 +66,9 @@ export const TikTokCaptions: React.FC<TikTokCaptionsProps> = ({
           flexWrap: 'wrap',
           justifyContent: 'center',
           alignItems: 'center',
-          gap: 16,
-          padding: '0 40px',
-          maxWidth: 960,
+          gap: 14,
+          padding: '0 36px',
+          maxWidth: 920,
         }}
       >
         {visibleWords.map((w, idx) => {
@@ -80,7 +80,7 @@ export const TikTokCaptions: React.FC<TikTokCaptionsProps> = ({
           const bounce = spring({
             frame: wordFrame,
             fps,
-            config: { damping: 12, stiffness: 220, mass: 0.5 },
+            config: { damping: 16, stiffness: 260, mass: 0.4 },
           });
 
           const cleanWord = w.word.toLowerCase().replace(/[.,!?:;¿¡"']/g, '');
@@ -89,29 +89,37 @@ export const TikTokCaptions: React.FC<TikTokCaptionsProps> = ({
           // Casing rule: ALL CAPS for punchlines/slang, Sentence case for setups
           const textTransform = isPunchlineOrSlang ? 'uppercase' : 'none';
 
-          // Animation scale
-          const scale = isActive ? (isPunchlineOrSlang ? 1.0 + bounce * 0.14 : 1.0 + bounce * 0.08) : 1.0;
+          // Animation scale (subtle, snappy)
+          const scale = isActive ? (isPunchlineOrSlang ? 1.0 + bounce * 0.10 : 1.0 + bounce * 0.06) : 1.0;
 
-          // Palette: Narrative White (#FFFFFF), Warm Amber (#FFD166), Punchline Coral (#FF595E)
+          // Palette: Narrative White (#F8FAFC), Vibrant Gold (#FFD60A), Punchline Coral (#FF4757)
           const textColor = isActive
-            ? (isPunchlineOrSlang ? '#FF595E' : activeColor)
-            : '#FFFFFF';
+            ? (isPunchlineOrSlang ? '#FF4757' : activeColor)
+            : '#F8FAFC';
+
+          const textShadowStyle = isActive
+            ? (isPunchlineOrSlang
+                ? '0 0 20px rgba(255, 71, 87, 0.65), 0 2px 6px rgba(0,0,0,0.9)'
+                : '0 0 18px rgba(255, 214, 10, 0.55), 0 2px 6px rgba(0,0,0,0.9)')
+            : '0 2px 4px rgba(0,0,0,0.85), 0 4px 16px rgba(0,0,0,0.6)';
 
           return (
             <span
               key={`${w.word}_${globalIdx}`}
               style={{
-                fontFamily: 'Montserrat, -apple-system, sans-serif',
-                fontSize: 68,
+                fontFamily: "'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, 'Montserrat', sans-serif",
+                fontSize: 56,
                 fontWeight: isPunchlineOrSlang ? 900 : 800,
                 color: textColor,
                 textTransform: textTransform as any,
                 transform: `scale(${scale})`,
-                WebkitTextStroke: '3.5px #000000',
-                textShadow: '0 6px 14px rgba(0,0,0,0.55), 0 2px 4px rgba(0,0,0,0.40)',
-                letterSpacing: isPunchlineOrSlang ? '0px' : '-0.5px',
+                paintOrder: 'stroke fill',
+                WebkitTextStroke: '2px rgba(0, 0, 0, 0.92)',
+                textShadow: textShadowStyle,
+                letterSpacing: isPunchlineOrSlang ? '0.02em' : '-0.02em',
+                lineHeight: 1.2,
                 display: 'inline-block',
-                transition: 'color 0.1s ease',
+                transition: 'color 0.08s ease, transform 0.08s ease',
               }}
             >
               {w.word}
