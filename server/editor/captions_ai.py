@@ -23,14 +23,22 @@ from server.subtitles import transcribe_media
 logger = logging.getLogger("video_tuxedo.editor.captions")
 
 
+VENEZUELAN_SLANG_KEYWORDS = {
+    "chinazo", "tijerazo", "bigote", "chamo", "marico", "vaina", "arrecho",
+    "ladilla", "pana", "cédula", "cedula", "secador", "discoteca", "discotecas",
+    "empatarse", "calentar", "humilde", "trágame", "tierra", "monitores", "caracas"
+}
+
+
 def transcribe_project_audio(
     project: Project,
     model_size: str = "base",
     language: Optional[str] = None,
-    pacing: str = "natural",
+    pacing: str = "standup_hybrid",
 ) -> List[CaptionCue]:
     """
     Transcribes project audio using local Faster-Whisper.
+    Applies the TikTok Stand-Up Hybrid pacing model (Hook: 1-3w, Setup: 4-6w, Punchlines: 1-3w).
     If conformed video exists, transcribes conform.mp4 directly (already in timeline time).
     Otherwise, transcribes source video and maps timestamps through the EDL clips.
     """
@@ -55,13 +63,13 @@ def transcribe_project_audio(
         else:
             raise FileNotFoundError(f"Media file not found for transcription in {project_dir}")
 
-    logger.info(f"Transcribing {target_media.name} (use_conform={use_conform}, model={model_size})...")
+    logger.info(f"Transcribing {target_media.name} (use_conform={use_conform}, model={model_size}, pacing={pacing})...")
 
     result = transcribe_media(
         file_path=str(target_media),
         model_size=model_size,
         language=language,
-        pacing=pacing,
+        pacing=pacing or "standup_hybrid",
     )
 
     raw_cues = result.get("segments", []) or result.get("cues", [])
@@ -76,6 +84,9 @@ def transcribe_project_audio(
                     text=w.get("word", w.get("text", "")).strip(),
                     start=round(float(w.get("start", 0)), 3),
                     end=round(float(w.get("end", 0)), 3),
+                    emphasis=bool(w.get("emphasis", False)),
+                    highlightType=w.get("highlight_type"),
+                    isPunchline=bool(w.get("is_punchline", False)),
                 )
                 for w_idx, w in enumerate(c.get("words", []))
             ]
@@ -86,6 +97,7 @@ def transcribe_project_audio(
                     end=round(float(c.get("end", 0)), 3),
                     text=c.get("text", "").strip(),
                     words=words,
+                    cueType=c.get("cue_type", "setup"),
                 )
             )
         project.captions.cues = timeline_cues
@@ -102,6 +114,9 @@ def transcribe_project_audio(
                     "text": w_text,
                     "start": float(w.get("start", 0)),
                     "end": float(w.get("end", 0)),
+                    "emphasis": bool(w.get("emphasis", False)),
+                    "highlightType": w.get("highlight_type"),
+                    "isPunchline": bool(w.get("is_punchline", False)),
                 })
             source_cue_dicts.append({
                 "id": f"cue_{i+1}",
@@ -109,11 +124,27 @@ def transcribe_project_audio(
                 "end": float(c.get("end", 0)),
                 "text": c.get("text", "").strip(),
                 "words": words,
+                "cue_type": c.get("cue_type", "setup"),
             })
         project.captions.cues = map_cues_to_timeline(source_cue_dicts, project.clips)
 
     project.captions.engine = f"whisper-{model_size}"
     project.captions.enabled = True
+    # Ensure default signature style if not set
+    if not project.captions.style or project.captions.style.get("preset") in ("tuxedo-bold", None):
+        project.captions.style = {
+            "preset": "standup_hybrid",
+            "font": "Montserrat",
+            "size": 68,
+            "color": "#FFFFFF",
+            "highlight": "#FFD166",
+            "accent": "#FF595E",
+            "position": "collarbone",
+            "paddingBottom": 620,
+            "karaoke": True,
+            "strokeWidth": 3.5,
+            "strokeColor": "#000000",
+        }
     save_project(project)
     return project.captions.cues
 
@@ -141,8 +172,11 @@ def _load_gemini_key(provided_key: Optional[str] = None) -> Optional[str]:
 
 def _apply_local_proofread(cues: List[CaptionCue]) -> None:
     """
-    Offline local proofreader that capitalizes sentence starts, fixes punctuation,
-    and identifies comedic punchline emphasis words across all cues.
+    Offline local proofreader adhering to the TikTok Subtitle Style Guide:
+    - Sentence case for 90% setup storytelling.
+    - ALL CAPS for punchlines, Venezuelan slang, and exclamations.
+    - Amber (#FFD166) context tag on key nouns/dates.
+    - Coral (#FF595E) punchline tag on slang and comedic beats.
     """
     stop_words = {
         "el", "la", "los", "las", "un", "una", "de", "del", "a", "al", "en", "con",
@@ -154,21 +188,39 @@ def _apply_local_proofread(cues: List[CaptionCue]) -> None:
         raw = cue.text.strip()
         if not raw:
             continue
-        # Capitalize first letter
-        fixed = raw[0].upper() + raw[1:] if len(raw) > 1 else raw.upper()
-        if fixed and fixed[-1] not in ".?!…,:;¿¡":
-            fixed += "."
-        cue.text = fixed
 
-        # Tag punchy words for emphasis
-        if cue.words:
-            candidates = [
-                w for w in cue.words
-                if w.text.lower().strip(".,!?:;¿¡") not in stop_words and len(w.text.strip(".,!?:;¿¡")) >= 4
-            ]
-            if candidates:
-                candidates.sort(key=lambda w: len(w.text.strip(".,!?:;¿¡")), reverse=True)
-                candidates[0].emphasis = True
+        cue_words_clean = [w.text.lower().strip(".,!?:;¿¡\"'") for w in cue.words] if cue.words else []
+        has_slang = any(w in VENEZUELAN_SLANG_KEYWORDS for w in cue_words_clean)
+        is_short_punch = len(cue.words) <= 3 and (has_slang or raw.endswith("!") or cue.cueType == "punchline")
+
+        if is_short_punch:
+            # Punchline card: ALL CAPS
+            cue.text = raw.upper()
+            cue.cueType = "punchline"
+            for w in cue.words:
+                w.text = w.text.upper()
+                w.isPunchline = True
+                w.emphasis = True
+                w.highlightType = "punchline"
+        else:
+            # Setup card: Sentence case (Mixed case)
+            fixed = raw[0].upper() + raw[1:] if len(raw) > 1 else raw.upper()
+            if fixed and fixed[-1] not in ".?!…,:;¿¡":
+                fixed += "."
+            cue.text = fixed
+            cue.cueType = "hook" if cue.start <= 3.2 else "setup"
+
+            # Tag at most 1 context noun/date for Warm Amber highlight
+            if cue.words:
+                candidates = [
+                    w for w in cue.words
+                    if w.text.lower().strip(".,!?:;¿¡\"'") not in stop_words and len(w.text.strip(".,!?:;¿¡\"'")) >= 4
+                ]
+                if candidates:
+                    candidates.sort(key=lambda w: len(w.text.strip(".,!?:;¿¡\"'")), reverse=True)
+                    target = candidates[0]
+                    target.emphasis = True
+                    target.highlightType = "context"
 
 
 def proofread_project_captions(
@@ -178,7 +230,10 @@ def proofread_project_captions(
 ) -> List[CaptionCue]:
     """
     Enriches and corrects subtitle cues using Gemini Flash with graceful local fallback.
-    Strictly preserves audio synchronization while polishing punctuation, capitalization, and emphasis.
+    Implements the Stand-Up Hybrid Subtitle Style Guide:
+    - Sentence case for setups; ALL CAPS for punchlines & slang.
+    - Max 1 highlighted keyword per card (Warm Amber context vs Coral Red punchline).
+    - Preserves natural conversational flow, audio synchronization, and Venezuelan slang.
     """
     import re
 
@@ -201,32 +256,39 @@ def proofread_project_captions(
             ]
 
             all_cues = project.captions.cues
-            batch_size = 30
+            batch_size = 25
 
             for b_idx in range(0, len(all_cues), batch_size):
                 batch = all_cues[b_idx : b_idx + batch_size]
-                input_payload = [{"id": cue.id, "text": cue.text} for cue in batch]
+                input_payload = [{"id": cue.id, "text": cue.text, "words_count": len(cue.words)} for cue in batch]
 
                 prompt = f"""
-You are an expert subtitle proofreader and comedic punchline polisher for short-form video.
-Review the following subtitle cues (dialogue is Spanish or English):
+You are the expert subtitle director and comedic punchline polisher for @alexisgnzlz's TikTok channel.
+Channel Vibe: Conversational storytelling, nostalgic anecdotes, observational humor, and Venezuelan slang ("Compartiendo mi historia -- De video en video").
 
 Input Cues:
 {json.dumps(input_payload, ensure_ascii=False, indent=2)}
 
-INSTRUCTIONS:
-1. Correct spelling errors, missing accents (tildes), correct punctuation, and casing.
-2. Keep the natural spoken rhythm, colloquialisms, and humor intact. Do NOT over-formalize conversational slang.
-3. For each cue, identify 1 or 2 high-impact or comedic words to place in an "emphasis" array.
-4. CRITICAL: You MUST return a JSON list with the exact same number of items and matching "id" values.
-5. Do NOT merge cues or delete cues.
+INSTRUCTIONS (Strictly adhering to the TikTok Stand-Up Hybrid Subtitle Style Guide):
+1. CASING RULES:
+   - Sentence case (Mixed case): Use for 90% of the video (conversational storytelling and setup clauses). It feels conversational and reads fast.
+   - ALL CAPS: Reserve strictly for 1-to-3-word punchlines, comedic climax, loud reactions, and Venezuelan slang (e.g. "¡CHINAZO!", "CON UN SECADOR", "SE ME CAYÓ LA CÉDULA", "EMPATARSE", "ARRECHO").
+2. SPELLING & ACCENTS: Correct spelling, missing accents (tildes), correct punctuation (¿?, ¡!).
+3. COLLOQUIALISMS: Preserve Venezuelan slang (chamo, pana, vaina, chinazo, tijerazo, secador de cabello, etc.). NEVER over-formalize conversational dialogue.
+4. HIGHLIGHT RESTRAINT (Maximum 1 keyword or 2-word phrase per card):
+   - Tag at most 1 keyword:
+     - "context": key nouns, dates, hook words (will be rendered in Warm Amber #FFD166). E.g. "2016", "monitores", "secador de cabello".
+     - "punchline": comedic twists, slang, or awkward realizations (will be rendered in Coral Red #FF595E).
+5. CARD TYPE: Mark each card as "setup", "hook", "punchline", or "slang".
+6. CRITICAL: You MUST return a JSON list with the exact same number of items and matching "id" values. Do not merge or delete cues.
 
 Return JSON adhering strictly to:
 [
   {{
     "id": "cue_1",
-    "text": "Cleaned and punctuated text",
-    "emphasis": ["word1"]
+    "text": "Cleaned and punctuated text in sentence case, or ALL CAPS if punchline",
+    "card_type": "setup",
+    "highlight": {{"word": "keyword", "type": "context"}}
   }}
 ]
 """
@@ -243,7 +305,7 @@ Return JSON adhering strictly to:
                             break
                     except Exception as e:
                         logger.warning(f"Gemini model {m} call failed on batch {b_idx}: {e}")
-                        break  # Don't spin retrying on overloaded server
+                        break
 
                 if not batch_res:
                     _apply_local_proofread(batch)
@@ -277,14 +339,29 @@ Return JSON adhering strictly to:
             new_text = item.get("text", cue.text).strip()
             if new_text:
                 cue.text = new_text
+            card_type = item.get("card_type", "setup")
+            cue.cueType = card_type
 
-            emphasis_words = set(w.lower().strip(".,!?:;¿¡") for w in item.get("emphasis", []))
+            # Apply word-level highlights and punchline tags
+            hl = item.get("highlight", {})
+            hl_word = hl.get("word", "").lower().strip(".,!?:;¿¡\"'") if isinstance(hl, dict) else ""
+            hl_type = hl.get("type", "context") if isinstance(hl, dict) else "context"
+
             for w in cue.words:
-                clean_w = w.text.lower().strip(".,!?:;¿¡")
-                if clean_w in emphasis_words:
+                clean_w = w.text.lower().strip(".,!?:;¿¡\"'")
+                if hl_word and (clean_w == hl_word or hl_word in clean_w):
                     w.emphasis = True
-        else:
-            _apply_local_proofread([cue])
+                    w.highlightType = hl_type
+                if card_type in ("punchline", "slang") or new_text.isupper():
+                    w.isPunchline = True
+                    w.emphasis = True
+                    if not w.highlightType:
+                        w.highlightType = "punchline"
+        elif not gemini_key:
+            pass  # Already locally proofread above if no gemini_key
+
+    if not clean_map:
+        _apply_local_proofread(project.captions.cues)
 
     save_project(project)
     return project.captions.cues

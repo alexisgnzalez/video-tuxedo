@@ -89,8 +89,12 @@ export const EditCaptions: React.FC<EditCaptionsProps> = ({
     );
   }
 
-  // Position: top (y ~280), middle (y ~960), lower-third (default: bottom ~420)
-  const posSetting = style.position || 'lower-third';
+  // Preset configuration (TikTok Subtitle Style Guide)
+  const preset = style.preset || 'standup_hybrid';
+  const posSetting = style.position || 'collarbone';
+
+  // The "Collarbone" Safe Zone (30% to 35% up from bottom of frame)
+  // In a 1080x1920 canvas, 32% from bottom = ~620px
   const justify =
     posSetting === 'top'
       ? 'flex-start'
@@ -98,14 +102,21 @@ export const EditCaptions: React.FC<EditCaptionsProps> = ({
       ? 'center'
       : 'flex-end';
   const paddingTop = posSetting === 'top' ? 260 : 0;
-  const paddingBottom = posSetting === 'lower-third' ? 420 : 0;
+  const paddingBottom =
+    posSetting === 'collarbone'
+      ? (style.paddingBottom || 620)
+      : posSetting === 'lower-third'
+      ? 480
+      : 0;
 
-  const fontFam = style.font || 'Montserrat, Inter, system-ui, sans-serif';
-  const fontSize = style.size || 68;
-  const baseColor = style.color || '#FFFFFF';
-  const highlightColor = style.highlight || '#FACC15';
+  const fontFam = style.font || (preset === 'pill_box' ? 'Inter, Montserrat, sans-serif' : 'Montserrat, -apple-system, sans-serif');
+  const fontSize = style.size || (preset === 'pill_box' ? 54 : preset === 'indie_cinema' ? 62 : 68);
+  const baseColor = style.color || (preset === 'indie_cinema' ? '#F4D35E' : '#FFFFFF');
+  const highlightAmber = style.highlight || '#FFD166';
+  const punchlineCoral = style.accent || '#FF595E';
   const isKaraoke = style.karaoke !== false;
-  const isBoxed = style.preset === 'boxed';
+  const isIndie = preset === 'indie_cinema';
+  const isPill = preset === 'pill_box';
 
   const words = activeCue.words && activeCue.words.length > 0
     ? activeCue.words
@@ -117,8 +128,15 @@ export const EditCaptions: React.FC<EditCaptionsProps> = ({
           text: w,
           start: activeCue.start + i * dur,
           end: activeCue.start + (i + 1) * dur,
+          emphasis: false,
+          highlightType: undefined,
+          isPunchline: false,
         };
       });
+
+  // Check if active cue is a comedic tag (1-2 words tagged for slight tilt)
+  const isComedicTag = words.length <= 2 && (activeCue.cueType === 'punchline' || activeCue.cueType === 'slang');
+  const containerRotation = isComedicTag ? -2.5 : 0;
 
   return (
     <AbsoluteFill
@@ -136,33 +154,79 @@ export const EditCaptions: React.FC<EditCaptionsProps> = ({
           flexWrap: 'wrap',
           justifyContent: 'center',
           alignItems: 'center',
-          gap: 16,
-          padding: isBoxed ? '16px 28px' : '0 40px',
-          backgroundColor: isBoxed ? 'rgba(0,0,0,0.75)' : 'transparent',
-          borderRadius: isBoxed ? 20 : 0,
-          border: isBoxed ? '3px solid #FACC15' : 'none',
+          gap: isPill ? 14 : 16,
+          padding: isPill ? '12px 32px' : '0 40px',
+          backgroundColor: isPill ? 'rgba(15, 23, 42, 0.82)' : 'transparent',
+          borderRadius: isPill ? 9999 : 0,
+          border: isPill ? '1.5px solid rgba(255, 255, 255, 0.20)' : 'none',
+          backdropFilter: isPill ? 'blur(8px)' : 'none',
+          boxShadow: isPill ? '0 8px 24px rgba(0,0,0,0.45)' : 'none',
           maxWidth: 960,
+          transform: `rotate(${containerRotation}deg)`,
+          transition: 'transform 0.15s ease',
         }}
       >
-        {words.map((w, idx) => {
+        {words.map((w: any, idx) => {
           const isActive = currentTime >= w.start && currentTime <= w.end;
           const isPast = currentTime > w.end;
 
-          // Subtle spring bounce when word becomes active
+          // Word entrance bounce when it becomes active
           const wordFrame = Math.max(0, Math.round((currentTime - w.start) * fps));
           const bounce = spring({
             frame: wordFrame,
             fps,
-            config: { damping: 11, stiffness: 240, mass: 0.5 },
+            config: { damping: 12, stiffness: 220, mass: 0.5 },
           });
 
-          const scale = isActive && isKaraoke ? 1.0 + bounce * 0.16 : 1.0;
-          const textColor =
-            isActive && isKaraoke
-              ? highlightColor
-              : isPast && isKaraoke
-              ? '#E5E7EB'
-              : baseColor;
+          // Check if word should be formatted as punchline
+          const isWordPunchline = Boolean(w.isPunchline || w.highlightType === 'punchline' || (w.text && w.text.length > 2 && w.text === w.text.toUpperCase() && !isIndie));
+
+          // Pacing & Casing rules:
+          // Sentence case for 90% setup storytelling; ALL CAPS reserved strictly for punchlines/slang
+          const textTransform = isWordPunchline ? 'uppercase' : 'none';
+
+          // Animation scale:
+          // Indie cinema: zero bounce
+          // Setup words: smooth micro-pop (100% to 108%)
+          // Punchline words: scale pop (100% to 114%)
+          let scale = 1.0;
+          if (isActive && isKaraoke && !isIndie) {
+            scale = isWordPunchline ? 1.0 + bounce * 0.14 : 1.0 + bounce * 0.08;
+          }
+
+          // Purpose-driven color palette:
+          // Base: Pure White (#FFFFFF) or warm Indie Yellow (#F4D35E)
+          // Context/hook: Warm Amber (#FFD166)
+          // Punchline/slang: Coral Red (#FF595E)
+          let textColor = baseColor;
+          if (isActive && isKaraoke) {
+            if (isWordPunchline) {
+              textColor = punchlineCoral;
+            } else if (w.highlightType === 'context' || w.emphasis) {
+              textColor = highlightAmber;
+            } else {
+              textColor = highlightAmber;
+            }
+          } else if (isPast && isKaraoke) {
+            textColor = isIndie ? '#FAF9F5' : '#E5E7EB';
+          } else {
+            textColor = isIndie ? '#F4D35E' : '#FFFFFF';
+          }
+
+          // Stroke and shadow parameters from the style guide:
+          // Thin dark charcoal / black outline (3px - 5px)
+          // Soft black drop shadow (40% - 60% opacity)
+          const strokeStyle = isPill
+            ? 'none'
+            : isIndie
+            ? '2.5px #000000'
+            : '3.5px #000000';
+
+          const shadowStyle = isPill
+            ? 'none'
+            : isIndie
+            ? '0 4px 10px rgba(0,0,0,0.45)'
+            : '0 6px 14px rgba(0,0,0,0.55), 0 2px 4px rgba(0,0,0,0.40)';
 
           return (
             <span
@@ -170,17 +234,15 @@ export const EditCaptions: React.FC<EditCaptionsProps> = ({
               style={{
                 fontFamily: fontFam,
                 fontSize,
-                fontWeight: 900,
+                fontWeight: isIndie ? 700 : isWordPunchline ? 900 : 800,
                 color: textColor,
-                textTransform: 'uppercase',
+                textTransform: textTransform as any,
                 transform: `scale(${scale})`,
-                WebkitTextStroke: isBoxed ? 'none' : '6px #000000',
-                textShadow: isBoxed
-                  ? '0 4px 12px rgba(0,0,0,0.6)'
-                  : '0 8px 16px rgba(0,0,0,0.85), 5px 5px 0 #000000',
-                letterSpacing: '-1px',
+                WebkitTextStroke: strokeStyle,
+                textShadow: shadowStyle,
+                letterSpacing: isWordPunchline ? '0px' : '-0.5px',
                 display: 'inline-block',
-                transition: 'none',
+                transition: 'color 0.1s ease',
               }}
             >
               {w.text}

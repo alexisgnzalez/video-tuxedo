@@ -54,6 +54,8 @@ class CaptionWord(BaseModel):
     srcStart: Optional[float] = None
     srcEnd: Optional[float] = None
     emphasis: bool = False
+    highlightType: Optional[str] = None  # "context" (Warm Amber) | "punchline" (Coral Red)
+    isPunchline: bool = False            # True for punchline or Venezuelan slang words
 
 
 class Word(BaseModel):
@@ -81,6 +83,7 @@ class CaptionCue(BaseModel):
     text: str = ""
     words: List[CaptionWord] = Field(default_factory=list)
     wordIds: List[str] = Field(default_factory=list)
+    cueType: Optional[str] = "setup"  # "setup" | "hook" | "punchline" | "slang"
 
 
 class CaptionsInfo(BaseModel):
@@ -89,14 +92,17 @@ class CaptionsInfo(BaseModel):
     cues: List[CaptionCue] = Field(default_factory=list)
     style: Dict[str, Any] = Field(
         default_factory=lambda: {
-            "preset": "tuxedo-bold",
+            "preset": "standup_hybrid",  # Signature TikTok preset from style guide
             "font": "Montserrat",
-            "size": 72,
-            "color": "#FFFFFF",
-            "highlight": "#FACC15",
-            "position": "lower-third",
-            "maxWordsPerLine": 4,
+            "size": 68,
+            "color": "#FFFFFF",          # Narrative base pure white
+            "highlight": "#FFD166",      # Context & hooks warm amber
+            "accent": "#FF595E",         # Punchline & Venezuelan slang coral red
+            "position": "collarbone",    # 30% - 35% Collarbone safe zone
+            "paddingBottom": 620,
             "karaoke": True,
+            "strokeWidth": 3.5,
+            "strokeColor": "#000000",
         }
     )
 

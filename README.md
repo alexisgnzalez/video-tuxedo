@@ -153,6 +153,12 @@ Complete all-in-one studio: Upload, non-destructive silence cuts, local Whisper 
 
 - **Non-Destructive EDL Timeline**: Split clips, drag to reorder, trim in/out handles with instant scrubbing.
 - **Audio Micro-Crossfades**: Eliminates zero-crossing clicks and pops between jump-cut speech boundaries with 15ms hardware audio fades.
+- **TikTok Subtitle Style Guide Presets**:
+  - **Dynamic "Stand-Up" Hybrid**: Paced by narrative function (Hook: 1–3w, Setup: 4–6w, Punchlines: 1–3w). Sentence case for setups (90%), ALL CAPS strictly for punchlines, 3.5px black outline, soft drop shadow, pure white base (`#FFFFFF`), warm amber context (`#FFD166`), and coral red punchlines (`#FF595E`).
+  - **Warm "Indie Cinema" Captions**: 5–7 words per card cut cleanly on natural breath pauses, warm yellow (`#F4D35E`) / off-white, zero bounce.
+  - **Conversational Pill Box**: 3–5 words on a single line within a sleek semi-transparent pill container.
+  - **Collarbone Safe Zone**: Captions placed 30%–35% up from bottom of frame (Y ~1300) to keep creator expressions visible while avoiding TikTok's description ticker.
+  - **The "No Spoilers" Rule**: Automatic timeline splitting ensuring punchline words are never revealed before they are spoken.
 - **Local Whisper & Gemini Flash Polish**: High-speed speech transcription mapped across the edited timeline with optional free Gemini Flash proofreading (preserving audio synchronization).
 - **3-Layer Sandwich VFX**: AI speaker matte extraction with YOLO-Seg / SAM 2.1 placing big bold headlines and stickers directly behind your shoulders.
 - **Pluggable Style Registry**: Comedic Storytelling (*StoryTuxedo*), *Caracas Mid-Century Kinetic*, and *Clean Minimalist*.

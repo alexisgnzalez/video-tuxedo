@@ -11,6 +11,9 @@ export const CaptionWordSchema = z.object({
   text: z.string(),
   start: z.number(),
   end: z.number(),
+  emphasis: z.boolean().optional(),
+  highlightType: z.enum(['context', 'punchline']).optional(),
+  isPunchline: z.boolean().optional(),
 });
 
 export const CaptionCueSchema = z.object({
@@ -19,6 +22,7 @@ export const CaptionCueSchema = z.object({
   end: z.number(),
   text: z.string(),
   words: z.array(CaptionWordSchema).default([]),
+  cueType: z.enum(['setup', 'hook', 'punchline', 'slang']).optional(),
 });
 
 export const ImageLayerSchema = z.object({
