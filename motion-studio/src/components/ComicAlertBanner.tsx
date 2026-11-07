@@ -1,11 +1,11 @@
 import React from 'react';
 import {
   AbsoluteFill,
-  spring,
   useCurrentFrame,
   useVideoConfig,
   interpolate,
 } from 'remotion';
+import { calculateAdaptiveMotion } from '../utils/motionTiming';
 import { VisualCue } from '../schema';
 
 export const ComicAlertBanner: React.FC<VisualCue> = ({
@@ -17,19 +17,14 @@ export const ComicAlertBanner: React.FC<VisualCue> = ({
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
 
-  const enter = spring({
-    frame,
-    fps,
-    config: { damping: 11, stiffness: 200, mass: 0.7 },
+  const { enter, scale } = calculateAdaptiveMotion(frame, fps, durationInFrames, {
+    maxEnterFrames: 11,
+    maxExitFrames: 8,
+    damping: 12,
+    stiffness: 220,
+    mass: 0.6,
   });
 
-  const exit = spring({
-    frame: frame - (durationInFrames - 8),
-    fps,
-    config: { damping: 160 },
-  });
-
-  const scale = Math.max(0, enter - exit);
   const slideX = interpolate(enter, [0, 1], [-100, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',

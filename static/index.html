@@ -6,7 +6,7 @@
   <title>Video Tuxedo — Professional Video Editing Helper Tools</title>
   <meta name="description" content="Video Tuxedo is a suite of video editing tools built to streamline your workflow. Generate timecode-accurate subtitles for DaVinci Resolve Free using local Whisper AI.">
   <link rel="stylesheet" href="/static/css/style.css?v=0.2.2">
-  <link rel="stylesheet" href="/static/css/editor.css?v=0.7.2">
+  <link rel="stylesheet" href="/static/css/editor.css?v=0.7.4">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🐧</text></svg>">
 </head>
 <body>
@@ -1856,6 +1856,12 @@
             </svg>
             Tools
           </button>
+          <button class="editor-icon-btn" id="editorToggleSidebarBtn" title="Toggle Step Sidebar (Cmd+B)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+              <line x1="9" y1="3" x2="9" y2="21"></line>
+            </svg>
+          </button>
           <div class="editor-title-wrap">
             <input type="text" class="editor-project-name" id="editorProjectName" value="Untitled Project" title="Click to rename" />
             <div class="editor-save-indicator">
@@ -1915,10 +1921,24 @@
           <!-- Populated by step renderers -->
         </div>
 
-        <!-- Center Player Stage -->
-        <div class="editor-stage">
-          <div class="editor-stage-canvas-wrap" id="editorStageCanvasWrap">
-            <div id="editorPlayerContainer"></div>
+        <!-- Center Player Stage (with Adaptive Wings for 9:16 Vertical Video) -->
+        <div class="editor-stage is-vertical" id="editorStage">
+          <!-- Wings & Canvas Layout Container -->
+          <div class="editor-stage-layout" id="editorStageLayout">
+            <!-- Stage Left Wing: Creator Tools & Safe Zones HUD -->
+            <aside class="stage-wing stage-wing-left" id="stageWingLeft" aria-label="Creator Tools HUD">
+              <!-- Rendered by StageWings.js -->
+            </aside>
+
+            <!-- Center Stage Canvas Wrap -->
+            <div class="editor-stage-canvas-wrap" id="editorStageCanvasWrap">
+              <div id="editorPlayerContainer"></div>
+            </div>
+
+            <!-- Stage Right Wing: Dynamic Contextual Step Inspector -->
+            <aside class="stage-wing stage-wing-right" id="stageWingRight" aria-label="Step Inspector">
+              <!-- Rendered by StageWings.js -->
+            </aside>
           </div>
 
           <!-- Floating Transport Controls -->
@@ -1941,10 +1961,26 @@
               </svg>
             </button>
             <span class="transport-timecode" id="transportTimecode">00:00:00:00</span>
-            <button class="transport-btn" id="btnTransportSafeZones" title="Toggle 9:16 Safe Zones">
+            <div class="transport-divider"></div>
+            <button class="transport-btn" id="btnTransportSafeZones" title="Toggle 9:16 Social Safe Zones">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                 <rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect>
                 <line x1="12" y1="18" x2="12.01" y2="18"></line>
+              </svg>
+            </button>
+            <button class="transport-btn active" id="btnToggleStudioWings" title="Toggle Vertical Studio Wings (W)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                <line x1="8" y1="3" x2="8" y2="21"></line>
+                <line x1="16" y1="3" x2="16" y2="21"></line>
+              </svg>
+            </button>
+            <button class="transport-btn" id="btnToggleTimelineHeight" title="Maximize Stage View (T)">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <polyline points="9 21 3 21 3 15"></polyline>
+                <line x1="21" y1="3" x2="14" y2="10"></line>
+                <line x1="3" y1="21" x2="10" y2="14"></line>
               </svg>
             </button>
             <button class="transport-btn" id="btnTransportMute" title="Toggle Mute">
@@ -2009,17 +2045,23 @@
   <script src="/static/js/subtitles.js?v=0.6.4"></script>
   <script src="/static/js/silence_cutter.js?v=0.6.4"></script>
   <script src="/static/js/magic_mask.js?v=0.6.4"></script>
-  <script src="/static/motion/player.bundle.js?v=0.7.2"></script>
+  <script src="/static/motion/player.bundle.js?v=0.7.6"></script>
   <script src="/static/js/motion_graphics.js?v=0.6.4"></script>
   <script src="/static/js/app.js?v=0.6.4"></script>
   <script type="module">
-    import { initEditor, loadProjectBySlug } from '/static/js/editor/editor.js?v=0.7.2';
+    import { initEditor, loadProjectBySlug } from '/static/js/editor/editor.js?v=0.7.6';
     window.initEditor = initEditor;
-    window.loadEditorProject = loadProjectBySlug;
-    if (window.location.hash.startsWith('#editor')) {
-      const slug = window.location.hash.replace('#editor', '').replace(/^\//, '').trim() || null;
-      initEditor(slug);
-    }
+    const handleEditorHash = () => {
+      if (window.location.hash.startsWith('#editor')) {
+        const clean = window.location.hash.replace('#editor', '').replace(/^\//, '').trim();
+        const parts = clean.split('/');
+        const slug = parts[0] || null;
+        const targetStep = parts[1] ? parseInt(parts[1], 10) : null;
+        initEditor(slug, targetStep);
+      }
+    };
+    window.addEventListener('hashchange', handleEditorHash);
+    handleEditorHash();
   </script>
 </body>
 </html>

@@ -3,32 +3,34 @@
  * Coordinates the Step Rail, Remotion Player, Timeline, Undo/Redo, and Autosave.
  */
 
-import { store } from './store.js?v=0.7.2';
-import { player } from './player.js?v=0.7.2';
-import { Timeline } from './timeline/Timeline.js?v=0.7.2';
-import { renderStepUpload } from './steps/upload.js?v=0.7.2';
-import { renderStepCut } from './steps/cut.js?v=0.7.2';
-import { renderStepSubtitles } from './steps/subtitles.js?v=0.7.2';
-import { renderStepCutout } from './steps/cutout.js?v=0.7.2';
-import { renderStepGraphics } from './steps/graphics.js?v=0.7.2';
-import { renderStepExport } from './steps/export.js?v=0.7.2';
-import { formatTimecode, showToast } from './ui.js?v=0.7.2';
+import { store } from './store.js?v=0.7.6';
+import { player } from './player.js?v=0.7.6';
+import { Timeline } from './timeline/Timeline.js?v=0.7.6';
+import { renderStepUpload } from './steps/upload.js?v=0.7.6';
+import { renderStepCut } from './steps/cut.js?v=0.7.6';
+import { renderStepSubtitles } from './steps/subtitles.js?v=0.7.6';
+import { renderStepCutout } from './steps/cutout.js?v=0.7.6';
+import { renderStepGraphics } from './steps/graphics.js?v=0.7.6';
+import { renderStepExport } from './steps/export.js?v=0.7.6';
+import { formatTimecode, showToast } from './ui.js?v=0.7.6';
+import { StageWings } from './stageWings.js?v=0.7.6';
 
 let timelineInstance = null;
+let stageWingsInstance = null;
 let isInitialized = false;
 
-export async function initEditor(slug = null) {
+export async function initEditor(slug = null, targetStep = null) {
   const viewEl = document.getElementById('editorToolView');
   if (!viewEl) return;
 
   if (isInitialized) {
     if (slug) {
-      await loadProjectBySlug(slug);
+      await loadProjectBySlug(slug, targetStep);
     } else {
       const curProj = store.getProject();
-      const targetStep = (curProj?.clips && curProj.clips.length > 0) ? 2 : 1;
-      store.setStep(targetStep);
-      renderActiveStep(targetStep);
+      const step = targetStep || ((curProj?.clips && curProj.clips.length > 0) ? 2 : 1);
+      store.setStep(step);
+      renderActiveStep(step);
     }
     return;
   }
@@ -43,6 +45,14 @@ export async function initEditor(slug = null) {
     player.mount(playerContainer);
   }
 
+  // Mount stage wings (Creator HUD & Dynamic Step Inspector)
+  const leftWing = document.getElementById('stageWingLeft');
+  const rightWing = document.getElementById('stageWingRight');
+  if (leftWing && rightWing) {
+    stageWingsInstance = new StageWings(leftWing, rightWing);
+    stageWingsInstance.mount();
+  }
+
   // Mount timeline
   const timelinePanel = document.getElementById('editorTimelinePanel');
   if (timelinePanel) {
@@ -55,6 +65,9 @@ export async function initEditor(slug = null) {
 
   // Wire Floating Transport Bar Controls
   wireTransportBar();
+
+  // Wire Global Keyboard Shortcuts
+  wireKeyboardShortcuts();
 
   // Subscribe to step changes
   store.subscribe('step:change', (stepNum) => {
@@ -99,7 +112,7 @@ export async function initEditor(slug = null) {
 
   // Load project if slug provided
   if (slug) {
-    await loadProjectBySlug(slug);
+    await loadProjectBySlug(slug, targetStep);
   } else {
     // Open Step 1 (Upload)
     store.setStep(1);
@@ -107,7 +120,7 @@ export async function initEditor(slug = null) {
   }
 }
 
-export async function loadProjectBySlug(slug) {
+export async function loadProjectBySlug(slug, targetStep = null) {
   try {
     const res = await fetch(`/api/editor/projects/${encodeURIComponent(slug)}`);
     if (!res.ok) throw new Error('Failed to load project');
@@ -131,8 +144,8 @@ export async function loadProjectBySlug(slug) {
       nameInput.value = proj.name || proj.slug;
     }
 
-    // Default to Step 2 if clips exist, else Step 1
-    const initialStep = (proj.clips && proj.clips.length > 0) ? 2 : 1;
+    // Default to Step 2 if clips exist, else Step 1 (or targetStep if requested)
+    const initialStep = targetStep || ((proj.clips && proj.clips.length > 0) ? 2 : 1);
     store.setStep(initialStep);
     renderActiveStep(initialStep);
   } catch (err) {
@@ -147,6 +160,17 @@ function wireTopBar() {
   document.getElementById('editorBackBtn')?.addEventListener('click', () => {
     if (window.switchView) {
       window.switchView('toolsView');
+    }
+  });
+
+  // Toggle Sidebar button
+  const toggleSidebarBtn = document.getElementById('editorToggleSidebarBtn');
+  toggleSidebarBtn?.addEventListener('click', () => {
+    const panel = document.getElementById('editorStepPanelContainer');
+    if (panel) {
+      const isCollapsed = panel.classList.toggle('collapsed');
+      toggleSidebarBtn.classList.toggle('active', isCollapsed);
+      showToast(isCollapsed ? 'Sidebar Collapsed (Focus Mode)' : 'Sidebar Restored', 'info');
     }
   });
 
@@ -199,6 +223,8 @@ function wireTransportBar() {
   const stepBackBtn = document.getElementById('btnTransportStepBack');
   const stepFwdBtn = document.getElementById('btnTransportStepFwd');
   const safeZonesBtn = document.getElementById('btnTransportSafeZones');
+  const wingsBtn = document.getElementById('btnToggleStudioWings');
+  const tlHeightBtn = document.getElementById('btnToggleTimelineHeight');
   const muteBtn = document.getElementById('btnTransportMute');
   const timecodeEl = document.getElementById('transportTimecode');
 
@@ -237,15 +263,74 @@ function wireTransportBar() {
     player.seek(newFrame / fps);
   });
 
+  // Safe Zones Mode Cycling
+  const safeModes = ['none', 'tiktok', 'reels', 'collarbone', 'grid'];
   safeZonesBtn?.addEventListener('click', () => {
-    const active = player.toggleSafeZones();
-    safeZonesBtn.style.color = active ? 'var(--vt-accent-coral)' : 'var(--vt-text-light)';
-    showToast(active ? '9:16 Safe Zones Visible' : 'Safe Zones Hidden', 'info');
+    if (stageWingsInstance) {
+      const curIdx = safeModes.indexOf(stageWingsInstance.activeSafeZone);
+      const nextMode = safeModes[(curIdx + 1) % safeModes.length];
+      stageWingsInstance.activeSafeZone = nextMode;
+      stageWingsInstance.renderLeftWing();
+      safeZonesBtn.classList.toggle('active', nextMode !== 'none');
+      showToast(`Safe Zones: ${nextMode.toUpperCase()}`, 'info');
+    } else {
+      const active = player.toggleSafeZones();
+      safeZonesBtn.style.color = active ? 'var(--vt-accent-coral)' : 'var(--vt-text-light)';
+    }
+  });
+
+  // Toggle Studio Wings
+  wingsBtn?.addEventListener('click', () => {
+    const stage = document.getElementById('editorStage');
+    if (stage) {
+      const isCollapsed = stage.classList.toggle('wings-collapsed');
+      wingsBtn.classList.toggle('active', !isCollapsed);
+      showToast(isCollapsed ? 'Studio Wings Hidden' : 'Vertical Studio Wings Visible', 'info');
+    }
+  });
+
+  // Toggle Timeline Height (Maximize Stage)
+  tlHeightBtn?.addEventListener('click', () => {
+    const tlPanel = document.getElementById('editorTimelinePanel');
+    if (tlPanel) {
+      const isCollapsed = tlPanel.classList.toggle('collapsed');
+      tlHeightBtn.classList.toggle('active', isCollapsed);
+      showToast(isCollapsed ? 'Stage Maximized (Timeline Compact)' : 'Timeline Restored', 'info');
+    }
   });
 
   muteBtn?.addEventListener('click', () => {
     const muted = player.toggleMute();
     muteBtn.style.color = muted ? '#EF4444' : 'var(--vt-text-light)';
+  });
+}
+
+function wireKeyboardShortcuts() {
+  window.addEventListener('keydown', (e) => {
+    // Ignore keyboard shortcuts when user is typing in form inputs or textareas
+    const activeEl = document.activeElement;
+    if (activeEl && (activeEl.tagName === 'INPUT' || activeEl.tagName === 'TEXTAREA' || activeEl.isContentEditable)) {
+      return;
+    }
+
+    // Toggle Sidebar: Cmd+B or Ctrl+B
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+      e.preventDefault();
+      document.getElementById('editorToggleSidebarBtn')?.click();
+      return;
+    }
+
+    // Toggle Studio Wings: W
+    if (e.key === 'w' || e.key === 'W') {
+      document.getElementById('btnToggleStudioWings')?.click();
+      return;
+    }
+
+    // Toggle Timeline Maximize: T
+    if (e.key === 't' || e.key === 'T') {
+      document.getElementById('btnToggleTimelineHeight')?.click();
+      return;
+    }
   });
 }
 

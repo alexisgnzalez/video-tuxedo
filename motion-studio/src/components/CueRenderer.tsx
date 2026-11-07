@@ -9,7 +9,29 @@ import { ModernistPlate } from './ModernistPlate';
 import { EditorialLowerThird } from './EditorialLowerThird';
 import { SubtlePill } from './SubtlePill';
 
-export const renderCueComponent = (cue: VisualCue) => {
+export class CueErrorBoundary extends React.Component<
+  { fallback?: React.ReactNode; children: React.ReactNode },
+  { hasError: boolean }
+> {
+  state = { hasError: false };
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any) {
+    console.error('Motion cue rendering error:', error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback || null;
+    }
+    return this.props.children;
+  }
+}
+
+const renderCueComponentInner = (cue: VisualCue) => {
   const mergedProps = (cue as any).props ? { ...(cue as any).props, ...cue } : cue;
   const comp = (cue.component as string) || '';
 
@@ -48,13 +70,22 @@ export const renderCueComponent = (cue: VisualCue) => {
   }
 };
 
+export const renderCueComponent = (cue: VisualCue) => {
+  return (
+    <CueErrorBoundary>
+      {renderCueComponentInner(cue)}
+    </CueErrorBoundary>
+  );
+};
+
 export const normalizeSfxPath = (rawSfx?: string): string => {
   if (!rawSfx || rawSfx === 'none') return '';
   let clean = rawSfx.replace(/^\/+/, '').replace(/^public\//, '');
   if (!clean.startsWith('sfx/')) {
     clean = `sfx/${clean}`;
   }
-  if (!clean.endsWith('.mp3') && !clean.endsWith('.wav')) {
+  const hasExt = /\.(wav|mp3|aif|aiff|mp4|m4a)$/i.test(clean);
+  if (!hasExt) {
     clean = `${clean}.mp3`;
   }
   return clean;
@@ -69,7 +100,7 @@ export const getCueSfxFile = (cue: VisualCue): string | undefined => {
     return (cue as any).props.sfxFile;
   }
 
-  // 3. sfx array (e.g. { file: 'whoosh.mp3' } or { id: 'whoosh.mp3' })
+  // 3. sfx array (e.g. { file: '...' } or { id: '...' })
   if ((cue as any).sfx && Array.isArray((cue as any).sfx) && (cue as any).sfx.length > 0) {
     const firstSfx = (cue as any).sfx[0];
     if (firstSfx && firstSfx.file && firstSfx.file !== 'none') return firstSfx.file;
@@ -81,43 +112,53 @@ export const getCueSfxFile = (cue: VisualCue): string | undefined => {
     return undefined;
   }
 
-  // 4. Intelligent component-type fallbacks so titles and graphics always have punchy audio
+  // 4. Intelligent DaVinci SFX library fallbacks for motion graphics
   const comp = (cue.component as string) || '';
   switch (comp) {
     case 'sandwich_text':
     case 'KineticTitleBehind':
+      return 'davinci/WHOOSHES/Whoosh 17 (fast).wav';
+
     case 'kinetic_header':
     case 'KineticHeader':
-      return 'whoosh.mp3';
+      return 'davinci/WHOOSHES/Whoosh 26 (whip).wav';
 
     case 'punchline_card':
     case 'PunchlinePopup':
-      return 'pop.mp3';
+      return 'davinci/2. Transition Noises/2. Impacts/Impact 4 (good bite).wav';
 
     case 'subtle_pill':
     case 'SubtlePill':
     case 'status_badge':
-      return 'ding.mp3';
+      return 'davinci/5. Miscellaneous/Ding Sound Effect.mp3';
 
     case 'ComicAlertBanner':
-      return 'vine_boom.mp3';
+      return 'davinci/2. Transition Noises/2. Impacts/Impact 1 (fear).wav';
 
     case 'modernist_plate':
     case 'ModernistPlate':
+      return 'davinci/2. Transition Noises/4. Twirls/Twirl 8.wav';
+
     case 'lower_third':
     case 'EditorialLowerThird':
-      return 'pop.mp3';
+      return 'davinci/Whoosh-pass by/MA_Amenteramco_Whoosh_Pass-By_1.wav';
 
     default:
-      return 'pop.mp3';
+      return 'davinci/2. Transition Noises/2. Impacts/Impact 4 (good bite).wav';
   }
 };
 
 export const getSfxVolume = (sfxFile?: string): number => {
   if (!sfxFile || sfxFile === 'none') return 0;
-  if (sfxFile.includes('vine_boom')) return 0.50;
-  if (sfxFile.includes('ding')) return 0.65;
-  if (sfxFile.includes('pop')) return 0.70;
-  if (sfxFile.includes('whoosh')) return 0.65;
-  return 0.60;
+  const lower = sfxFile.toLowerCase();
+  if (lower.includes('vine_boom')) return 0.50;
+  if (lower.includes('ding')) return 0.65;
+  if (lower.includes('pop')) return 0.70;
+  if (lower.includes('whoosh')) return 0.65;
+  if (lower.includes('impact')) return 0.60;
+  if (lower.includes('punch')) return 0.65;
+  if (lower.includes('camera')) return 0.70;
+  if (lower.includes('typing')) return 0.55;
+  if (lower.includes('twirl')) return 0.60;
+  return 0.65;
 };

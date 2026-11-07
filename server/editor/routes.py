@@ -647,3 +647,11 @@ def download_zip(slug: str):
     zip_path = export_project_zip(slug)
     return FileResponse(path=str(zip_path), filename=f"{slug}_bundle.zip", media_type="application/zip")
 
+
+@router.api_route("/sfx/library", methods=["GET", "HEAD"])
+def get_sfx_library(refresh: bool = False) -> Dict[str, Any]:
+    """Returns the full categorized catalog of the DaVinci Resolve SFX library."""
+    from server.editor.sfx import get_sfx_catalog
+    return get_sfx_catalog(force_refresh=refresh)
+
+

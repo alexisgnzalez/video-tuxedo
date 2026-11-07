@@ -1,11 +1,11 @@
 import React from 'react';
 import {
   AbsoluteFill,
-  spring,
   useCurrentFrame,
   useVideoConfig,
   interpolate,
 } from 'remotion';
+import { calculateAdaptiveMotion } from '../utils/motionTiming';
 
 interface LowerThirdProps {
   headlineText?: string;
@@ -29,22 +29,28 @@ export const EditorialLowerThird: React.FC<LowerThirdProps> = (cueProps) => {
   const headline = cueProps.props?.headlineText || cueProps.headlineText || 'Alexis González';
   const subtext = cueProps.props?.subText || cueProps.subText || 'Software Architect';
 
-  const enter = spring({
-    frame,
-    fps,
-    config: { damping: 15, stiffness: 160 },
+  const { enter, scale } = calculateAdaptiveMotion(frame, fps, durationInFrames, {
+    maxEnterFrames: 11,
+    maxExitFrames: 8,
+    damping: 14,
+    stiffness: 180,
   });
 
-  const exit = spring({
-    frame: frame - (durationInFrames - 8),
-    fps,
-    config: { damping: 200 },
+  const slideY = interpolate(enter, [0, 1], [40, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
   });
 
-  const scale = Math.max(0, enter - exit);
-  const slideY = interpolate(enter, [0, 1], [40, 0]);
-
-  const bottomOffset = cueProps.placement?.offsetY || 320;
+  let bottomOffset = cueProps.placement?.offsetY || 320;
+  if (cueProps.placement?.y !== undefined) {
+    bottomOffset = Math.max(100, 1920 - cueProps.placement.y - 120);
+  } else if (cueProps.placement?.position === 'collarbone') {
+    bottomOffset = 620;
+  } else if (cueProps.placement?.position === 'top') {
+    bottomOffset = 1450;
+  } else if (cueProps.placement?.position === 'center') {
+    bottomOffset = 900;
+  }
 
   return (
     <AbsoluteFill

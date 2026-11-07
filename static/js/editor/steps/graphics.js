@@ -2,14 +2,43 @@
  * Tuxedo Editor Step 5: Multi-Style Motion Graphics & B-Roll Overlays
  */
 
-import { store } from '../store.js?v=0.7.2';
-import { showToast } from '../ui.js';
+import { store } from '../store.js?v=0.7.6';
+import { showToast } from '../ui.js?v=0.7.6';
+import { fetchSfxCatalog, playSfxAudition, buildSfxSelectOptions } from '../sfxLibrary.js?v=0.7.6';
+
+let currentSfxCatalog = null;
 
 export async function renderStepGraphics(container) {
   const proj = store.getProject();
   if (!proj) {
-    container.innerHTML = '<div class="step-panel-inner"><p>Please upload a video first.</p></div>';
+    container.innerHTML = `
+      <div class="step-panel-inner">
+        <div class="step-header">
+          <div class="step-eyebrow">Step 5 of 6</div>
+          <h2 class="step-title">Graphics & Overlays</h2>
+          <p class="step-desc">Open an existing project or upload footage to edit motion graphics.</p>
+        </div>
+        <div style="background: var(--vt-bg-subtle); border: 1px solid var(--vt-border); border-radius: 8px; padding: 18px; text-align: center; display: flex; flex-direction: column; gap: 10px;">
+          <span style="font-size: 28px;">🎬</span>
+          <span style="font-size: 13px; font-weight: 600;">No Active Project Selected</span>
+          <p style="font-size: 11px; color: var(--vt-text-muted); margin: 0;">Select a project from your library in Step 1 to begin editing titles and sandwich effects.</p>
+          <button class="vt-btn-primary" id="btnStep5BackToUpload" style="font-size: 12px; margin-top: 4px;">
+            &larr; Open Project in Step 1
+          </button>
+        </div>
+      </div>
+    `;
+    container.querySelector('#btnStep5BackToUpload')?.addEventListener('click', () => store.setStep(1));
     return;
+  }
+
+  // Pre-load DaVinci SFX library if not yet cached
+  if (!currentSfxCatalog) {
+    try {
+      currentSfxCatalog = await fetchSfxCatalog();
+    } catch (e) {
+      console.warn('Failed to pre-load DaVinci SFX catalog:', e);
+    }
   }
 
   // Fetch registered styles from server
@@ -139,33 +168,132 @@ function renderOverlayItems(container, styles = []) {
       name: item.component?.replace(/_/g, ' ')?.toUpperCase() || 'Graphic Cue',
     };
 
+    const startVal = item.start !== undefined ? item.start : (item.startTime || 0);
+    const endVal = item.end !== undefined ? item.end : (item.endTime || (startVal + 2.5));
+    const durVal = Math.max(0.2, endVal - startVal);
+    const currentPos = item.placement?.position || 'top';
+    const currentY = item.placement?.y ?? item.placement?.offsetY ?? (currentPos === 'collarbone' ? 1350 : currentPos === 'top' ? 240 : currentPos === 'lower' ? 1550 : 960);
+
+    const textContent = `${item.props?.headlineText || ''} ${item.props?.subText || ''}`.trim();
+    const smartDur = Math.min(6.0, Math.max(1.5, Math.round((1.1 + (textContent.length / 15)) * 10) / 10));
+    const curSfx = item.sfxFile || (typeof item.sfx === 'string' ? item.sfx : (Array.isArray(item.sfx) && item.sfx[0]?.file ? item.sfx[0].file : ''));
+
     const el = document.createElement('div');
+    el.className = 'editor-overlay-card';
     el.style.background = 'var(--vt-bg-surface)';
     el.style.border = '1px solid var(--vt-border)';
-    el.style.borderRadius = '6px';
-    el.style.padding = '8px 10px';
+    el.style.borderRadius = '8px';
+    el.style.padding = '10px 12px';
     el.style.display = 'flex';
     el.style.flexDirection = 'column';
-    el.style.gap = '6px';
+    el.style.gap = '8px';
     el.style.fontSize = '12px';
+    el.style.boxShadow = '0 1px 3px rgba(0,0,0,0.05)';
 
     el.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-weight: 600; color: #D97706; text-transform: uppercase; font-size: 11px;">
-          ${compDef.name || item.component}
+        <span style="font-weight: 700; color: #D97706; text-transform: uppercase; font-size: 11px; display: flex; align-items: center; gap: 4px;">
+          <span>✨</span> ${compDef.name || item.component}
         </span>
-        <button class="del-item-btn" style="background: none; border: none; color: #EF4444; cursor: pointer; font-size: 11px;">Delete</button>
+        <button class="del-item-btn" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #DC2626; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-size: 11px; font-weight: 600;">🗑️ Eliminate</button>
       </div>
+
+      <!-- Text Inputs -->
       <input type="text" class="editor-input headline-text-input" value="${(item.props?.headlineText || '').replace(/"/g, '&quot;')}" placeholder="Headline Text..." />
       <input type="text" class="editor-input subtext-input" value="${(item.props?.subText || '').replace(/"/g, '&quot;')}" placeholder="Subtitle / Kicker text (optional)..." style="font-size: 11px;" />
+
+      <!-- Timing & Duration (When it appears & duration) -->
+      <div style="background: rgba(0,0,0,0.02); border: 1px solid var(--vt-border); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+          <span style="font-size: 11px; font-weight: 600; color: var(--vt-text-primary);">⏱️ Timing & Readability</span>
+          <div style="display: flex; gap: 4px;">
+            <button class="btn-snap-playhead" style="font-size: 10px; background: rgba(245, 158, 11, 0.15); border: 1px solid rgba(245, 158, 11, 0.3); color: #B45309; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-weight: 600;">⏱️ Snap Playhead</button>
+            <button class="btn-smart-read" style="font-size: 10px; background: rgba(59, 130, 246, 0.15); border: 1px solid rgba(59, 130, 246, 0.3); color: #2563EB; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-weight: 600;" title="Auto-calculate optimal reading time based on 15 Characters Per Second">⚡ Smart Read (${smartDur.toFixed(1)}s)</button>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 10px; color: var(--vt-text-muted);">Starts At (s)</span>
+            <input type="number" step="0.1" min="0" class="editor-input item-start-input" value="${startVal.toFixed(1)}" style="padding: 4px 6px; font-size: 11px;" />
+          </div>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 10px; color: var(--vt-text-muted);">Duration (s)</span>
+            <input type="number" step="0.1" min="0.6" max="30" class="editor-input item-dur-input" value="${durVal.toFixed(1)}" style="padding: 4px 6px; font-size: 11px;" />
+          </div>
+        </div>
+      </div>
+
+      <!-- Placement & Coordinates (Move them around) -->
+      <div style="background: rgba(0,0,0,0.02); border: 1px solid var(--vt-border); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
+        <span style="font-size: 11px; font-weight: 600; color: var(--vt-text-primary);">🎯 Placement & Position</span>
+        <div style="display: flex; gap: 6px;">
+          <select class="editor-select item-pos-select" style="flex: 1; font-size: 11px; padding: 3px 6px;">
+            <option value="top" ${currentPos === 'top' ? 'selected' : ''}>Top Hook Canopy</option>
+            <option value="collarbone" ${currentPos === 'collarbone' ? 'selected' : ''}>Collarbone Safe Zone</option>
+            <option value="center" ${currentPos === 'center' ? 'selected' : ''}>Dead Center</option>
+            <option value="lower" ${currentPos === 'lower' || currentPos === 'lower-third' ? 'selected' : ''}>Lower Third</option>
+            <option value="bottom-right" ${currentPos === 'bottom-right' ? 'selected' : ''}>Bottom-Right Popup</option>
+            <option value="bottom-left" ${currentPos === 'bottom-left' ? 'selected' : ''}>Bottom-Left Popup</option>
+          </select>
+        </div>
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+          <span style="font-size: 10px; color: var(--vt-text-muted); min-width: 55px;">Height Y:</span>
+          <input type="range" class="editor-range item-y-slider" min="180" max="1700" step="10" value="${currentY}" style="flex: 1;" />
+          <span class="item-y-val" style="font-size: 10px; font-weight: 600; min-width: 45px; text-align: right;">${currentY}px</span>
+        </div>
+      </div>
+
+      <!-- Sound Effect (DaVinci SFX Library) -->
+      <div style="background: rgba(0,0,0,0.02); border: 1px solid var(--vt-border); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 11px; font-weight: 600; color: var(--vt-text-primary);">🔊 Motion Sound (DaVinci SFX)</span>
+          <button class="btn-audition-sfx" style="font-size: 10px; background: rgba(16, 185, 129, 0.15); border: 1px solid rgba(16, 185, 129, 0.3); color: #059669; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-weight: 600;" title="Audition this sound effect">▶ Audition</button>
+        </div>
+        <select class="editor-select item-sfx-select" style="font-size: 11px; padding: 3px 6px;">
+          ${buildSfxSelectOptions(currentSfxCatalog, curSfx)}
+        </select>
+      </div>
+
+      <!-- Sandwich Layer Position -->
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--vt-text-muted);">
-        <span>Layer Position:</span>
+        <span>Layer Depth:</span>
         <select class="editor-select z-select" style="font-size: 11px; padding: 2px 6px;">
-          <option value="behind" ${item.layer === 'behind' ? 'selected' : ''}>Behind Speaker (Sandwich)</option>
+          <option value="behind" ${item.layer === 'behind' ? 'selected' : ''}>Behind Speaker (3-Layer Sandwich)</option>
           <option value="front" ${item.layer === 'front' ? 'selected' : ''}>In Front of Speaker</option>
         </select>
       </div>
     `;
+
+    // Click card to select & show gizmo
+    el.addEventListener('click', (e) => {
+      if (e.target.closest('input') || e.target.closest('select') || e.target.closest('button')) return;
+      store.selectLayer(item.id);
+      if (window.editorPlayer) window.editorPlayer.renderGizmo(item.id);
+    });
+
+    // SFX select change
+    el.querySelector('.item-sfx-select')?.addEventListener('change', (e) => {
+      const selected = e.target.value;
+      item.sfxFile = selected;
+      item.sfx = selected;
+      store.triggerAutosave();
+      store.emit('change');
+      if (selected && selected !== 'none') {
+        playSfxAudition(selected, currentSfxCatalog);
+      }
+    });
+
+    // SFX audition button
+    el.querySelector('.btn-audition-sfx')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const sfxSelect = el.querySelector('.item-sfx-select');
+      const sfxPath = sfxSelect?.value || item.sfxFile || (typeof item.sfx === 'string' ? item.sfx : (Array.isArray(item.sfx) && item.sfx[0]?.file ? item.sfx[0].file : ''));
+      if (sfxPath && sfxPath !== 'none') {
+        playSfxAudition(sfxPath, currentSfxCatalog);
+      } else {
+        showToast('No SFX selected for this cue', 'info');
+      }
+    });
 
     // Headline change
     el.querySelector('.headline-text-input')?.addEventListener('input', (e) => {
@@ -183,6 +311,106 @@ function renderOverlayItems(container, styles = []) {
       store.emit('change');
     });
 
+    // Start time input (change when they appear)
+    el.querySelector('.item-start-input')?.addEventListener('change', (e) => {
+      const newStart = Math.max(0, parseFloat(e.target.value) || 0);
+      const curDur = (item.end || (startVal + 2.5)) - (item.start || startVal);
+      item.start = newStart;
+      item.end = newStart + Math.max(0.2, curDur);
+      if (item.startTime !== undefined) item.startTime = item.start;
+      if (item.endTime !== undefined) item.endTime = item.end;
+      store.triggerAutosave();
+      store.emit('change');
+      showToast(`Graphic appearance time: ${newStart.toFixed(1)}s`, 'info');
+    });
+
+    // Duration input (change duration)
+    el.querySelector('.item-dur-input')?.addEventListener('change', (e) => {
+      const newDur = Math.min(30.0, Math.max(0.6, parseFloat(e.target.value) || 1.5));
+      const curStart = item.start !== undefined ? item.start : startVal;
+      item.start = curStart;
+      item.end = curStart + newDur;
+      if (item.startTime !== undefined) item.startTime = item.start;
+      if (item.endTime !== undefined) item.endTime = item.end;
+      store.triggerAutosave();
+      store.emit('change');
+      showToast(`Graphic duration: ${newDur.toFixed(1)}s`, 'info');
+    });
+
+    // Smart reading duration button (15 CPS broadcast standard)
+    el.querySelector('.btn-smart-read')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const text = `${item.props?.headlineText || ''} ${item.props?.subText || ''}`.trim();
+      const calculatedDur = Math.min(6.0, Math.max(1.5, Math.round((1.1 + (text.length / 15)) * 10) / 10));
+      const curStart = item.start !== undefined ? item.start : startVal;
+      item.start = curStart;
+      item.end = curStart + calculatedDur;
+      if (item.startTime !== undefined) item.startTime = item.start;
+      if (item.endTime !== undefined) item.endTime = item.end;
+
+      const durInput = el.querySelector('.item-dur-input');
+      if (durInput) durInput.value = calculatedDur.toFixed(1);
+
+      store.triggerAutosave();
+      store.emit('change');
+      showToast(`Applied Smart Read Time: ${calculatedDur.toFixed(1)}s (${text.length} chars @ 15 CPS)`, 'success');
+    });
+
+    // Snap to playhead
+    el.querySelector('.btn-snap-playhead')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const playhead = store.getTime();
+      const curDur = (item.end || (startVal + 2.5)) - (item.start || startVal);
+      item.start = Math.round(playhead * 100) / 100;
+      item.end = Math.round((playhead + Math.max(0.6, curDur)) * 100) / 100;
+      if (item.startTime !== undefined) item.startTime = item.start;
+      if (item.endTime !== undefined) item.endTime = item.end;
+      store.triggerAutosave();
+      store.emit('change');
+      renderOverlayItems(container, styles);
+      showToast(`Graphic moved to playhead (${playhead.toFixed(1)}s)`, 'success');
+    });
+
+    // Placement preset select (move them around)
+    el.querySelector('.item-pos-select')?.addEventListener('change', (e) => {
+      const pos = e.target.value;
+      item.placement = item.placement || {};
+      item.placement.position = pos;
+      let newY = 960;
+      if (pos === 'top') newY = 240;
+      else if (pos === 'collarbone') newY = 1350;
+      else if (pos === 'center') newY = 960;
+      else if (pos === 'lower') newY = 1550;
+      else if (pos === 'bottom-right' || pos === 'bottom-left') newY = 1440;
+
+      item.placement.y = newY;
+      item.placement.offsetY = newY;
+
+      const slider = el.querySelector('.item-y-slider');
+      const valSpan = el.querySelector('.item-y-val');
+      if (slider) slider.value = newY;
+      if (valSpan) valSpan.textContent = `${newY}px`;
+
+      store.triggerAutosave();
+      store.emit('change');
+      if (window.editorPlayer) window.editorPlayer.renderGizmo(item.id);
+      showToast(`Position preset: ${pos}`, 'success');
+    });
+
+    // Vertical Y slider (move them around)
+    el.querySelector('.item-y-slider')?.addEventListener('input', (e) => {
+      const yVal = parseInt(e.target.value, 10);
+      item.placement = item.placement || {};
+      item.placement.y = yVal;
+      item.placement.offsetY = yVal;
+      const valSpan = el.querySelector('.item-y-val');
+      if (valSpan) valSpan.textContent = `${yVal}px`;
+
+      store.triggerAutosave();
+      store.emit('change');
+      if (window.editorPlayer) window.editorPlayer.renderGizmo(item.id);
+    });
+
     // Z-select change
     el.querySelector('.z-select')?.addEventListener('change', (e) => {
       item.layer = e.target.value;
@@ -190,12 +418,24 @@ function renderOverlayItems(container, styles = []) {
       store.emit('change');
     });
 
-    // Delete
-    el.querySelector('.del-item-btn')?.addEventListener('click', () => {
-      proj.graphics.items = proj.graphics.items.filter(g => g.id !== item.id);
-      renderOverlayItems(container, selectedStyle);
-      store.triggerAutosave();
-      store.emit('change');
+    // Delete / Eliminate button
+    el.querySelector('.del-item-btn')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const initialItems = [...(proj.graphics.items || [])];
+      const newItems = initialItems.filter(g => g.id !== item.id);
+      store.execute({
+        name: 'Eliminate Graphic',
+        do: () => {
+          proj.graphics.items = newItems;
+          if (store.selectedLayerId === item.id) store.selectLayer(null);
+        },
+        undo: () => {
+          proj.graphics.items = initialItems;
+          store.selectLayer(item.id);
+        },
+      });
+      renderOverlayItems(container, styles);
+      showToast('Graphic eliminated', 'info');
     });
 
     listEl.appendChild(el);
@@ -203,21 +443,47 @@ function renderOverlayItems(container, styles = []) {
 
   // Render Image Layers
   layers.forEach((layer) => {
+    const startVal = layer.start || 0;
+    const endVal = layer.end || (startVal + 3.0);
+    const durVal = Math.max(0.2, endVal - startVal);
+
     const el = document.createElement('div');
+    el.className = 'editor-overlay-card';
     el.style.background = 'var(--vt-bg-surface)';
     el.style.border = '1px solid var(--vt-border)';
-    el.style.borderRadius = '6px';
-    el.style.padding = '8px 10px';
+    el.style.borderRadius = '8px';
+    el.style.padding = '10px 12px';
     el.style.display = 'flex';
     el.style.flexDirection = 'column';
-    el.style.gap = '6px';
+    el.style.gap = '8px';
     el.style.fontSize = '12px';
 
     el.innerHTML = `
       <div style="display: flex; justify-content: space-between; align-items: center;">
-        <span style="font-weight: 600; color: #8B5CF6;">Image Layer</span>
-        <button class="del-layer-btn" style="background: none; border: none; color: #EF4444; cursor: pointer; font-size: 11px;">Delete</button>
+        <span style="font-weight: 700; color: #8B5CF6; display: flex; align-items: center; gap: 4px;">
+          <span>🖼️</span> Image Overlay Layer
+        </span>
+        <button class="del-layer-btn" style="background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.2); color: #DC2626; border-radius: 4px; padding: 2px 8px; cursor: pointer; font-size: 11px; font-weight: 600;">🗑️ Eliminate</button>
       </div>
+
+      <!-- Timing & Duration -->
+      <div style="background: rgba(0,0,0,0.02); border: 1px solid var(--vt-border); border-radius: 6px; padding: 8px; display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <span style="font-size: 11px; font-weight: 600; color: var(--vt-text-primary);">⏱️ Timing & Duration</span>
+          <button class="btn-snap-playhead-layer" style="font-size: 10px; background: rgba(139, 92, 246, 0.15); border: 1px solid rgba(139, 92, 246, 0.3); color: #7C3AED; padding: 2px 7px; border-radius: 4px; cursor: pointer; font-weight: 600;">⏱️ Snap to Playhead</button>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 10px; color: var(--vt-text-muted);">Starts At (s)</span>
+            <input type="number" step="0.1" min="0" class="editor-input layer-start-input" value="${startVal.toFixed(1)}" style="padding: 4px 6px; font-size: 11px;" />
+          </div>
+          <div style="flex: 1; display: flex; flex-direction: column; gap: 2px;">
+            <span style="font-size: 10px; color: var(--vt-text-muted);">Duration (s)</span>
+            <input type="number" step="0.1" min="0.2" class="editor-input layer-dur-input" value="${durVal.toFixed(1)}" style="padding: 4px 6px; font-size: 11px;" />
+          </div>
+        </div>
+      </div>
+
       <div style="display: flex; justify-content: space-between; align-items: center; font-size: 11px; color: var(--vt-text-muted);">
         <span>Layer Position:</span>
         <select class="editor-select layer-z-select" style="font-size: 11px; padding: 2px 6px;">
@@ -235,6 +501,36 @@ function renderOverlayItems(container, styles = []) {
       </div>
     `;
 
+    el.querySelector('.layer-start-input')?.addEventListener('change', (e) => {
+      const newStart = Math.max(0, parseFloat(e.target.value) || 0);
+      const curDur = (layer.end || (startVal + 3.0)) - (layer.start || startVal);
+      layer.start = newStart;
+      layer.end = newStart + Math.max(0.2, curDur);
+      store.triggerAutosave();
+      store.emit('change');
+    });
+
+    el.querySelector('.layer-dur-input')?.addEventListener('change', (e) => {
+      const newDur = Math.max(0.2, parseFloat(e.target.value) || 1);
+      const curStart = layer.start !== undefined ? layer.start : startVal;
+      layer.start = curStart;
+      layer.end = curStart + newDur;
+      store.triggerAutosave();
+      store.emit('change');
+    });
+
+    el.querySelector('.btn-snap-playhead-layer')?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const playhead = store.getTime();
+      const curDur = (layer.end || (startVal + 3.0)) - (layer.start || startVal);
+      layer.start = Math.round(playhead * 100) / 100;
+      layer.end = Math.round((playhead + Math.max(0.2, curDur)) * 100) / 100;
+      store.triggerAutosave();
+      store.emit('change');
+      renderOverlayItems(container, styles);
+      showToast(`Image layer moved to playhead (${playhead.toFixed(1)}s)`, 'success');
+    });
+
     el.querySelector('.layer-z-select')?.addEventListener('change', (e) => {
       layer.z = e.target.value;
       store.triggerAutosave();
@@ -248,10 +544,21 @@ function renderOverlayItems(container, styles = []) {
     });
 
     el.querySelector('.del-layer-btn')?.addEventListener('click', () => {
-      proj.layers = proj.layers.filter(l => l.id !== layer.id);
-      renderOverlayItems(container, selectedStyle);
-      store.triggerAutosave();
-      store.emit('change');
+      const initialLayers = [...(proj.layers || [])];
+      const newLayers = initialLayers.filter(l => l.id !== layer.id);
+      store.execute({
+        name: 'Eliminate Image Layer',
+        do: () => {
+          proj.layers = newLayers;
+          if (store.selectedLayerId === layer.id) store.selectLayer(null);
+        },
+        undo: () => {
+          proj.layers = initialLayers;
+          store.selectLayer(layer.id);
+        },
+      });
+      renderOverlayItems(container, styles);
+      showToast('Image layer eliminated', 'info');
     });
 
     listEl.appendChild(el);
@@ -314,6 +621,7 @@ function bindGraphicsEvents(container, styles) {
     };
 
     const curTime = store.getTime();
+    const defaultSfxChoice = compDef.defaultSfx || 'davinci/WHOOSHES/Whoosh 17 (fast).wav';
     const newGraphic = {
       id: `graphic_${Date.now()}`,
       component: compDef.id,
@@ -328,8 +636,9 @@ function bindGraphicsEvents(container, styles) {
         color: compDef.defaultProps?.color || curStyle?.palette?.primary || '#FFFFFF',
         fontSize: compDef.defaultProps?.fontSize || 80,
       },
-      sfx: compDef.defaultSfx && compDef.defaultSfx !== 'none'
-        ? [{ file: compDef.defaultSfx, offsetMs: 0 }]
+      sfxFile: defaultSfxChoice,
+      sfx: defaultSfxChoice && defaultSfxChoice !== 'none'
+        ? [{ file: defaultSfxChoice, offsetMs: 0 }]
         : [],
     };
 

@@ -163,14 +163,14 @@ def render_project_video(
         for item in project_dict["graphics"].get("items", []):
             if not item.get("sfxFile"):
                 comp = item.get("component", "")
-                if "sandwich" in comp or "KineticTitle" in comp or "kinetic" in comp:
-                    item["sfxFile"] = "whoosh.mp3"
-                elif "punchline" in comp or "Punchline" in comp:
-                    item["sfxFile"] = "pop.mp3"
-                elif "pill" in comp or "badge" in comp:
-                    item["sfxFile"] = "ding.mp3"
+                if "sandwich" in comp or "KineticTitle" in comp or "kinetic" in comp or "canopy" in comp:
+                    item["sfxFile"] = "davinci/WHOOSHES/Whoosh 17 (fast).wav"
+                elif "punchline" in comp or "Punchline" in comp or "impact" in comp:
+                    item["sfxFile"] = "davinci/2. Transition Noises/2. Impacts/Impact 4 (good bite).wav"
+                elif "pill" in comp or "badge" in comp or "ding" in comp:
+                    item["sfxFile"] = "davinci/5. Miscellaneous/Ding Sound Effect.mp3"
                 else:
-                    item["sfxFile"] = "pop.mp3"
+                    item["sfxFile"] = "davinci/WHOOSHES/Whoosh 26 (whip).wav"
 
     # Also resolve local filesystem paths for Remotion bundler
     project_dict["source"] = {

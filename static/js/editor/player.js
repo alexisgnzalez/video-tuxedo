@@ -3,8 +3,8 @@
  * Manages Remotion player instance and direct-manipulation transform handles.
  */
 
-import { store } from './store.js?v=0.7.2';
-import { getTimelineDuration } from './edl.js';
+import { store } from './store.js?v=0.7.5';
+import { getTimelineDuration } from './edl.js?v=0.7.5';
 
 class EditorPlayerManager {
   constructor() {
@@ -116,6 +116,7 @@ class EditorPlayerManager {
   updateStageAspectRatio() {
     const proj = store.getProject();
     const wrap = document.getElementById('editorStageCanvasWrap');
+    const stage = document.getElementById('editorStage');
     if (!wrap) return;
 
     const w = proj?.width || proj?.source?.width || 1080;
@@ -123,6 +124,16 @@ class EditorPlayerManager {
 
     let cssRatio = '9 / 16';
     const ratioVal = w / h;
+    const isVertical = ratioVal <= 1.05;
+
+    if (stage) {
+      if (isVertical) {
+        stage.classList.add('is-vertical');
+      } else {
+        stage.classList.remove('is-vertical');
+      }
+    }
+
     if (Math.abs(ratioVal - 9 / 16) < 0.05) {
       cssRatio = '9 / 16';
     } else if (Math.abs(ratioVal - 16 / 9) < 0.05) {
@@ -180,7 +191,7 @@ class EditorPlayerManager {
     return this.isMuted;
   }
 
-  // Direct Manipulation Transform Gizmo Layer
+  // Direct Manipulation Transform Gizmo Layer for Graphics & Layers
   renderGizmo(selectedLayerId) {
     if (!this.gizmoLayer) return;
     this.gizmoLayer.innerHTML = '';
@@ -188,41 +199,77 @@ class EditorPlayerManager {
 
     const proj = store.getProject();
     const layer = (proj?.layers || []).find(l => l.id === selectedLayerId);
-    if (!layer) return;
+    const graphic = (proj?.graphics?.items || []).find(g => g.id === selectedLayerId);
+    if (!layer && !graphic) return;
 
-    // Convert Remotion coordinates (1080x1920) to viewport percentage
+    const isGraphic = !!graphic;
+    const item = graphic || layer;
+
+    // Determine current position coordinates (1080x1920 space)
+    let posX = isGraphic ? (graphic.placement?.x ?? 540) : (layer.x ?? 540);
+    let posY = isGraphic
+      ? (graphic.placement?.y ?? graphic.placement?.offsetY ?? (graphic.placement?.position === 'collarbone' ? 1350 : graphic.placement?.position === 'top' ? 240 : graphic.placement?.position === 'lower' ? 1550 : 960))
+      : (layer.y ?? 960);
+
+    const title = isGraphic
+      ? (graphic.props?.headlineText || graphic.component?.replace(/_/g, ' ') || 'Graphic')
+      : (layer.name || 'Image Layer');
+
+    const themeColor = isGraphic ? '#F59E0B' : '#8B5CF6';
+
+    const widthPct = isGraphic ? 74 : Math.min(90, Math.max(20, (320 * (layer.scale || 1)) / 1080 * 100));
+    const heightPct = isGraphic ? 11 : Math.min(90, Math.max(15, (320 * (layer.scale || 1)) / 1920 * 100));
+    const leftPct = (posX / 1080) * 100 - (widthPct / 2);
+    const topPct = (posY / 1920) * 100 - (heightPct / 2);
+
     const gizmoBox = document.createElement('div');
+    gizmoBox.className = 'editor-canvas-gizmo';
     gizmoBox.style.position = 'absolute';
     gizmoBox.style.pointerEvents = 'auto';
-    gizmoBox.style.border = '2px solid #D97757';
+    gizmoBox.style.border = `2px dashed ${themeColor}`;
+    gizmoBox.style.backgroundColor = isGraphic ? 'rgba(245, 158, 11, 0.08)' : 'rgba(139, 92, 246, 0.08)';
+    gizmoBox.style.borderRadius = '8px';
     gizmoBox.style.boxSizing = 'border-box';
-    gizmoBox.style.cursor = 'move';
-
-    const widthPct = (300 * (layer.scale || 1)) / 1080 * 100;
-    const heightPct = (300 * (layer.scale || 1)) / 1920 * 100;
-    const leftPct = (layer.x / 1080) * 100 - (widthPct / 2);
-    const topPct = (layer.y / 1920) * 100 - (heightPct / 2);
+    gizmoBox.style.cursor = 'grab';
+    gizmoBox.style.zIndex = '45';
 
     gizmoBox.style.width = `${widthPct}%`;
     gizmoBox.style.height = `${heightPct}%`;
     gizmoBox.style.left = `${leftPct}%`;
     gizmoBox.style.top = `${topPct}%`;
 
-    // Drag handling with pointer capture and RAF
+    gizmoBox.innerHTML = `
+      <div style="position: absolute; top: -24px; left: 0; background: ${themeColor}; color: #000; font-size: 10px; font-weight: 700; padding: 2px 8px; border-radius: 4px; display: flex; align-items: center; gap: 4px; pointer-events: none; white-space: nowrap; box-shadow: 0 2px 6px rgba(0,0,0,0.3);">
+        <span>${isGraphic ? '✨' : '🖼️'}</span>
+        <span>${title}</span>
+        <span style="opacity: 0.8; font-weight: 500;">(${posX}, ${posY})</span>
+      </div>
+      <div style="position: absolute; bottom: -20px; right: 0; font-size: 9px; color: ${themeColor}; font-weight: 600; pointer-events: none;">
+        Drag to reposition on canvas
+      </div>
+    `;
+
+    // Drag handling with pointer capture and smooth animation
     let startX = 0;
     let startY = 0;
-    let initialX = layer.x;
-    let initialY = layer.y;
+    let initialX = posX;
+    let initialY = posY;
+    let hasDragged = false;
 
     gizmoBox.addEventListener('pointerdown', (e) => {
       e.stopPropagation();
       gizmoBox.setPointerCapture(e.pointerId);
+      gizmoBox.style.cursor = 'grabbing';
       startX = e.clientX;
       startY = e.clientY;
-      initialX = layer.x;
-      initialY = layer.y;
+      initialX = posX;
+      initialY = posY;
+      hasDragged = false;
 
       const onPointerMove = (ev) => {
+        if (Math.abs(ev.clientX - startX) > 2 || Math.abs(ev.clientY - startY) > 2) {
+          hasDragged = true;
+        }
         if (this.rafId) cancelAnimationFrame(this.rafId);
         this.rafId = requestAnimationFrame(() => {
           const rect = this.container.getBoundingClientRect();
@@ -234,13 +281,21 @@ class EditorPlayerManager {
 
           gizmoBox.style.left = `${(newX / 1080) * 100 - (widthPct / 2)}%`;
           gizmoBox.style.top = `${(newY / 1920) * 100 - (heightPct / 2)}%`;
+
+          const tag = gizmoBox.querySelector('span:last-child');
+          if (tag) tag.textContent = `(${newX}, ${newY})`;
         });
       };
 
       const onPointerUp = (ev) => {
-        gizmoBox.releasePointerCapture(ev.pointerId);
+        try {
+          gizmoBox.releasePointerCapture(ev.pointerId);
+        } catch {}
+        gizmoBox.style.cursor = 'grab';
         window.removeEventListener('pointermove', onPointerMove);
         window.removeEventListener('pointerup', onPointerUp);
+
+        if (!hasDragged) return;
 
         const rect = this.container.getBoundingClientRect();
         const dxNorm = (ev.clientX - startX) / rect.width;
@@ -248,18 +303,40 @@ class EditorPlayerManager {
         const finalX = Math.round(initialX + dxNorm * 1080);
         const finalY = Math.round(initialY + dyNorm * 1920);
 
+        posX = finalX;
+        posY = finalY;
+
         // Commit to store with undo/redo
         store.execute({
-          name: 'Move Layer',
+          name: isGraphic ? `Move Graphic ${title}` : `Move Layer ${title}`,
           do: () => {
-            layer.x = finalX;
-            layer.y = finalY;
+            if (isGraphic) {
+              graphic.placement = graphic.placement || {};
+              graphic.placement.x = finalX;
+              graphic.placement.y = finalY;
+              graphic.placement.offsetY = finalY;
+            } else {
+              layer.x = finalX;
+              layer.y = finalY;
+            }
           },
           undo: () => {
-            layer.x = initialX;
-            layer.y = initialY;
+            if (isGraphic) {
+              graphic.placement = graphic.placement || {};
+              graphic.placement.x = initialX;
+              graphic.placement.y = initialY;
+              graphic.placement.offsetY = initialY;
+            } else {
+              layer.x = initialX;
+              layer.y = initialY;
+            }
           },
         });
+
+        // Re-render inspector & stage wings if active
+        if (window.stageWings) {
+          window.stageWings.renderRightWing(store.getStep());
+        }
       };
 
       window.addEventListener('pointermove', onPointerMove);

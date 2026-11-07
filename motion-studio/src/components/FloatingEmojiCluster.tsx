@@ -1,11 +1,11 @@
 import React from 'react';
 import {
   AbsoluteFill,
-  spring,
   useCurrentFrame,
   useVideoConfig,
   interpolate,
 } from 'remotion';
+import { calculateAdaptiveMotion } from '../utils/motionTiming';
 import { VisualCue } from '../schema';
 
 export const FloatingEmojiCluster: React.FC<VisualCue> = ({
@@ -17,21 +17,15 @@ export const FloatingEmojiCluster: React.FC<VisualCue> = ({
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
 
-  // Burst spring
-  const burst = spring({
-    frame,
-    fps,
-    config: { damping: 9, stiffness: 240, mass: 0.5 },
+  const { scale, isResting } = calculateAdaptiveMotion(frame, fps, durationInFrames, {
+    maxEnterFrames: 10,
+    maxExitFrames: 7,
+    damping: 10,
+    stiffness: 240,
+    mass: 0.5,
   });
 
-  const exit = spring({
-    frame: frame - (durationInFrames - 8),
-    fps,
-    config: { damping: 180 },
-  });
-
-  const scale = Math.max(0, burst - exit);
-  const floatY = Math.sin(frame / 3.0) * 12;
+  const floatY = isResting ? Math.sin(frame / 3.0) * 12 : 0;
 
   // Render multiple emojis orbiting
   const emojis = [emojiOrIcon, emojiOrIcon, emojiOrIcon];

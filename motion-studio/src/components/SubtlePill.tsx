@@ -1,10 +1,10 @@
 import React from 'react';
 import {
   AbsoluteFill,
-  spring,
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
+import { calculateAdaptiveMotion } from '../utils/motionTiming';
 
 interface SubtlePillProps {
   headlineText?: string;
@@ -28,21 +28,17 @@ export const SubtlePill: React.FC<SubtlePillProps> = (cueProps) => {
   const text = cueProps.props?.headlineText || cueProps.headlineText || 'CHAPTER 01';
   const color = cueProps.props?.color || '#D97757';
 
-  const pop = spring({
-    frame,
-    fps,
-    config: { damping: 12, stiffness: 200 },
+  const { scale } = calculateAdaptiveMotion(frame, fps, durationInFrames, {
+    maxEnterFrames: 10,
+    maxExitFrames: 7,
+    damping: 12,
+    stiffness: 220,
   });
 
-  const exit = spring({
-    frame: frame - (durationInFrames - 8),
-    fps,
-    config: { damping: 200 },
-  });
-
-  const scale = Math.max(0, pop - exit);
-
-  const topOffset = cueProps.placement?.offsetY || 200;
+  let topOffset = cueProps.placement?.y !== undefined ? cueProps.placement.y : (cueProps.placement?.offsetY || 200);
+  if (cueProps.placement?.position === 'collarbone') topOffset = 1350;
+  else if (cueProps.placement?.position === 'lower') topOffset = 1550;
+  else if (cueProps.placement?.position === 'center') topOffset = 960;
   const rightOffset = cueProps.placement?.offsetX || 60;
 
   return (

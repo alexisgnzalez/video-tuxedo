@@ -1,11 +1,11 @@
 import React from 'react';
 import {
   AbsoluteFill,
-  spring,
   useCurrentFrame,
   useVideoConfig,
   interpolate,
 } from 'remotion';
+import { calculateAdaptiveMotion } from '../utils/motionTiming';
 
 interface ModernistPlateProps {
   headlineText?: string;
@@ -35,20 +35,17 @@ export const ModernistPlate: React.FC<ModernistPlateProps> = (cueProps) => {
   const subtext = cueProps.props?.subText || cueProps.subText || 'CARACAS 1957';
   const terracotta = '#E2725B';
 
-  const pop = spring({
-    frame,
-    fps,
-    config: { damping: 14, stiffness: 180, mass: 0.7 },
+  const { enter, scale } = calculateAdaptiveMotion(frame, fps, durationInFrames, {
+    maxEnterFrames: 11,
+    maxExitFrames: 8,
+    damping: 14,
+    stiffness: 180,
   });
 
-  const exit = spring({
-    frame: frame - (durationInFrames - 8),
-    fps,
-    config: { damping: 200 },
+  const slideX = interpolate(enter, [0, 1], [-80, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
   });
-
-  const scale = Math.max(0, pop - exit);
-  const slideX = interpolate(pop, [0, 1], [-80, 0]);
 
   const bottomOffset = cueProps.placement?.offsetY || 380;
   const leftOffset = cueProps.placement?.offsetX || 60;

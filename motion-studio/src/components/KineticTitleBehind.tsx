@@ -6,33 +6,29 @@ import {
   useVideoConfig,
   interpolate,
 } from 'remotion';
-import { VisualCue } from '../schema';
+import { calculateAdaptiveMotion } from '../utils/motionTiming';
 
 export const KineticTitleBehind: React.FC<any> = (cue) => {
   const headline = cue.props?.headlineText || cue.headlineText || 'NARRATIVE HOOK';
   const color = cue.props?.color || cue.accentColor || '#FFE600';
-  const fontSize = cue.props?.fontSize || 140;
-  const topOffset = cue.placement?.offsetY || 220;
+  const fontSize = cue.props?.fontSize || 132;
+  let topOffset = cue.placement?.y !== undefined ? cue.placement.y : (cue.placement?.offsetY || 220);
+  if (cue.placement?.position === 'collarbone') topOffset = 1250;
+  else if (cue.placement?.position === 'center') topOffset = 850;
+  else if (cue.placement?.position === 'lower') topOffset = 1450;
 
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
 
-  // Snappy entrance spring
-  const enter = spring({
-    frame,
-    fps,
-    config: { damping: 11, stiffness: 180, mass: 0.7 },
+  // Adaptive timing: strict non-overlapping phases with guaranteed dwell window
+  const { enter, scale } = calculateAdaptiveMotion(frame, fps, durationInFrames, {
+    maxEnterFrames: 12,
+    maxExitFrames: 8,
+    damping: 12,
+    stiffness: 200,
   });
 
-  // Clean exit spring in the final 10 frames
-  const exit = spring({
-    frame: frame - (durationInFrames - 10),
-    fps,
-    config: { damping: 20, stiffness: 220 },
-  });
-
-  const scale = enter - exit;
-  const translateY = interpolate(enter, [0, 1], [120, 0], {
+  const translateY = interpolate(enter, [0, 1], [100, 0], {
     extrapolateLeft: 'clamp',
     extrapolateRight: 'clamp',
   });

@@ -1,11 +1,11 @@
 import React from 'react';
 import {
   AbsoluteFill,
-  spring,
   useCurrentFrame,
   useVideoConfig,
   interpolate,
 } from 'remotion';
+import { calculateAdaptiveMotion } from '../utils/motionTiming';
 
 interface KineticHeaderProps {
   headlineText?: string;
@@ -39,25 +39,27 @@ export const KineticHeader: React.FC<KineticHeaderProps> = (cueProps) => {
   const terracotta = '#E2725B';
   const avilaNavy = '#2B4C7E';
 
-  // Kinetic spring in
-  const enterSpring = spring({
-    frame,
-    fps,
-    config: { damping: 14, stiffness: 140, mass: 0.8 },
+  // Adaptive timing: snappy entrance, guaranteed static reading window, smooth exit
+  const { enter, scale: progress } = calculateAdaptiveMotion(frame, fps, durationInFrames, {
+    maxEnterFrames: 12,
+    maxExitFrames: 8,
+    damping: 14,
+    stiffness: 180,
   });
 
-  // Smooth exit
-  const exitSpring = spring({
-    frame: frame - (durationInFrames - 10),
-    fps,
-    config: { damping: 20, stiffness: 200 },
+  const slideY = interpolate(enter, [0, 1], [-60, 0], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
+  });
+  const barWidth = interpolate(enter, [0, 1], [0, 100], {
+    extrapolateLeft: 'clamp',
+    extrapolateRight: 'clamp',
   });
 
-  const progress = Math.max(0, enterSpring - exitSpring);
-  const slideY = interpolate(progress, [0, 1], [-60, 0]);
-  const barWidth = interpolate(progress, [0, 1], [0, 100]);
-
-  const topOffset = cueProps.placement?.offsetY || 240;
+  let topOffset = cueProps.placement?.y !== undefined ? cueProps.placement.y : (cueProps.placement?.offsetY || 240);
+  if (cueProps.placement?.position === 'collarbone') topOffset = 1250;
+  else if (cueProps.placement?.position === 'center') topOffset = 850;
+  else if (cueProps.placement?.position === 'lower') topOffset = 1450;
 
   return (
     <AbsoluteFill

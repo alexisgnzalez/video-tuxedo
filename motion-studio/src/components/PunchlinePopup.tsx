@@ -5,7 +5,7 @@ import {
   useCurrentFrame,
   useVideoConfig,
 } from 'remotion';
-import { VisualCue } from '../schema';
+import { calculateAdaptiveMotion } from '../utils/motionTiming';
 
 export const PunchlinePopup: React.FC<any> = (cue) => {
   const headline = cue.props?.headlineText || cue.headlineText || 'TRÁGAME TIERRA 💀';
@@ -16,31 +16,46 @@ export const PunchlinePopup: React.FC<any> = (cue) => {
   const frame = useCurrentFrame();
   const { fps, durationInFrames } = useVideoConfig();
 
-  const pop = spring({
-    frame,
-    fps,
-    config: { damping: 10, stiffness: 220, mass: 0.6 },
+  const { scale, isResting } = calculateAdaptiveMotion(frame, fps, durationInFrames, {
+    maxEnterFrames: 10,
+    maxExitFrames: 7,
+    damping: 11,
+    stiffness: 240,
+    mass: 0.5,
   });
 
-  const exit = spring({
-    frame: frame - (durationInFrames - 8),
-    fps,
-    config: { damping: 200 },
-  });
+  const wiggle = isResting ? Math.sin(frame / 2.5) * 3 : 0; // Gentle comedic wobble only during dwell window
 
-  const scale = Math.max(0, pop - exit);
-  const wiggle = Math.sin(frame / 2.5) * 4; // subtle comedic wobble
+  const customY = cue.placement?.y !== undefined ? cue.placement.y : (cue.placement?.offsetY !== undefined ? cue.placement.offsetY : undefined);
+  const customX = cue.placement?.x !== undefined ? cue.placement.x : (cue.placement?.offsetX !== undefined ? cue.placement.offsetX : undefined);
 
-  const positionStyle: React.CSSProperties =
-    position === 'bottom-left'
-      ? { bottom: 480, left: 60 }
-      : position === 'bottom-right'
-      ? { bottom: 480, right: 60 }
-      : position === 'top'
-      ? { top: 320, left: '50%', transform: `translateX(-50%) scale(${scale}) rotate(${wiggle}deg)` }
-      : { top: '45%', left: '50%', transform: `translate(-50%, -50%) scale(${scale}) rotate(${wiggle}deg)` };
+  let positionStyle: React.CSSProperties;
+  let isCentered = false;
 
-  const isCentered = position === 'top' || position === 'center';
+  if (customY !== undefined) {
+    if (customX !== undefined) {
+      positionStyle = { top: customY, left: customX };
+    } else {
+      isCentered = true;
+      positionStyle = { top: customY, left: '50%', transform: `translateX(-50%) scale(${scale}) rotate(${wiggle}deg)` };
+    }
+  } else if (position === 'collarbone') {
+    isCentered = true;
+    positionStyle = { bottom: 620, left: '50%', transform: `translateX(-50%) scale(${scale}) rotate(${wiggle}deg)` };
+  } else if (position === 'lower' || position === 'lower-third') {
+    isCentered = true;
+    positionStyle = { bottom: 340, left: '50%', transform: `translateX(-50%) scale(${scale}) rotate(${wiggle}deg)` };
+  } else if (position === 'bottom-left') {
+    positionStyle = { bottom: 480, left: 60 };
+  } else if (position === 'bottom-right') {
+    positionStyle = { bottom: 480, right: 60 };
+  } else if (position === 'top') {
+    isCentered = true;
+    positionStyle = { top: 320, left: '50%', transform: `translateX(-50%) scale(${scale}) rotate(${wiggle}deg)` };
+  } else {
+    isCentered = true;
+    positionStyle = { top: '45%', left: '50%', transform: `translate(-50%, -50%) scale(${scale}) rotate(${wiggle}deg)` };
+  }
 
   return (
     <AbsoluteFill style={{ pointerEvents: 'none' }}>

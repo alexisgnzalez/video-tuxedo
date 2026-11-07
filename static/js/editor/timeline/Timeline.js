@@ -53,6 +53,12 @@ export class Timeline {
         <div class="timeline-tools-right">
           <span style="font-size: 11px; color: var(--vt-text-muted);">Zoom</span>
           <input type="range" class="editor-range" id="tlZoomSlider" min="30" max="250" value="100" style="width: 90px;" />
+          <button class="timeline-tool-btn" id="tlCollapseBtn" title="Toggle Timeline Height (T)" style="margin-left: 8px;">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 12 15 18 9"></polyline>
+            </svg>
+            <span id="tlCollapseLabel">Minimize</span>
+          </button>
         </div>
       </div>
 
@@ -127,6 +133,15 @@ export class Timeline {
     // Delete button
     const delBtn = this.container.querySelector('#tlDeleteBtn');
     delBtn?.addEventListener('click', () => this.deleteSelection());
+
+    // Minimize / Expand timeline button
+    const collapseBtn = this.container.querySelector('#tlCollapseBtn');
+    const collapseLbl = this.container.querySelector('#tlCollapseLabel');
+    collapseBtn?.addEventListener('click', () => {
+      const isCollapsed = this.container.classList.toggle('collapsed');
+      if (collapseLbl) collapseLbl.textContent = isCollapsed ? 'Expand' : 'Minimize';
+      collapseBtn.title = isCollapsed ? 'Expand Timeline (T)' : 'Minimize Timeline (T)';
+    });
 
     // Helper to calculate target seconds from a pointer event clamped to project duration
     const getClampedSecFromPointer = (ev) => {

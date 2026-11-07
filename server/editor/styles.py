@@ -31,8 +31,8 @@ STYLES: Dict[str, Dict[str, Any]] = {
                     "color": "#FFE600",
                     "fontSize": 96,
                 },
-                "allowedSfx": ["whoosh.mp3", "pop.mp3", "vine_boom.mp3", "none"],
-                "defaultSfx": "whoosh.mp3",
+                "allowedSfx": ["davinci/WHOOSHES/Whoosh 17 (fast).wav", "whoosh.mp3", "pop.mp3", "vine_boom.mp3", "none"],
+                "defaultSfx": "davinci/WHOOSHES/Whoosh 17 (fast).wav",
             },
             {
                 "id": "punchline_card",
@@ -45,8 +45,8 @@ STYLES: Dict[str, Dict[str, Any]] = {
                     "color": "#FF3366",
                     "fontSize": 64,
                 },
-                "allowedSfx": ["pop.mp3", "ding.mp3", "vine_boom.mp3", "none"],
-                "defaultSfx": "pop.mp3",
+                "allowedSfx": ["davinci/2. Transition Noises/2. Impacts/Impact 4 (good bite).wav", "pop.mp3", "ding.mp3", "vine_boom.mp3", "none"],
+                "defaultSfx": "davinci/2. Transition Noises/2. Impacts/Impact 4 (good bite).wav",
             },
             {
                 "id": "status_badge",
@@ -59,8 +59,8 @@ STYLES: Dict[str, Dict[str, Any]] = {
                     "color": "#FFFFFF",
                     "fontSize": 48,
                 },
-                "allowedSfx": ["pop.mp3", "none"],
-                "defaultSfx": "pop.mp3",
+                "allowedSfx": ["davinci/5. Miscellaneous/Ding Sound Effect.mp3", "pop.mp3", "none"],
+                "defaultSfx": "davinci/5. Miscellaneous/Ding Sound Effect.mp3",
             },
         ],
         "defaultSettings": {
@@ -94,8 +94,8 @@ STYLES: Dict[str, Dict[str, Any]] = {
                     "color": "#FAF9F5",
                     "fontSize": 88,
                 },
-                "allowedSfx": ["whoosh.mp3", "none"],
-                "defaultSfx": "whoosh.mp3",
+                "allowedSfx": ["davinci/WHOOSHES/Whoosh 26 (whip).wav", "whoosh.mp3", "none"],
+                "defaultSfx": "davinci/WHOOSHES/Whoosh 26 (whip).wav",
             },
             {
                 "id": "modernist_plate",
@@ -108,8 +108,8 @@ STYLES: Dict[str, Dict[str, Any]] = {
                     "color": "#E2725B",
                     "fontSize": 56,
                 },
-                "allowedSfx": ["pop.mp3", "none"],
-                "defaultSfx": "none",
+                "allowedSfx": ["davinci/2. Transition Noises/4. Twirls/Twirl 8.wav", "pop.mp3", "none"],
+                "defaultSfx": "davinci/2. Transition Noises/4. Twirls/Twirl 8.wav",
             },
         ],
         "defaultSettings": {
@@ -143,8 +143,8 @@ STYLES: Dict[str, Dict[str, Any]] = {
                     "color": "#FFFFFF",
                     "fontSize": 52,
                 },
-                "allowedSfx": ["none"],
-                "defaultSfx": "none",
+                "allowedSfx": ["davinci/Whoosh-pass by/MA_Amenteramco_Whoosh_Pass-By_1.wav", "none"],
+                "defaultSfx": "davinci/Whoosh-pass by/MA_Amenteramco_Whoosh_Pass-By_1.wav",
             },
             {
                 "id": "subtle_pill",
@@ -157,8 +157,8 @@ STYLES: Dict[str, Dict[str, Any]] = {
                     "color": "#D97757",
                     "fontSize": 40,
                 },
-                "allowedSfx": ["none"],
-                "defaultSfx": "none",
+                "allowedSfx": ["davinci/5. Miscellaneous/Ding Sound Effect.mp3", "none"],
+                "defaultSfx": "davinci/5. Miscellaneous/Ding Sound Effect.mp3",
             },
         ],
         "defaultSettings": {
@@ -329,7 +329,7 @@ def _extract_local_graphics(cues: List[Any], style_cfg: Dict[str, Any]) -> List[
             "color": primary_color,
             "fontSize": 96,
         },
-        "sfxFile": "whoosh.mp3",
+        "sfxFile": "davinci/WHOOSHES/Whoosh 17 (fast).wav",
     })
 
     # 2. Extract punchline cues where Gemini emphasis words or key phrases occur
@@ -357,7 +357,7 @@ def _extract_local_graphics(cues: List[Any], style_cfg: Dict[str, Any]) -> List[
                     "color": accent_color if count % 2 == 1 else primary_color,
                     "fontSize": 64,
                 },
-                "sfxFile": "pop.mp3",
+                "sfxFile": "davinci/2. Transition Noises/2. Impacts/Impact 4 (good bite).wav",
             })
             last_placed_time = end_t
             count += 1
